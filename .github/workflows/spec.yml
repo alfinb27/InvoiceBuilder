@@ -3,6 +3,7 @@ name: spec
 # Runs when the spec changes, and whenever an app core module changes (its bundled spec copy must stay in sync).
 on:
   push:
+    branches: [main]
     paths:
       - "spec/**"
       - "ios/Packages/InvoiceCore/**"
@@ -18,6 +19,7 @@ on:
       - "android/core/domain/**"
       - ".github/workflows/spec.yml"
       - "Makefile"
+  workflow_dispatch:
 
 jobs:
   validate:

@@ -1,9 +1,11 @@
 name: ios
 
 # InvoiceCore and InvoiceData run on macOS without a simulator (fast); InvoiceUI and the app's UI smoke tests run on
-# the first available iPhone simulator of the runner image.
+# the first available iPhone simulator of the runner image. Runs on pull requests and pushes to main only: macOS
+# minutes count 10x against a private repository's Actions allowance.
 on:
   push:
+    branches: [main]
     paths:
       - "ios/**"
       - "spec/**"
@@ -15,6 +17,7 @@ on:
       - "spec/**"
       - ".github/workflows/ios.yml"
       - "Makefile"
+  workflow_dispatch:
 
 jobs:
   test:
