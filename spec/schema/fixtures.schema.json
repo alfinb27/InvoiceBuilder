@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoicebuilder.local/spec/schema/fixtures.schema.json",
+  "title": "Golden fixture file",
+  "description": "A group of test cases of one kind. Both platforms load every file under spec/fixtures and assert that the actual output contains every key/value in `expected` (extra keys in actual output are allowed; arrays compare element by element, in order).",
+  "type": "object",
+  "required": ["kind", "description", "cases"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "kind": { "enum": ["tax", "numbering", "validation", "words", "format", "status", "rounding", "distribute", "upi"] },
+    "description": { "type": "string" },
+    "cases": { "type": "array", "minItems": 1 }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "const": "tax" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/taxCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "numbering" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/numberingCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "validation" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/validationCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "words" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/wordsCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "format" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/formatCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "status" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/statusCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "rounding" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/roundingCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "distribute" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/distributeCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "upi" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/upiCase" } } } } }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "decimal": { "type": "string", "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "minor": { "type": "integer" },
+    "discount": {
+      "oneOf": [
+        { "type": "object", "required": ["type", "value"], "additionalProperties": false,
+          "properties": { "type": { "const": "percent" }, "value": { "$ref": "#/$defs/decimal" } } },
+        { "type": "object", "required": ["type", "value"], "additionalProperties": false,
+          "properties": { "type": { "const": "amount" }, "value": { "$ref": "#/$defs/minor" } } }
+      ]
+    },
+    "taxCase": {
+      "type": "object",
+      "required": ["id", "reviewed", "explain", "config", "input", "expected"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "reviewed": { "type": "boolean" },
+        "explain": { "type": "string" },
+        "config": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*@[0-9]{4}-[0-9]{2}-[0-9]{2}$", "description": "<tax config id>@<configVersion>; must name a file in spec/tax (checked by validate.mjs)." },
+        "input": {
+          "type": "object",
+          "required": ["seller", "buyer", "draft"],
+          "additionalProperties": false,
+          "properties": {
+            "seller": {
+              "type": "object",
+              "required": ["registration", "country", "homeCurrency"],
+              "additionalProperties": false,
+              "properties": {
+                "registration": { "type": "string" }, "taxId": { "type": "string" }, "region": { "type": "string" },
+                "country": { "type": "string" }, "homeCurrency": { "type": "string" }, "lutReference": { "type": "string" },
+                "address": { "type": "string" }, "turnoverMinor": { "$ref": "#/$defs/minor" },
+                "customRates": { "type": "array" }
+              }
+            },
+            "buyer": {
+              "type": "object",
+              "required": ["isBusiness"],
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string" }, "address": { "type": "string" }, "country": { "type": "string" },
+                "region": { "type": "string" }, "taxId": { "type": "string" }, "isBusiness": { "type": "boolean" }
+              }
+            },
+            "draft": {
+              "type": "object",
+              "required": ["docType", "issueDate", "currency", "supplyType", "lines"],
+              "additionalProperties": false,
+              "properties": {
+                "docType": { "enum": ["invoice", "quote"] },
+                "issueDate": { "$ref": "#/$defs/date" }, "supplyDate": { "$ref": "#/$defs/date" },
+                "currency": { "type": "string" }, "exchangeRate": { "$ref": "#/$defs/decimal" },
+                "supplyType": { "type": "string" }, "placeOfSupply": { "type": "string" },
+                "reverseCharge": { "type": "boolean" }, "pricesIncludeTax": { "type": "boolean" },
+                "discount": { "$ref": "#/$defs/discount" }, "shipping": { "$ref": "#/$defs/minor" },
+                "roundOff": { "type": "boolean" },
+                "lines": {
+                  "type": "array", "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["quantity", "unitPrice", "rateId"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "description": { "type": "string" }, "productCode": { "type": "string" },
+                      "quantity": { "$ref": "#/$defs/decimal" }, "unitPrice": { "$ref": "#/$defs/minor" },
+                      "discount": { "$ref": "#/$defs/discount" }, "rateId": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "expected": { "type": "object", "minProperties": 1 }
+      }
+    },
+    "numberingCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": {
+          "type": "object", "required": ["pattern", "reset", "fiscalYearStart", "date", "seq"], "additionalProperties": false,
+          "properties": {
+            "pattern": { "type": "string" }, "reset": { "enum": ["never", "fiscalYear", "calendarYear"] },
+            "fiscalYearStart": { "type": "string" }, "date": { "$ref": "#/$defs/date" }, "seq": { "type": "integer", "minimum": 1 },
+            "maxLength": { "type": "integer" }, "allowedPattern": { "type": "string" }
+          }
+        },
+        "expected": {
+          "oneOf": [
+            { "type": "object", "required": ["number", "periodKey"], "additionalProperties": false,
+              "properties": { "number": { "type": "string" }, "periodKey": { "type": "string" } } },
+            { "type": "object", "required": ["error"], "additionalProperties": false,
+              "properties": { "error": { "enum": ["number_too_long", "number_invalid_chars"] } } }
+          ]
+        }
+      }
+    },
+    "validationCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": { "type": "object", "required": ["config", "format", "value"], "additionalProperties": false,
+          "properties": { "config": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*@[0-9]{4}-[0-9]{2}-[0-9]{2}$" }, "format": { "type": "string" }, "value": { "type": "string" } } },
+        "expected": { "type": "object", "required": ["valid"], "additionalProperties": false,
+          "properties": { "valid": { "type": "boolean" }, "normalized": { "type": "string" }, "region": { "type": "string" },
+            "error": { "enum": ["format", "checksum", "unknown_region"] } } }
+      }
+    },
+    "wordsCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": { "type": "object", "required": ["minor", "currency"], "additionalProperties": false,
+          "properties": { "minor": { "type": "integer", "minimum": 0 }, "currency": { "type": "string" } } },
+        "expected": { "type": "object", "required": ["text"], "additionalProperties": false, "properties": { "text": { "type": "string" } } }
+      }
+    },
+    "formatCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": { "type": "object", "required": ["op"], "additionalProperties": false,
+          "properties": { "op": { "enum": ["money", "percent", "quantity"] }, "minor": { "type": "integer" },
+            "currency": { "type": "string" }, "homeCurrency": { "type": "string" }, "value": { "$ref": "#/$defs/decimal" } } },
+        "expected": { "type": "object", "required": ["text"], "additionalProperties": false, "properties": { "text": { "type": "string" } } }
+      }
+    },
+    "statusCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": { "type": "object", "required": ["docType", "lifecycle", "total", "paid", "today"], "additionalProperties": false,
+          "properties": { "docType": { "enum": ["invoice", "quote"] }, "lifecycle": { "enum": ["draft", "issued", "void"] },
+            "total": { "type": "integer" }, "paid": { "type": "integer" }, "dueDate": { "$ref": "#/$defs/date" },
+            "validUntil": { "$ref": "#/$defs/date" }, "sentAt": { "type": "integer" },
+            "outcome": { "enum": ["accepted", "declined", "converted"] }, "today": { "$ref": "#/$defs/date" } } },
+        "expected": { "type": "object", "required": ["status"], "additionalProperties": false,
+          "properties": { "status": { "enum": ["draft", "issued", "sent", "partiallyPaid", "paid", "overdue", "void",
+            "open", "accepted", "declined", "expired", "converted"] }, "outstanding": { "type": "integer" } } }
+      }
+    },
+    "roundingCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": { "type": "object", "required": ["value", "mode"], "additionalProperties": false,
+          "properties": { "value": { "$ref": "#/$defs/decimal" }, "mode": { "enum": ["halfAwayFromZero", "halfEven", "towardZero"] } } },
+        "expected": { "type": "object", "required": ["result"], "additionalProperties": false, "properties": { "result": { "type": "integer" } } }
+      }
+    },
+    "distributeCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": { "type": "object", "required": ["total"], "additionalProperties": false,
+          "properties": { "total": { "type": "integer", "minimum": 0 },
+            "exacts": { "type": "array", "items": { "$ref": "#/$defs/decimal" } },
+            "weights": { "type": "array", "items": { "type": "integer", "minimum": 0 } } } },
+        "expected": { "type": "object", "required": ["parts"], "additionalProperties": false,
+          "properties": { "parts": { "type": "array", "items": { "type": "integer" } } } }
+      }
+    },
+    "upiCase": {
+      "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "input": { "type": "object", "required": ["vpa", "payeeName", "amountMinor", "invoiceNumber"], "additionalProperties": false,
+          "properties": { "vpa": { "type": "string" }, "payeeName": { "type": "string" }, "amountMinor": { "type": "integer" },
+            "invoiceNumber": { "type": "string" } } },
+        "expected": { "type": "object", "required": ["url"], "additionalProperties": false, "properties": { "url": { "type": "string" } } }
+      }
+    }
+  }
+}

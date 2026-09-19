@@ -1,0 +1,970 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "tax",
+  "description": "UK VAT: standard/reduced/zero/exempt, invoice-level rounding down, inclusive prices, domestic reverse charge, services outside the scope, foreign currency, delivery apportionment, required fields.",
+  "cases": [
+    {
+      "id": "gb-standard-basic",
+      "reviewed": false,
+      "explain": "UK VAT-registered freelancer, standard rate 20%. L1: 3 x 15000 = 45000, taxable 45000; tax lines: VAT 20% on 45000 = 9000; total = taxable 45000 + tax 9000 + round-off 0 = 54000.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Bookkeeping (days)",
+              "quantity": "3",
+              "unitPrice": 15000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 45000,
+            "discount": 0,
+            "taxable": 45000
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 45000,
+            "tax": 9000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 45000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 45000,
+          "tax": 9000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 54000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-invoice-level-round-down",
+      "reviewed": false,
+      "explain": "VAT is computed on the invoice total and rounded down to a whole penny (VAT Notice 700 para 17.5): 1099 x 20% + 333 x 20% = 286.4 -> 286. L1: 1 x 1099 = 1099, taxable 1099; L2: 1 x 333 = 333, taxable 333; tax lines: VAT 20% on 1432 = 286; total = taxable 1432 + tax 286 + round-off 0 = 1718.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Sam Patel",
+          "address": "4 Park Lane, Leeds LS2 3AB",
+          "country": "GB",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Notebook",
+              "quantity": "1",
+              "unitPrice": 1099,
+              "rateId": "standard"
+            },
+            {
+              "description": "Pen",
+              "quantity": "1",
+              "unitPrice": 333,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 1099,
+            "discount": 0,
+            "taxable": 1099
+          },
+          {
+            "amount": 333,
+            "discount": 0,
+            "taxable": 333
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 1432,
+            "tax": 286,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 1432,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 1432,
+          "tax": 286,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 1718
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-two-rates-rounded-once",
+      "reviewed": false,
+      "explain": "Standard and reduced rate lines: exact VAT 219.8 + 66.65 = 286.45, rounded down once to 286 and split by largest remainder (220 + 66). L1: 1 x 1099 = 1099, taxable 1099; L2: 1 x 1333 = 1333, taxable 1333; tax lines: VAT 20% on 1099 = 220, VAT 5% on 1333 = 66; total = taxable 2432 + tax 286 + round-off 0 = 2718.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Sam Patel",
+          "address": "4 Park Lane, Leeds LS2 3AB",
+          "country": "GB",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Desk lamp",
+              "quantity": "1",
+              "unitPrice": 1099,
+              "rateId": "standard"
+            },
+            {
+              "description": "Home energy fitting",
+              "quantity": "1",
+              "unitPrice": 1333,
+              "rateId": "reduced"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 1099,
+            "discount": 0,
+            "taxable": 1099
+          },
+          {
+            "amount": 1333,
+            "discount": 0,
+            "taxable": 1333
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 1099,
+            "tax": 220,
+            "charged": true
+          },
+          {
+            "component": "VAT",
+            "rate": "5",
+            "category": "reduced",
+            "taxable": 1333,
+            "tax": 66,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 2432,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 2432,
+          "tax": 286,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 2718
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-standard-zero-exempt-mixed",
+      "reviewed": false,
+      "explain": "Standard, zero-rated and exempt lines are reported as separate groups; exempt carries no VAT component. L1: 1 x 20000 = 20000, taxable 20000; L2: 2 x 1250 = 2500, taxable 2500; L3: 1 x 5000 = 5000, taxable 5000; tax lines: VAT 20% on 20000 = 4000, VAT 0% on 2500 = 0, exempt 0% on 5000 = 0; total = taxable 27500 + tax 4000 + round-off 0 = 31500.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Sam Patel",
+          "address": "4 Park Lane, Leeds LS2 3AB",
+          "country": "GB",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Training session",
+              "quantity": "1",
+              "unitPrice": 20000,
+              "rateId": "standard"
+            },
+            {
+              "description": "Printed workbook",
+              "quantity": "2",
+              "unitPrice": 1250,
+              "rateId": "zero"
+            },
+            {
+              "description": "Exam entry fee",
+              "quantity": "1",
+              "unitPrice": 5000,
+              "rateId": "exempt"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 20000,
+            "discount": 0,
+            "taxable": 20000
+          },
+          {
+            "amount": 2500,
+            "discount": 0,
+            "taxable": 2500
+          },
+          {
+            "amount": 5000,
+            "discount": 0,
+            "taxable": 5000
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 20000,
+            "tax": 4000,
+            "charged": true
+          },
+          {
+            "component": "VAT",
+            "rate": "0",
+            "category": "zero",
+            "taxable": 2500,
+            "tax": 0,
+            "charged": true
+          },
+          {
+            "component": null,
+            "rate": "0",
+            "category": "exempt",
+            "taxable": 5000,
+            "tax": 0,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 27500,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 27500,
+          "tax": 4000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 31500
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-inclusive-price-round-down",
+      "reviewed": false,
+      "explain": "VAT-inclusive price of 100.00: VAT = 10000 x 20/120 = 1666.67 rounded down to 1666; net 8334; total kept at 100.00. L1: 1 x 10000 = 10000, taxable 8334; tax lines: VAT 20% on 8334 = 1666; total = taxable 8334 + tax 1666 + round-off 0 = 10000.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Sam Patel",
+          "address": "4 Park Lane, Leeds LS2 3AB",
+          "country": "GB",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "pricesIncludeTax": true,
+          "lines": [
+            {
+              "description": "Portrait photo session",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": true,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 10000,
+            "discount": 0,
+            "taxable": 8334
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 8334,
+            "tax": 1666,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 10000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 8334,
+          "tax": 1666,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 10000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-domestic-reverse-charge-construction",
+      "reviewed": false,
+      "explain": "Construction services under the domestic reverse charge: VAT 20% shown as the customer's liability, not charged. L1: 1 x 200000 = 200000, taxable 200000; tax lines: VAT 20% on 200000 = 40000 (not charged); total = taxable 200000 + tax 0 + round-off 0 = 200000.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "reverseCharge": true,
+          "lines": [
+            {
+              "description": "Plastering works",
+              "quantity": "1",
+              "unitPrice": 200000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": true,
+        "lines": [
+          {
+            "amount": 200000,
+            "discount": 0,
+            "taxable": 200000
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 200000,
+            "tax": 40000,
+            "charged": false
+          }
+        ],
+        "totals": {
+          "subtotal": 200000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 200000,
+          "tax": 0,
+          "taxNotCharged": 40000,
+          "roundOff": 0,
+          "total": 200000
+        },
+        "home": null,
+        "notes": [
+          {
+            "id": "drc",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-services-to-overseas-business-usd",
+      "reviewed": false,
+      "explain": "B2B services to a US business are outside the scope of UK VAT; billed in USD at 0.79 GBP per USD. L1: 1 x 300000 = 300000, taxable 300000; tax lines: outsideScope 0% on 300000 = 0; total = taxable 300000 + tax 0 + round-off 0 = 300000; home GBP at 0.79: total 237000.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "exchangeRate": "0.79",
+          "supplyType": "exportServicesB2B",
+          "lines": [
+            {
+              "description": "Brand strategy",
+              "quantity": "1",
+              "unitPrice": 300000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 300000,
+            "discount": 0,
+            "taxable": 300000
+          }
+        ],
+        "taxLines": [
+          {
+            "component": null,
+            "rate": "0",
+            "category": "outsideScope",
+            "taxable": 300000,
+            "tax": 0,
+            "charged": true,
+            "homeTax": 0
+          }
+        ],
+        "totals": {
+          "subtotal": 300000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 300000,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 300000
+        },
+        "home": {
+          "currency": "GBP",
+          "rate": "0.79",
+          "taxable": 237000,
+          "tax": 0,
+          "total": 237000
+        },
+        "notes": [
+          {
+            "id": "outside_scope",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-domestic-billed-in-eur",
+      "reviewed": false,
+      "explain": "UK supply billed in EUR: VAT is also shown in sterling at 0.85 GBP per EUR. L1: 1250 x 12 = 15000, taxable 15000; tax lines: VAT 20% on 15000 = 3000; total = taxable 15000 + tax 3000 + round-off 0 = 18000; home GBP at 0.85: total 15300.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "EUR",
+          "exchangeRate": "0.85",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Translation (words)",
+              "quantity": "1250",
+              "unitPrice": 12,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 15000,
+            "discount": 0,
+            "taxable": 15000
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 15000,
+            "tax": 3000,
+            "charged": true,
+            "homeTax": 2550
+          }
+        ],
+        "totals": {
+          "subtotal": 15000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 15000,
+          "tax": 3000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 18000
+        },
+        "home": {
+          "currency": "GBP",
+          "rate": "0.85",
+          "taxable": 12750,
+          "tax": 2550,
+          "total": 15300
+        },
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-foreign-currency-rate-missing",
+      "reviewed": false,
+      "explain": "EUR invoice without an exchange rate: VAT in sterling cannot be shown, so issuing is blocked (exchange_rate_missing). L1: 1250 x 12 = 15000, taxable 15000; tax lines: VAT 20% on 15000 = 3000; total = taxable 15000 + tax 3000 + round-off 0 = 18000.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "EUR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Translation (words)",
+              "quantity": "1250",
+              "unitPrice": 12,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 15000,
+            "discount": 0,
+            "taxable": 15000
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 15000,
+            "tax": 3000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 15000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 15000,
+          "tax": 3000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 18000
+        },
+        "home": null,
+        "notes": [],
+        "issues": [
+          {
+            "code": "exchange_rate_missing",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gb-not-vat-registered",
+      "reviewed": false,
+      "explain": "Sole trader below the VAT threshold: plain Invoice, no VAT. L1: 7.5 x 1400 = 10500, taxable 10500; total = taxable 10500 + tax 0 + round-off 0 = 10500.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "notRegistered",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Sam Patel",
+          "address": "4 Park Lane, Leeds LS2 3AB",
+          "country": "GB",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Dog walking (hours)",
+              "quantity": "7.5",
+              "unitPrice": 1400,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 10500,
+            "discount": 0,
+            "taxable": 10500
+          }
+        ],
+        "taxLines": [],
+        "totals": {
+          "subtotal": 10500,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 10500,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 10500
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-shipping-apportioned",
+      "reviewed": false,
+      "explain": "Delivery charge of 10.00 apportioned across the standard (80.00) and reduced (20.00) lines: 8.00 and 2.00. L1: 1 x 8000 = 8000, taxable 8000; L2: 1 x 2000 = 2000, taxable 2000; shipping 1000, taxable 1000; tax lines: VAT 20% on 8800 = 1760, VAT 5% on 2200 = 110; total = taxable 11000 + tax 1870 + round-off 0 = 12870.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Sam Patel",
+          "address": "4 Park Lane, Leeds LS2 3AB",
+          "country": "GB",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "shipping": 1000,
+          "lines": [
+            {
+              "description": "Garden bench",
+              "quantity": "1",
+              "unitPrice": 8000,
+              "rateId": "standard"
+            },
+            {
+              "description": "Child car seat",
+              "quantity": "1",
+              "unitPrice": 2000,
+              "rateId": "reduced"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 8000,
+            "discount": 0,
+            "taxable": 8000
+          },
+          {
+            "amount": 2000,
+            "discount": 0,
+            "taxable": 2000
+          }
+        ],
+        "shipping": {
+          "amount": 1000,
+          "taxable": 1000
+        },
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 8800,
+            "tax": 1760,
+            "charged": true
+          },
+          {
+            "component": "VAT",
+            "rate": "5",
+            "category": "reduced",
+            "taxable": 2200,
+            "tax": 110,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 10000,
+          "discount": 0,
+          "shipping": 1000,
+          "taxable": 11000,
+          "tax": 1870,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 12870
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "gb-buyer-address-missing",
+      "reviewed": false,
+      "explain": "A VAT invoice must show the customer's name and address: warning buyer_details_required. L1: 1 x 15000 = 15000, taxable 15000; tax lines: VAT 20% on 15000 = 3000; total = taxable 15000 + tax 3000 + round-off 0 = 18000.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "country": "GB",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Bookkeeping (days)",
+              "quantity": "1",
+              "unitPrice": 15000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 15000,
+            "discount": 0,
+            "taxable": 15000
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "VAT",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 15000,
+            "tax": 3000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 15000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 15000,
+          "tax": 3000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 18000
+        },
+        "home": null,
+        "notes": [],
+        "issues": [
+          {
+            "code": "buyer_details_required",
+            "severity": "warning"
+          }
+        ]
+      }
+    }
+  ]
+}

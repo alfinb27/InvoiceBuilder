@@ -1,0 +1,7 @@
+{
+  "name": "pdf-spike",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway PDF spike harness (Chromium via Playwright as a proxy for Android WebView).",
+  "devDependencies": { "playwright": "^1.55.0" }
+}

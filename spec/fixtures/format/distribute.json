@@ -1,0 +1,121 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "distribute",
+  "description": "distribute(total, exacts) and allocateProportional(total, weights) (ENGINE.md 2.3, 2.4).",
+  "cases": [
+    {
+      "id": "dist-exacts-invoice-vat",
+      "input": {
+        "total": 286,
+        "exacts": [
+          "219.8",
+          "66.65"
+        ]
+      },
+      "expected": {
+        "parts": [
+          220,
+          66
+        ]
+      }
+    },
+    {
+      "id": "dist-exacts-tie-lower-index",
+      "input": {
+        "total": 3,
+        "exacts": [
+          "1.5",
+          "1.5"
+        ]
+      },
+      "expected": {
+        "parts": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "id": "dist-exacts-all-integers",
+      "input": {
+        "total": 300,
+        "exacts": [
+          "100",
+          "200"
+        ]
+      },
+      "expected": {
+        "parts": [
+          100,
+          200
+        ]
+      }
+    },
+    {
+      "id": "dist-weights-discount",
+      "input": {
+        "total": 10000,
+        "weights": [
+          70000,
+          30001
+        ]
+      },
+      "expected": {
+        "parts": [
+          7000,
+          3000
+        ]
+      }
+    },
+    {
+      "id": "dist-weights-three-way",
+      "input": {
+        "total": 100,
+        "weights": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected": {
+        "parts": [
+          34,
+          33,
+          33
+        ]
+      }
+    },
+    {
+      "id": "dist-weights-zero-sum",
+      "input": {
+        "total": 50,
+        "weights": [
+          0,
+          0
+        ]
+      },
+      "expected": {
+        "parts": [
+          50,
+          0
+        ]
+      }
+    },
+    {
+      "id": "dist-weights-shipping",
+      "input": {
+        "total": 1000,
+        "weights": [
+          8000,
+          2000
+        ]
+      },
+      "expected": {
+        "parts": [
+          800,
+          200
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Xcode / Swift
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+*.xcuserstate
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.keystore
+*.jks
+captures/
+.cxx/
+
+# Node (spec tooling)
+node_modules/
+
+# Editors
+.idea/
+.vscode/

@@ -1,0 +1,140 @@
+{
+  "paper": "A4",
+  "accent": "#1F6FEB",
+  "title": "VAT Invoice",
+  "draft": false,
+  "topNotes": [],
+  "seller": {
+    "name": "Leeds Books & Co",
+    "lines": [
+      "10 High Street, Leeds LS1 1AA",
+      "United Kingdom"
+    ],
+    "ids": [
+      {
+        "label": "VAT no.",
+        "value": "GB 980 7806 84"
+      }
+    ],
+    "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMjAiIGZpbGw9IiMxRjZGRUIiLz48dGV4dCB4PSI0OCIgeT0iNjEiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJXPC90ZXh0Pjwvc3ZnPg=="
+  },
+  "meta": [
+    {
+      "label": "Invoice no.",
+      "value": "INV-0318"
+    },
+    {
+      "label": "Date",
+      "value": "19 Sep 2026"
+    },
+    {
+      "label": "Due date",
+      "value": "4 Oct 2026"
+    }
+  ],
+  "billTo": {
+    "name": "Brick & Co Ltd",
+    "lines": [
+      "2 Station Road, York YO1 7AA"
+    ],
+    "ids": [
+      {
+        "label": "VAT no.",
+        "value": "GB 999 9999 73"
+      }
+    ]
+  },
+  "shipTo": null,
+  "columns": [
+    {
+      "key": "idx",
+      "label": "#"
+    },
+    {
+      "key": "description",
+      "label": "Description"
+    },
+    {
+      "key": "qty",
+      "label": "Qty",
+      "align": "right"
+    },
+    {
+      "key": "rate",
+      "label": "Rate",
+      "align": "right"
+    },
+    {
+      "key": "taxable",
+      "label": "Net",
+      "align": "right"
+    },
+    {
+      "key": "taxRate",
+      "label": "VAT %",
+      "align": "right"
+    },
+    {
+      "key": "amount",
+      "label": "Amount",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    {
+      "idx": "1",
+      "description": "Bookkeeping (days)",
+      "qty": "3",
+      "rate": "£150.00",
+      "taxable": "£450.00",
+      "taxRate": "20%",
+      "amount": "£450.00"
+    }
+  ],
+  "totals": [
+    {
+      "label": "Total net",
+      "value": "£450.00"
+    },
+    {
+      "label": "VAT 20%",
+      "value": "£90.00"
+    },
+    {
+      "label": "Total",
+      "value": "£540.00",
+      "emphasis": true
+    }
+  ],
+  "home": null,
+  "amountInWords": null,
+  "payment": {
+    "bank": [
+      {
+        "label": "Account name",
+        "value": "Leeds Books & Co"
+      },
+      {
+        "label": "Account no.",
+        "value": "000123456789"
+      },
+      {
+        "label": "Sort code",
+        "value": "12-34-56"
+      }
+    ],
+    "upi": null
+  },
+  "notes": "Thank you for your business. Payment within 15 days of the invoice date.",
+  "terms": "Late payments may attract statutory interest.",
+  "bottomNotes": [],
+  "signature": {
+    "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMjAiIGhlaWdodD0iNzAiPjxwYXRoIGQ9Ik0xMCA1MCBDIDQwIDEwLCA2MCA3MCwgOTAgMzUgUyAxNDAgMjAsIDE2MCA0NSBTIDIwMCA2MCwgMjEwIDMwIiBzdHJva2U9IiMxZDJiNGYiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+",
+    "for": "For Leeds Books & Co",
+    "label": "Authorised signatory"
+  },
+  "footer": {
+    "page": "Page {page} of {pages}",
+    "continued": "Continued on next page"
+  }
+}

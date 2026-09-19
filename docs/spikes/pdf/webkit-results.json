@@ -1,0 +1,30 @@
+[
+  {
+    "doc" : "vm-01-gb-single-line",
+    "kb" : 31,
+    "pages" : 1,
+    "pdfMs" : 132,
+    "renderMs" : 157
+  },
+  {
+    "doc" : "vm-02-in-60-lines",
+    "kb" : 58,
+    "pages" : 4,
+    "pdfMs" : 160,
+    "renderMs" : 19
+  },
+  {
+    "doc" : "vm-03-in-export-usd",
+    "kb" : 36,
+    "pages" : 1,
+    "pdfMs" : 121,
+    "renderMs" : 9
+  },
+  {
+    "doc" : "vm-04-in-devanagari",
+    "kb" : 41,
+    "pages" : 1,
+    "pdfMs" : 154,
+    "renderMs" : 8
+  }
+]

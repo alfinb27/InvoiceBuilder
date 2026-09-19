@@ -1,0 +1,381 @@
+{
+  "$schema": "../schema/backup.schema.json",
+  "format": "invoicebuilder-backup",
+  "formatVersion": 1,
+  "createdAt": 1789803600000,
+  "app": {
+    "platform": "ios",
+    "version": "0.0.0-sample"
+  },
+  "dbSchemaVersion": 1,
+  "counts": {
+    "businesses": 1,
+    "clients": 1,
+    "catalogItems": 1,
+    "numberingSeries": 1,
+    "documents": 2,
+    "payments": 1,
+    "assets": 1
+  },
+  "data": {
+    "businesses": [
+      {
+        "id": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "name": "Bharat Web Studio",
+        "legalName": "Bharat Web Studio LLP",
+        "address": {
+          "line1": "12 MG Road",
+          "line2": null,
+          "city": "Bengaluru",
+          "regionCode": "29",
+          "postalCode": "560001",
+          "countryCode": "IN"
+        },
+        "email": "hello@example.in",
+        "phone": "+91 80 5555 0100",
+        "website": null,
+        "countryCode": "IN",
+        "taxConfig": "IN",
+        "taxRegistration": "regular",
+        "taxId": "29AAGCB7383J1Z4",
+        "extraIds": {
+          "pan": "AAGCB7383J",
+          "companyNumber": null,
+          "registeredOffice": null,
+          "lutReference": null,
+          "lutValidUntil": null
+        },
+        "homeCurrency": "INR",
+        "turnoverMinor": null,
+        "bank": {
+          "accountName": "Bharat Web Studio LLP",
+          "accountNumber": "000123456789",
+          "bankName": "Example Bank",
+          "ifsc": "EXMP0001234",
+          "sortCode": null,
+          "iban": null,
+          "swift": null
+        },
+        "upiVpa": "bharatweb@examplebank",
+        "paymentTermsDays": 15,
+        "defaultNotes": "Thank you for your business.",
+        "defaultTerms": null,
+        "templateId": "modern",
+        "accentColor": "#1F6FEB",
+        "logoAssetId": "fc8981c5-e8b9-51db-a6b8-dad61ea0f0dd",
+        "signatureAssetId": null,
+        "reminderDaysAfterDue": 3,
+        "customRates": null
+      }
+    ],
+    "clients": [
+      {
+        "id": "0650e03f-7c04-5005-91c3-730e0ae378dd",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "name": "Rao Traders",
+        "contactName": "K. Rao",
+        "email": null,
+        "phone": null,
+        "billingAddress": {
+          "line1": "5 Residency Road",
+          "line2": null,
+          "city": "Bengaluru",
+          "regionCode": "29",
+          "postalCode": "560025",
+          "countryCode": "IN"
+        },
+        "shippingAddress": null,
+        "countryCode": "IN",
+        "regionCode": "29",
+        "taxId": "29AABCR1234C1ZU",
+        "isBusiness": true,
+        "defaultCurrency": "INR",
+        "notes": null,
+        "archivedAt": null
+      }
+    ],
+    "catalogItems": [
+      {
+        "id": "474d4863-ff96-5e43-8ed4-ef88e8b5be7d",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "name": "Website development",
+        "description": null,
+        "kind": "service",
+        "unit": "JOB",
+        "unitPriceMinor": 500000,
+        "currency": "INR",
+        "rateId": "gst_18",
+        "productCode": "998314",
+        "priceIncludesTax": false,
+        "archivedAt": null
+      }
+    ],
+    "numberingSeries": [
+      {
+        "id": "21826ce6-eef4-53d1-83fb-c05e138930f5",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "docType": "invoice",
+        "label": "Invoices (iPhone)",
+        "pattern": "INV/{fy}/{seq:4}",
+        "reset": "fiscalYear",
+        "ownerDeviceId": "737f0492-ee82-5a45-8709-a9d8c3abed75",
+        "counters": {
+          "FY2026": 43
+        }
+      }
+    ],
+    "documents": [
+      {
+        "id": "58d49306-934b-53ca-8203-ead30445975d",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "docType": "invoice",
+        "number": "INV/26-27/0042",
+        "seriesId": "21826ce6-eef4-53d1-83fb-c05e138930f5",
+        "periodKey": "FY2026",
+        "lifecycle": "issued",
+        "issueDate": "2026-09-19",
+        "supplyDate": null,
+        "dueDate": "2026-10-04",
+        "validUntil": null,
+        "sentAt": 1789800060000,
+        "voidedAt": null,
+        "voidReason": null,
+        "quoteOutcome": null,
+        "convertedFromId": null,
+        "currency": "INR",
+        "exchangeRate": null,
+        "supplyType": "domestic",
+        "placeOfSupply": "29",
+        "reverseCharge": false,
+        "pricesIncludeTax": false,
+        "roundOff": null,
+        "clientId": "0650e03f-7c04-5005-91c3-730e0ae378dd",
+        "sellerSnapshot": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyerSnapshot": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "discount": null,
+        "shippingMinor": 0,
+        "notes": "Thank you for your business.",
+        "terms": null,
+        "templateId": "modern",
+        "taxConfigRef": "IN@2025-09-22",
+        "revision": 1,
+        "lines": [
+          {
+            "id": "823351c2-cfa9-5627-bca4-ffd405bc5957",
+            "position": 0,
+            "catalogItemId": "474d4863-ff96-5e43-8ed4-ef88e8b5be7d",
+            "description": "Website development",
+            "productCode": "998314",
+            "unit": "JOB",
+            "quantity": "2",
+            "unitPriceMinor": 500000,
+            "discount": null,
+            "rateId": "gst_18",
+            "rateSnapshot": {
+              "percent": "18",
+              "category": "standard",
+              "label": "GST 18%"
+            },
+            "amountMinor": 1000000,
+            "taxableMinor": 1000000,
+            "taxMinor": 180000,
+            "totalMinor": 1180000
+          }
+        ],
+        "totals": {
+          "subtotalMinor": 1000000,
+          "discountMinor": 0,
+          "shippingMinor": 0,
+          "taxableMinor": 1000000,
+          "taxMinor": 180000,
+          "taxNotChargedMinor": 0,
+          "roundOffMinor": 0,
+          "totalMinor": 1180000
+        },
+        "computed": {
+          "title": "Tax Invoice",
+          "chargesTax": true,
+          "reverseCharge": false,
+          "inclusive": false,
+          "lines": [
+            {
+              "amount": 1000000,
+              "discount": 0,
+              "taxable": 1000000,
+              "taxes": [
+                {
+                  "component": "CGST",
+                  "rate": "9",
+                  "amount": 90000
+                },
+                {
+                  "component": "SGST",
+                  "rate": "9",
+                  "amount": 90000
+                }
+              ]
+            }
+          ],
+          "shipping": null,
+          "taxLines": [
+            {
+              "component": "CGST",
+              "rate": "9",
+              "category": "standard",
+              "taxable": 1000000,
+              "tax": 90000,
+              "charged": true
+            },
+            {
+              "component": "SGST",
+              "rate": "9",
+              "category": "standard",
+              "taxable": 1000000,
+              "tax": 90000,
+              "charged": true
+            }
+          ],
+          "totals": {
+            "subtotal": 1000000,
+            "discount": 0,
+            "shipping": 0,
+            "taxable": 1000000,
+            "tax": 180000,
+            "taxNotCharged": 0,
+            "roundOff": 0,
+            "total": 1180000
+          },
+          "home": null,
+          "notes": [],
+          "issues": [],
+          "placeOfSupply": "29",
+          "sameRegion": true
+        }
+      },
+      {
+        "id": "561a28e3-7cda-55bd-a05e-421662cdf6d5",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "docType": "quote",
+        "number": null,
+        "seriesId": null,
+        "periodKey": null,
+        "lifecycle": "draft",
+        "issueDate": "2026-09-19",
+        "supplyDate": null,
+        "dueDate": null,
+        "validUntil": "2026-10-19",
+        "sentAt": null,
+        "voidedAt": null,
+        "voidReason": null,
+        "quoteOutcome": null,
+        "convertedFromId": null,
+        "currency": "INR",
+        "exchangeRate": null,
+        "supplyType": "domestic",
+        "placeOfSupply": null,
+        "reverseCharge": false,
+        "pricesIncludeTax": false,
+        "roundOff": null,
+        "clientId": "0650e03f-7c04-5005-91c3-730e0ae378dd",
+        "sellerSnapshot": null,
+        "buyerSnapshot": null,
+        "discount": null,
+        "shippingMinor": 0,
+        "notes": null,
+        "terms": null,
+        "templateId": "modern",
+        "taxConfigRef": "IN@2025-09-22",
+        "revision": 0,
+        "lines": [
+          {
+            "id": "70e34a84-6f0b-5d76-a5b6-ff915344926f",
+            "position": 0,
+            "catalogItemId": "474d4863-ff96-5e43-8ed4-ef88e8b5be7d",
+            "description": "Website development",
+            "productCode": "998314",
+            "unit": "JOB",
+            "quantity": "2",
+            "unitPriceMinor": 500000,
+            "discount": null,
+            "rateId": "gst_18",
+            "rateSnapshot": null,
+            "amountMinor": null,
+            "taxableMinor": null,
+            "taxMinor": null,
+            "totalMinor": null
+          }
+        ],
+        "totals": {
+          "subtotalMinor": 0,
+          "discountMinor": 0,
+          "shippingMinor": 0,
+          "taxableMinor": 0,
+          "taxMinor": 0,
+          "taxNotChargedMinor": 0,
+          "roundOffMinor": 0,
+          "totalMinor": 0
+        },
+        "computed": null
+      }
+    ],
+    "payments": [
+      {
+        "id": "6b013707-8bbe-5ced-8b42-8ceff38a8ae7",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "documentId": "58d49306-934b-53ca-8203-ead30445975d",
+        "amountMinor": 500000,
+        "date": "2026-09-25",
+        "method": "upi",
+        "reference": "UPI/426812345678",
+        "note": "Part payment"
+      }
+    ],
+    "assets": [
+      {
+        "id": "fc8981c5-e8b9-51db-a6b8-dad61ea0f0dd",
+        "createdAt": 1789800000000,
+        "updatedAt": 1789800000000,
+        "deletedAt": null,
+        "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+        "kind": "logo",
+        "mime": "image/png",
+        "sha256": "e497ca2f599a68685b917011c3b77b12b5d5da7fc2b6dcbd43d49517cf409706",
+        "dataBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4//8/AwAI/AL+p5qgoAAAAABJRU5ErkJggg=="
+      }
+    ]
+  }
+}

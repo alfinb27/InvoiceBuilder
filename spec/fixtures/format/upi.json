@@ -1,0 +1,43 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "upi",
+  "description": "UPI payment links for the PDF QR code (ENGINE.md 9).",
+  "cases": [
+    {
+      "id": "upi-basic",
+      "input": {
+        "vpa": "raotraders@okhdfcbank",
+        "payeeName": "Rao Traders",
+        "amountMinor": 118000,
+        "invoiceNumber": "INV/26-27/0042"
+      },
+      "expected": {
+        "url": "upi://pay?pa=raotraders@okhdfcbank&pn=Rao%20Traders&am=1180.00&cu=INR&tn=INV%2F26-27%2F0042"
+      }
+    },
+    {
+      "id": "upi-ampersand-and-paise",
+      "input": {
+        "vpa": "anita.s@ybl",
+        "payeeName": "Anita & Sons",
+        "amountMinor": 123450,
+        "invoiceNumber": "INV-0007"
+      },
+      "expected": {
+        "url": "upi://pay?pa=anita.s@ybl&pn=Anita%20%26%20Sons&am=1234.50&cu=INR&tn=INV-0007"
+      }
+    },
+    {
+      "id": "upi-under-one-rupee",
+      "input": {
+        "vpa": "shop@upi",
+        "payeeName": "Shop",
+        "amountMinor": 5,
+        "invoiceNumber": "A-1"
+      },
+      "expected": {
+        "url": "upi://pay?pa=shop@upi&pn=Shop&am=0.05&cu=INR&tn=A-1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,283 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "format",
+  "description": "Money, percent and quantity formatting (ENGINE.md 7.1, 7.2).",
+  "cases": [
+    {
+      "id": "money-inr-home-inr-1234567890",
+      "input": {
+        "op": "money",
+        "minor": 1234567890,
+        "currency": "INR",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "₹1,23,45,678.90"
+      }
+    },
+    {
+      "id": "money-inr-home-inr-12345678",
+      "input": {
+        "op": "money",
+        "minor": 12345678,
+        "currency": "INR",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "₹1,23,456.78"
+      }
+    },
+    {
+      "id": "money-inr-home-inr-100",
+      "input": {
+        "op": "money",
+        "minor": 100,
+        "currency": "INR",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "₹1.00"
+      }
+    },
+    {
+      "id": "money-inr-home-inr-5",
+      "input": {
+        "op": "money",
+        "minor": 5,
+        "currency": "INR",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "₹0.05"
+      }
+    },
+    {
+      "id": "money-inr-home-inr-0",
+      "input": {
+        "op": "money",
+        "minor": 0,
+        "currency": "INR",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "₹0.00"
+      }
+    },
+    {
+      "id": "money-inr-home-inr-neg123400",
+      "input": {
+        "op": "money",
+        "minor": -123400,
+        "currency": "INR",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "-₹1,234.00"
+      }
+    },
+    {
+      "id": "money-gbp-home-gbp-123456789",
+      "input": {
+        "op": "money",
+        "minor": 123456789,
+        "currency": "GBP",
+        "homeCurrency": "GBP"
+      },
+      "expected": {
+        "text": "£1,234,567.89"
+      }
+    },
+    {
+      "id": "money-gbp-home-gbp-neg500",
+      "input": {
+        "op": "money",
+        "minor": -500,
+        "currency": "GBP",
+        "homeCurrency": "GBP"
+      },
+      "expected": {
+        "text": "-£5.00"
+      }
+    },
+    {
+      "id": "money-usd-home-inr-123450",
+      "input": {
+        "op": "money",
+        "minor": 123450,
+        "currency": "USD",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "USD 1,234.50"
+      }
+    },
+    {
+      "id": "money-usd-home-gbp-12345678",
+      "input": {
+        "op": "money",
+        "minor": 12345678,
+        "currency": "USD",
+        "homeCurrency": "GBP"
+      },
+      "expected": {
+        "text": "USD 123,456.78"
+      }
+    },
+    {
+      "id": "money-jpy-home-inr-1235",
+      "input": {
+        "op": "money",
+        "minor": 1235,
+        "currency": "JPY",
+        "homeCurrency": "INR"
+      },
+      "expected": {
+        "text": "JPY 1,235"
+      }
+    },
+    {
+      "id": "money-kwd-home-gbp-1235",
+      "input": {
+        "op": "money",
+        "minor": 1235,
+        "currency": "KWD",
+        "homeCurrency": "GBP"
+      },
+      "expected": {
+        "text": "KWD 1.235"
+      }
+    },
+    {
+      "id": "money-eur-home-gbp-99",
+      "input": {
+        "op": "money",
+        "minor": 99,
+        "currency": "EUR",
+        "homeCurrency": "GBP"
+      },
+      "expected": {
+        "text": "EUR 0.99"
+      }
+    },
+    {
+      "id": "percent-18",
+      "input": {
+        "op": "percent",
+        "value": "18"
+      },
+      "expected": {
+        "text": "18%"
+      }
+    },
+    {
+      "id": "percent-18p00",
+      "input": {
+        "op": "percent",
+        "value": "18.00"
+      },
+      "expected": {
+        "text": "18%"
+      }
+    },
+    {
+      "id": "percent-0p25",
+      "input": {
+        "op": "percent",
+        "value": "0.25"
+      },
+      "expected": {
+        "text": "0.25%"
+      }
+    },
+    {
+      "id": "percent-8p8750",
+      "input": {
+        "op": "percent",
+        "value": "8.8750"
+      },
+      "expected": {
+        "text": "8.875%"
+      }
+    },
+    {
+      "id": "percent-0",
+      "input": {
+        "op": "percent",
+        "value": "0"
+      },
+      "expected": {
+        "text": "0%"
+      }
+    },
+    {
+      "id": "percent-2p5",
+      "input": {
+        "op": "percent",
+        "value": "2.5"
+      },
+      "expected": {
+        "text": "2.5%"
+      }
+    },
+    {
+      "id": "percent-100",
+      "input": {
+        "op": "percent",
+        "value": "100"
+      },
+      "expected": {
+        "text": "100%"
+      }
+    },
+    {
+      "id": "quantity-1",
+      "input": {
+        "op": "quantity",
+        "value": "1"
+      },
+      "expected": {
+        "text": "1"
+      }
+    },
+    {
+      "id": "quantity-1p500",
+      "input": {
+        "op": "quantity",
+        "value": "1.500"
+      },
+      "expected": {
+        "text": "1.5"
+      }
+    },
+    {
+      "id": "quantity-0p125",
+      "input": {
+        "op": "quantity",
+        "value": "0.125"
+      },
+      "expected": {
+        "text": "0.125"
+      }
+    },
+    {
+      "id": "quantity-12p0",
+      "input": {
+        "op": "quantity",
+        "value": "12.0"
+      },
+      "expected": {
+        "text": "12"
+      }
+    },
+    {
+      "id": "quantity-1250",
+      "input": {
+        "op": "quantity",
+        "value": "1250"
+      },
+      "expected": {
+        "text": "1250"
+      }
+    }
+  ]
+}

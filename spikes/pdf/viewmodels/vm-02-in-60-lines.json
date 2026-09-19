@@ -1,0 +1,756 @@
+{
+  "paper": "A4",
+  "accent": "#1F6FEB",
+  "title": "Tax Invoice",
+  "draft": false,
+  "topNotes": [],
+  "seller": {
+    "name": "Bharat Web Studio",
+    "lines": [
+      "12 MG Road, Bengaluru 560001",
+      "Karnataka, India"
+    ],
+    "ids": [
+      {
+        "label": "GSTIN",
+        "value": "29AAGCB7383J1Z4"
+      },
+      {
+        "label": "PAN",
+        "value": "AAGCB7383J"
+      }
+    ],
+    "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMjAiIGZpbGw9IiMxRjZGRUIiLz48dGV4dCB4PSI0OCIgeT0iNjEiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJXPC90ZXh0Pjwvc3ZnPg=="
+  },
+  "meta": [
+    {
+      "label": "Invoice no.",
+      "value": "INV/26-27/0042"
+    },
+    {
+      "label": "Date",
+      "value": "19 Sep 2026"
+    },
+    {
+      "label": "Place of supply",
+      "value": "29 - Karnataka"
+    },
+    {
+      "label": "Due date",
+      "value": "4 Oct 2026"
+    }
+  ],
+  "billTo": {
+    "name": "Rao Traders",
+    "lines": [
+      "5 Residency Road, Bengaluru 560025",
+      "Karnataka, India"
+    ],
+    "ids": [
+      {
+        "label": "GSTIN",
+        "value": "29AABCR1234C1ZU"
+      }
+    ]
+  },
+  "shipTo": null,
+  "columns": [
+    {
+      "key": "idx",
+      "label": "#"
+    },
+    {
+      "key": "description",
+      "label": "Description"
+    },
+    {
+      "key": "code",
+      "label": "HSN/SAC"
+    },
+    {
+      "key": "qty",
+      "label": "Qty",
+      "align": "right"
+    },
+    {
+      "key": "rate",
+      "label": "Rate",
+      "align": "right"
+    },
+    {
+      "key": "taxable",
+      "label": "Taxable value",
+      "align": "right"
+    },
+    {
+      "key": "taxRate",
+      "label": "GST %",
+      "align": "right"
+    },
+    {
+      "key": "amount",
+      "label": "Amount",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    {
+      "idx": "1",
+      "description": "Website development — responsive landing page with contact form and analytics setup (1)",
+      "qty": "1",
+      "rate": "₹1,500.00",
+      "taxable": "₹1,500.00",
+      "taxRate": "18%",
+      "amount": "₹1,770.00",
+      "code": "998314"
+    },
+    {
+      "idx": "2",
+      "description": "SEO audit (2)",
+      "qty": "2",
+      "rate": "₹1,579.19",
+      "taxable": "₹3,158.38",
+      "taxRate": "18%",
+      "amount": "₹3,726.88",
+      "code": "998365"
+    },
+    {
+      "idx": "3",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (3)",
+      "qty": "3",
+      "rate": "₹1,658.38",
+      "taxable": "₹4,975.14",
+      "taxRate": "18%",
+      "amount": "₹5,870.66",
+      "code": "998399"
+    },
+    {
+      "idx": "4",
+      "description": "Hosting (12 months) (4)",
+      "qty": "4",
+      "rate": "₹1,737.57",
+      "taxable": "₹6,950.28",
+      "taxRate": "18%",
+      "amount": "₹8,201.34",
+      "code": "998315"
+    },
+    {
+      "idx": "5",
+      "description": "Logo refresh (5)",
+      "qty": "5",
+      "rate": "₹1,816.76",
+      "taxable": "₹9,083.80",
+      "taxRate": "18%",
+      "amount": "₹10,718.88",
+      "code": "998391"
+    },
+    {
+      "idx": "6",
+      "description": "Photography — product shoot, 40 edited images (6)",
+      "qty": "1",
+      "rate": "₹1,895.95",
+      "taxable": "₹1,895.95",
+      "taxRate": "18%",
+      "amount": "₹2,237.23",
+      "code": "998383"
+    },
+    {
+      "idx": "7",
+      "description": "Maintenance retainer (7)",
+      "qty": "2",
+      "rate": "₹1,975.14",
+      "taxable": "₹3,950.28",
+      "taxRate": "18%",
+      "amount": "₹4,661.34",
+      "code": "998713"
+    },
+    {
+      "idx": "8",
+      "description": "Domain renewal (8)",
+      "qty": "3",
+      "rate": "₹2,054.33",
+      "taxable": "₹6,162.99",
+      "taxRate": "18%",
+      "amount": "₹7,272.33",
+      "code": "998315"
+    },
+    {
+      "idx": "9",
+      "description": "Website development — responsive landing page with contact form and analytics setup (9)",
+      "qty": "4",
+      "rate": "₹2,133.52",
+      "taxable": "₹8,534.08",
+      "taxRate": "18%",
+      "amount": "₹10,070.22",
+      "code": "998314"
+    },
+    {
+      "idx": "10",
+      "description": "SEO audit (10)",
+      "qty": "5",
+      "rate": "₹2,212.71",
+      "taxable": "₹11,063.55",
+      "taxRate": "18%",
+      "amount": "₹13,054.99",
+      "code": "998365"
+    },
+    {
+      "idx": "11",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (11)",
+      "qty": "1",
+      "rate": "₹2,291.90",
+      "taxable": "₹2,291.90",
+      "taxRate": "18%",
+      "amount": "₹2,704.44",
+      "code": "998399"
+    },
+    {
+      "idx": "12",
+      "description": "Hosting (12 months) (12)",
+      "qty": "2",
+      "rate": "₹2,371.09",
+      "taxable": "₹4,742.18",
+      "taxRate": "18%",
+      "amount": "₹5,595.78",
+      "code": "998315"
+    },
+    {
+      "idx": "13",
+      "description": "Logo refresh (13)",
+      "qty": "3",
+      "rate": "₹2,450.28",
+      "taxable": "₹7,350.84",
+      "taxRate": "18%",
+      "amount": "₹8,674.00",
+      "code": "998391"
+    },
+    {
+      "idx": "14",
+      "description": "Photography — product shoot, 40 edited images (14)",
+      "qty": "4",
+      "rate": "₹2,529.47",
+      "taxable": "₹10,117.88",
+      "taxRate": "18%",
+      "amount": "₹11,939.10",
+      "code": "998383"
+    },
+    {
+      "idx": "15",
+      "description": "Maintenance retainer (15)",
+      "qty": "5",
+      "rate": "₹2,608.66",
+      "taxable": "₹13,043.30",
+      "taxRate": "18%",
+      "amount": "₹15,391.10",
+      "code": "998713"
+    },
+    {
+      "idx": "16",
+      "description": "Domain renewal (16)",
+      "qty": "1",
+      "rate": "₹2,687.85",
+      "taxable": "₹2,687.85",
+      "taxRate": "18%",
+      "amount": "₹3,171.67",
+      "code": "998315"
+    },
+    {
+      "idx": "17",
+      "description": "Website development — responsive landing page with contact form and analytics setup (17)",
+      "qty": "2",
+      "rate": "₹2,767.04",
+      "taxable": "₹5,534.08",
+      "taxRate": "18%",
+      "amount": "₹6,530.22",
+      "code": "998314"
+    },
+    {
+      "idx": "18",
+      "description": "SEO audit (18)",
+      "qty": "3",
+      "rate": "₹2,846.23",
+      "taxable": "₹8,538.69",
+      "taxRate": "18%",
+      "amount": "₹10,075.65",
+      "code": "998365"
+    },
+    {
+      "idx": "19",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (19)",
+      "qty": "4",
+      "rate": "₹2,925.42",
+      "taxable": "₹11,701.68",
+      "taxRate": "18%",
+      "amount": "₹13,807.98",
+      "code": "998399"
+    },
+    {
+      "idx": "20",
+      "description": "Hosting (12 months) (20)",
+      "qty": "5",
+      "rate": "₹3,004.61",
+      "taxable": "₹15,023.05",
+      "taxRate": "18%",
+      "amount": "₹17,727.19",
+      "code": "998315"
+    },
+    {
+      "idx": "21",
+      "description": "Logo refresh (21)",
+      "qty": "1",
+      "rate": "₹3,083.80",
+      "taxable": "₹3,083.80",
+      "taxRate": "18%",
+      "amount": "₹3,638.88",
+      "code": "998391"
+    },
+    {
+      "idx": "22",
+      "description": "Photography — product shoot, 40 edited images (22)",
+      "qty": "2",
+      "rate": "₹3,162.99",
+      "taxable": "₹6,325.98",
+      "taxRate": "18%",
+      "amount": "₹7,464.66",
+      "code": "998383"
+    },
+    {
+      "idx": "23",
+      "description": "Maintenance retainer (23)",
+      "qty": "3",
+      "rate": "₹3,242.18",
+      "taxable": "₹9,726.54",
+      "taxRate": "18%",
+      "amount": "₹11,477.32",
+      "code": "998713"
+    },
+    {
+      "idx": "24",
+      "description": "Domain renewal (24)",
+      "qty": "4",
+      "rate": "₹3,321.37",
+      "taxable": "₹13,285.48",
+      "taxRate": "18%",
+      "amount": "₹15,676.86",
+      "code": "998315"
+    },
+    {
+      "idx": "25",
+      "description": "Website development — responsive landing page with contact form and analytics setup (25)",
+      "qty": "5",
+      "rate": "₹3,400.56",
+      "taxable": "₹17,002.80",
+      "taxRate": "18%",
+      "amount": "₹20,063.30",
+      "code": "998314"
+    },
+    {
+      "idx": "26",
+      "description": "SEO audit (26)",
+      "qty": "1",
+      "rate": "₹3,479.75",
+      "taxable": "₹3,479.75",
+      "taxRate": "18%",
+      "amount": "₹4,106.11",
+      "code": "998365"
+    },
+    {
+      "idx": "27",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (27)",
+      "qty": "2",
+      "rate": "₹3,558.94",
+      "taxable": "₹7,117.88",
+      "taxRate": "18%",
+      "amount": "₹8,399.10",
+      "code": "998399"
+    },
+    {
+      "idx": "28",
+      "description": "Hosting (12 months) (28)",
+      "qty": "3",
+      "rate": "₹3,638.13",
+      "taxable": "₹10,914.39",
+      "taxRate": "18%",
+      "amount": "₹12,878.99",
+      "code": "998315"
+    },
+    {
+      "idx": "29",
+      "description": "Logo refresh (29)",
+      "qty": "4",
+      "rate": "₹3,717.32",
+      "taxable": "₹14,869.28",
+      "taxRate": "18%",
+      "amount": "₹17,545.76",
+      "code": "998391"
+    },
+    {
+      "idx": "30",
+      "description": "Photography — product shoot, 40 edited images (30)",
+      "qty": "5",
+      "rate": "₹3,796.51",
+      "taxable": "₹18,982.55",
+      "taxRate": "18%",
+      "amount": "₹22,399.41",
+      "code": "998383"
+    },
+    {
+      "idx": "31",
+      "description": "Maintenance retainer (31)",
+      "qty": "1",
+      "rate": "₹3,875.70",
+      "taxable": "₹3,875.70",
+      "taxRate": "18%",
+      "amount": "₹4,573.32",
+      "code": "998713"
+    },
+    {
+      "idx": "32",
+      "description": "Domain renewal (32)",
+      "qty": "2",
+      "rate": "₹3,954.89",
+      "taxable": "₹7,909.78",
+      "taxRate": "18%",
+      "amount": "₹9,333.54",
+      "code": "998315"
+    },
+    {
+      "idx": "33",
+      "description": "Website development — responsive landing page with contact form and analytics setup (33)",
+      "qty": "3",
+      "rate": "₹1,534.08",
+      "taxable": "₹4,602.24",
+      "taxRate": "18%",
+      "amount": "₹5,430.64",
+      "code": "998314"
+    },
+    {
+      "idx": "34",
+      "description": "SEO audit (34)",
+      "qty": "4",
+      "rate": "₹1,613.27",
+      "taxable": "₹6,453.08",
+      "taxRate": "18%",
+      "amount": "₹7,614.64",
+      "code": "998365"
+    },
+    {
+      "idx": "35",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (35)",
+      "qty": "5",
+      "rate": "₹1,692.46",
+      "taxable": "₹8,462.30",
+      "taxRate": "18%",
+      "amount": "₹9,985.52",
+      "code": "998399"
+    },
+    {
+      "idx": "36",
+      "description": "Hosting (12 months) (36)",
+      "qty": "1",
+      "rate": "₹1,771.65",
+      "taxable": "₹1,771.65",
+      "taxRate": "18%",
+      "amount": "₹2,090.55",
+      "code": "998315"
+    },
+    {
+      "idx": "37",
+      "description": "Logo refresh (37)",
+      "qty": "2",
+      "rate": "₹1,850.84",
+      "taxable": "₹3,701.68",
+      "taxRate": "18%",
+      "amount": "₹4,367.98",
+      "code": "998391"
+    },
+    {
+      "idx": "38",
+      "description": "Photography — product shoot, 40 edited images (38)",
+      "qty": "3",
+      "rate": "₹1,930.03",
+      "taxable": "₹5,790.09",
+      "taxRate": "18%",
+      "amount": "₹6,832.31",
+      "code": "998383"
+    },
+    {
+      "idx": "39",
+      "description": "Maintenance retainer (39)",
+      "qty": "4",
+      "rate": "₹2,009.22",
+      "taxable": "₹8,036.88",
+      "taxRate": "18%",
+      "amount": "₹9,483.52",
+      "code": "998713"
+    },
+    {
+      "idx": "40",
+      "description": "Domain renewal (40)",
+      "qty": "5",
+      "rate": "₹2,088.41",
+      "taxable": "₹10,442.05",
+      "taxRate": "18%",
+      "amount": "₹12,321.61",
+      "code": "998315"
+    },
+    {
+      "idx": "41",
+      "description": "Website development — responsive landing page with contact form and analytics setup (41)",
+      "qty": "1",
+      "rate": "₹2,167.60",
+      "taxable": "₹2,167.60",
+      "taxRate": "18%",
+      "amount": "₹2,557.76",
+      "code": "998314"
+    },
+    {
+      "idx": "42",
+      "description": "SEO audit (42)",
+      "qty": "2",
+      "rate": "₹2,246.79",
+      "taxable": "₹4,493.58",
+      "taxRate": "18%",
+      "amount": "₹5,302.42",
+      "code": "998365"
+    },
+    {
+      "idx": "43",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (43)",
+      "qty": "3",
+      "rate": "₹2,325.98",
+      "taxable": "₹6,977.94",
+      "taxRate": "18%",
+      "amount": "₹8,233.96",
+      "code": "998399"
+    },
+    {
+      "idx": "44",
+      "description": "Hosting (12 months) (44)",
+      "qty": "4",
+      "rate": "₹2,405.17",
+      "taxable": "₹9,620.68",
+      "taxRate": "18%",
+      "amount": "₹11,352.40",
+      "code": "998315"
+    },
+    {
+      "idx": "45",
+      "description": "Logo refresh (45)",
+      "qty": "5",
+      "rate": "₹2,484.36",
+      "taxable": "₹12,421.80",
+      "taxRate": "18%",
+      "amount": "₹14,657.72",
+      "code": "998391"
+    },
+    {
+      "idx": "46",
+      "description": "Photography — product shoot, 40 edited images (46)",
+      "qty": "1",
+      "rate": "₹2,563.55",
+      "taxable": "₹2,563.55",
+      "taxRate": "18%",
+      "amount": "₹3,024.99",
+      "code": "998383"
+    },
+    {
+      "idx": "47",
+      "description": "Maintenance retainer (47)",
+      "qty": "2",
+      "rate": "₹2,642.74",
+      "taxable": "₹5,285.48",
+      "taxRate": "18%",
+      "amount": "₹6,236.86",
+      "code": "998713"
+    },
+    {
+      "idx": "48",
+      "description": "Domain renewal (48)",
+      "qty": "3",
+      "rate": "₹2,721.93",
+      "taxable": "₹8,165.79",
+      "taxRate": "18%",
+      "amount": "₹9,635.63",
+      "code": "998315"
+    },
+    {
+      "idx": "49",
+      "description": "Website development — responsive landing page with contact form and analytics setup (49)",
+      "qty": "4",
+      "rate": "₹2,801.12",
+      "taxable": "₹11,204.48",
+      "taxRate": "18%",
+      "amount": "₹13,221.28",
+      "code": "998314"
+    },
+    {
+      "idx": "50",
+      "description": "SEO audit (50)",
+      "qty": "5",
+      "rate": "₹2,880.31",
+      "taxable": "₹14,401.55",
+      "taxRate": "18%",
+      "amount": "₹16,993.83",
+      "code": "998365"
+    },
+    {
+      "idx": "51",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (51)",
+      "qty": "1",
+      "rate": "₹2,959.50",
+      "taxable": "₹2,959.50",
+      "taxRate": "18%",
+      "amount": "₹3,492.22",
+      "code": "998399"
+    },
+    {
+      "idx": "52",
+      "description": "Hosting (12 months) (52)",
+      "qty": "2",
+      "rate": "₹3,038.69",
+      "taxable": "₹6,077.38",
+      "taxRate": "18%",
+      "amount": "₹7,171.30",
+      "code": "998315"
+    },
+    {
+      "idx": "53",
+      "description": "Logo refresh (53)",
+      "qty": "3",
+      "rate": "₹3,117.88",
+      "taxable": "₹9,353.64",
+      "taxRate": "18%",
+      "amount": "₹11,037.30",
+      "code": "998391"
+    },
+    {
+      "idx": "54",
+      "description": "Photography — product shoot, 40 edited images (54)",
+      "qty": "4",
+      "rate": "₹3,197.07",
+      "taxable": "₹12,788.28",
+      "taxRate": "18%",
+      "amount": "₹15,090.18",
+      "code": "998383"
+    },
+    {
+      "idx": "55",
+      "description": "Maintenance retainer (55)",
+      "qty": "5",
+      "rate": "₹3,276.26",
+      "taxable": "₹16,381.30",
+      "taxRate": "18%",
+      "amount": "₹19,329.94",
+      "code": "998713"
+    },
+    {
+      "idx": "56",
+      "description": "Domain renewal (56)",
+      "qty": "1",
+      "rate": "₹3,355.45",
+      "taxable": "₹3,355.45",
+      "taxRate": "18%",
+      "amount": "₹3,959.43",
+      "code": "998315"
+    },
+    {
+      "idx": "57",
+      "description": "Website development — responsive landing page with contact form and analytics setup (57)",
+      "qty": "2",
+      "rate": "₹3,434.64",
+      "taxable": "₹6,869.28",
+      "taxRate": "18%",
+      "amount": "₹8,105.76",
+      "code": "998314"
+    },
+    {
+      "idx": "58",
+      "description": "SEO audit (58)",
+      "qty": "3",
+      "rate": "₹3,513.83",
+      "taxable": "₹10,541.49",
+      "taxRate": "18%",
+      "amount": "₹12,438.95",
+      "code": "998365"
+    },
+    {
+      "idx": "59",
+      "description": "Content writing (per article) covering product pages, category descriptions and a style guide for future contributors (59)",
+      "qty": "4",
+      "rate": "₹3,593.02",
+      "taxable": "₹14,372.08",
+      "taxRate": "18%",
+      "amount": "₹16,959.06",
+      "code": "998399"
+    },
+    {
+      "idx": "60",
+      "description": "Hosting (12 months) (60)",
+      "qty": "5",
+      "rate": "₹3,672.21",
+      "taxable": "₹18,361.05",
+      "taxRate": "18%",
+      "amount": "₹21,666.03",
+      "code": "998315"
+    }
+  ],
+  "totals": [
+    {
+      "label": "Taxable value",
+      "value": "₹4,82,501.70"
+    },
+    {
+      "label": "CGST 9%",
+      "value": "₹43,425.17"
+    },
+    {
+      "label": "SGST 9%",
+      "value": "₹43,425.17"
+    },
+    {
+      "label": "Round off",
+      "value": "-₹0.04"
+    },
+    {
+      "label": "Total",
+      "value": "₹5,69,352.00",
+      "emphasis": true
+    }
+  ],
+  "home": null,
+  "amountInWords": "Indian Rupees Five Lakh Sixty Nine Thousand Three Hundred Fifty Two Only",
+  "payment": {
+    "bank": [
+      {
+        "label": "Account name",
+        "value": "Bharat Web Studio"
+      },
+      {
+        "label": "Account no.",
+        "value": "000123456789"
+      },
+      {
+        "label": "IFSC",
+        "value": "EXMP0001234"
+      }
+    ],
+    "upi": {
+      "qr": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBzaGFwZS1yZW5kZXJpbmc9ImNyaXNwRWRnZXMiPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZmZmIi8+PGcgZmlsbD0iIzExMSI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNiIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjI0IiB5PSIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0MCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjQ4IiB5PSIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNzIiIHk9IjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI5NiIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjEyMCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE0NCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE1MiIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE2MCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE2OCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE3NiIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE4NCIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE5MiIgeT0iMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTYiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIyNCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjMyIiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDAiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0OCIgeT0iOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjU2IiB5PSI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iODAiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMDQiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMjgiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNDQiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNTIiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjAiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjgiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNzYiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxODQiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxOTIiIHk9IjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIwIiB5PSIxNiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTYiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDAiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDgiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTQ0IiB5PSIxNiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE1MiIgeT0iMTYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjAiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTY4IiB5PSIxNiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE3NiIgeT0iMTYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxODQiIHk9IjE2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTkyIiB5PSIxNiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjI0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOCIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNiIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIyNCIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIzMiIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0MCIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0OCIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI3MiIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI5NiIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMjAiIHk9IjI0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTQ0IiB5PSIyNCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE1MiIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjAiIHk9IjI0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTY4IiB5PSIyNCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE3NiIgeT0iMjQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxODQiIHk9IjI0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTkyIiB5PSIyNCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjMyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOCIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNiIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIyNCIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIzMiIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0MCIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0OCIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI1NiIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI4MCIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMDQiIHk9IjMyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTI4IiB5PSIzMiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE0NCIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNTIiIHk9IjMyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTYwIiB5PSIzMiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE2OCIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNzYiIHk9IjMyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTg0IiB5PSIzMiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE5MiIgeT0iMzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIwIiB5PSI0MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTYiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDAiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDgiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTQ0IiB5PSI0MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE1MiIgeT0iNDAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjAiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTY4IiB5PSI0MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE3NiIgeT0iNDAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxODQiIHk9IjQwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTkyIiB5PSI0MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjQ4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOCIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNiIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIyNCIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIzMiIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0MCIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0OCIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI3MiIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI5NiIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMjAiIHk9IjQ4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTQ0IiB5PSI0OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE1MiIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjAiIHk9IjQ4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTY4IiB5PSI0OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE3NiIgeT0iNDgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxODQiIHk9IjQ4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTkyIiB5PSI0OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjU2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjU2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNTYiIHk9IjU2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iODAiIHk9IjU2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTA0IiB5PSI1NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjEyOCIgeT0iNTYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNTIiIHk9IjU2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTc2IiB5PSI1NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjcyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9IjcyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDgiIHk9IjcyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNzIiIHk9IjcyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOTYiIHk9IjcyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTIwIiB5PSI3MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE0NCIgeT0iNzIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjgiIHk9IjcyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTkyIiB5PSI3MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjgwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjgwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNTYiIHk9IjgwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iODAiIHk9IjgwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTA0IiB5PSI4MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjEyOCIgeT0iODAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNTIiIHk9IjgwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTc2IiB5PSI4MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9Ijk2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9Ijk2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDgiIHk9Ijk2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNzIiIHk9Ijk2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOTYiIHk9Ijk2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTIwIiB5PSI5NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE0NCIgeT0iOTYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjgiIHk9Ijk2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTkyIiB5PSI5NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjEwNCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjMyIiB5PSIxMDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI1NiIgeT0iMTA0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iODAiIHk9IjEwNCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjEwNCIgeT0iMTA0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTI4IiB5PSIxMDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNTIiIHk9IjEwNCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE3NiIgeT0iMTA0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMCIgeT0iMTIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9IjEyMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjQ4IiB5PSIxMjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI3MiIgeT0iMTIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOTYiIHk9IjEyMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjEyMCIgeT0iMTIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTQ0IiB5PSIxMjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjgiIHk9IjEyMCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE5MiIgeT0iMTIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOCIgeT0iMTI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjEyOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjU2IiB5PSIxMjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI4MCIgeT0iMTI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTA0IiB5PSIxMjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMjgiIHk9IjEyOCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE1MiIgeT0iMTI4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTc2IiB5PSIxMjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIwIiB5PSIxNDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI4IiB5PSIxNDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNiIgeT0iMTQ0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9IjE0NCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjMyIiB5PSIxNDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0MCIgeT0iMTQ0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDgiIHk9IjE0NCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjcyIiB5PSIxNDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI5NiIgeT0iMTQ0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTIwIiB5PSIxNDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNDQiIHk9IjE0NCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE2OCIgeT0iMTQ0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTkyIiB5PSIxNDQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIwIiB5PSIxNTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI4IiB5PSIxNTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNiIgeT0iMTUyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9IjE1MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjMyIiB5PSIxNTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0MCIgeT0iMTUyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDgiIHk9IjE1MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjU2IiB5PSIxNTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI4MCIgeT0iMTUyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTA0IiB5PSIxNTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMjgiIHk9IjE1MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE1MiIgeT0iMTUyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTc2IiB5PSIxNTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIwIiB5PSIxNjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI4IiB5PSIxNjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNiIgeT0iMTYwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMjQiIHk9IjE2MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjMyIiB5PSIxNjAiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0MCIgeT0iMTYwIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDgiIHk9IjE2MCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjE2OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjE2OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE2IiB5PSIxNjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIyNCIgeT0iMTY4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjE2OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjQwIiB5PSIxNjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0OCIgeT0iMTY4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNzIiIHk9IjE2OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9Ijk2IiB5PSIxNjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMjAiIHk9IjE2OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE0NCIgeT0iMTY4IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTY4IiB5PSIxNjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxOTIiIHk9IjE2OCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjE3NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjE3NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE2IiB5PSIxNzYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIyNCIgeT0iMTc2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjE3NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjQwIiB5PSIxNzYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0OCIgeT0iMTc2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNTYiIHk9IjE3NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgwIiB5PSIxNzYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxMDQiIHk9IjE3NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjEyOCIgeT0iMTc2IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTUyIiB5PSIxNzYiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNzYiIHk9IjE3NiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjAiIHk9IjE4NCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjgiIHk9IjE4NCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE2IiB5PSIxODQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIyNCIgeT0iMTg0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMzIiIHk9IjE4NCIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjQwIiB5PSIxODQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI0OCIgeT0iMTg0IiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMCIgeT0iMTkyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOCIgeT0iMTkyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTYiIHk9IjE5MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjI0IiB5PSIxOTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIzMiIgeT0iMTkyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iNDAiIHk9IjE5MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjQ4IiB5PSIxOTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSI3MiIgeT0iMTkyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iOTYiIHk9IjE5MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjEyMCIgeT0iMTkyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PHJlY3QgeD0iMTQ0IiB5PSIxOTIiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiLz48cmVjdCB4PSIxNjgiIHk9IjE5MiIgd2lkdGg9IjgiIGhlaWdodD0iOCIvPjxyZWN0IHg9IjE5MiIgeT0iMTkyIiB3aWR0aD0iOCIgaGVpZ2h0PSI4Ii8+PC9nPjwvc3ZnPg==",
+      "caption": "Scan to pay with any UPI app",
+      "id": "bharatweb@examplebank"
+    }
+  },
+  "notes": "Thank you for your business. Payment within 15 days of the invoice date.",
+  "terms": "Goods once sold will not be taken back. Subject to Bengaluru jurisdiction.",
+  "bottomNotes": [],
+  "signature": {
+    "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMjAiIGhlaWdodD0iNzAiPjxwYXRoIGQ9Ik0xMCA1MCBDIDQwIDEwLCA2MCA3MCwgOTAgMzUgUyAxNDAgMjAsIDE2MCA0NSBTIDIwMCA2MCwgMjEwIDMwIiBzdHJva2U9IiMxZDJiNGYiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+",
+    "for": "For Bharat Web Studio",
+    "label": "Authorised signatory"
+  },
+  "footer": {
+    "page": "Page {page} of {pages}",
+    "continued": "Continued on next page"
+  }
+}

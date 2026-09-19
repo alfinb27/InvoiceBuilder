@@ -1,0 +1,991 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoicebuilder.local/spec/schema/domain.schema.json",
+  "title": "Domain model",
+  "description": "Canonical shapes of persisted entities (JSON form, used by backups and as the reference for GRDB records and Room entities). Money = *Minor integers; decimals = strings; dates = YYYY-MM-DD; timestamps = epoch ms UTC; ids = lowercase UUIDs.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "decimal": {
+      "type": "string",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "country": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "text": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "audit": {
+      "type": "object",
+      "required": [
+        "id",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "deletedAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "address": {
+      "type": "object",
+      "required": [
+        "line1",
+        "countryCode"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "line1": {
+          "type": "string"
+        },
+        "line2": {
+          "$ref": "#/$defs/text"
+        },
+        "city": {
+          "$ref": "#/$defs/text"
+        },
+        "regionCode": {
+          "$ref": "#/$defs/text"
+        },
+        "postalCode": {
+          "$ref": "#/$defs/text"
+        },
+        "countryCode": {
+          "$ref": "#/$defs/country"
+        }
+      }
+    },
+    "discount": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "percent"
+            },
+            "value": {
+              "$ref": "#/$defs/decimal"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "amount"
+            },
+            "value": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "Business": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "name",
+        "countryCode",
+        "taxConfig",
+        "taxRegistration",
+        "homeCurrency",
+        "paymentTermsDays",
+        "templateId"
+      ],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": true,
+        "createdAt": true,
+        "updatedAt": true,
+        "deletedAt": true,
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "legalName": {
+          "$ref": "#/$defs/text"
+        },
+        "address": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/address"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "email": {
+          "$ref": "#/$defs/text"
+        },
+        "phone": {
+          "$ref": "#/$defs/text"
+        },
+        "website": {
+          "$ref": "#/$defs/text"
+        },
+        "countryCode": {
+          "$ref": "#/$defs/country"
+        },
+        "taxConfig": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Tax config id = file name in spec/tax without .json (e.g. IN, GB, GENERIC); checked by validate.mjs."
+        },
+        "taxRegistration": {
+          "type": "string"
+        },
+        "taxId": {
+          "$ref": "#/$defs/text"
+        },
+        "extraIds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pan": {
+              "$ref": "#/$defs/text"
+            },
+            "companyNumber": {
+              "$ref": "#/$defs/text"
+            },
+            "registeredOffice": {
+              "$ref": "#/$defs/text"
+            },
+            "lutReference": {
+              "$ref": "#/$defs/text"
+            },
+            "lutValidUntil": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/date"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "homeCurrency": {
+          "$ref": "#/$defs/currency"
+        },
+        "turnoverMinor": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "bank": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "accountName": {
+              "$ref": "#/$defs/text"
+            },
+            "accountNumber": {
+              "$ref": "#/$defs/text"
+            },
+            "bankName": {
+              "$ref": "#/$defs/text"
+            },
+            "ifsc": {
+              "$ref": "#/$defs/text"
+            },
+            "sortCode": {
+              "$ref": "#/$defs/text"
+            },
+            "iban": {
+              "$ref": "#/$defs/text"
+            },
+            "swift": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        "upiVpa": {
+          "$ref": "#/$defs/text"
+        },
+        "paymentTermsDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defaultNotes": {
+          "$ref": "#/$defs/text"
+        },
+        "defaultTerms": {
+          "$ref": "#/$defs/text"
+        },
+        "templateId": {
+          "enum": [
+            "classic",
+            "modern",
+            "minimal",
+            "compact"
+          ]
+        },
+        "accentColor": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "logoAssetId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "signatureAssetId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reminderDaysAfterDue": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "customRates": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Business-defined rates for GENERIC (tax-config rate shape)."
+        }
+      }
+    },
+    "Client": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "businessId",
+        "name",
+        "countryCode",
+        "isBusiness"
+      ],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": true,
+        "createdAt": true,
+        "updatedAt": true,
+        "deletedAt": true,
+        "businessId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contactName": {
+          "$ref": "#/$defs/text"
+        },
+        "email": {
+          "$ref": "#/$defs/text"
+        },
+        "phone": {
+          "$ref": "#/$defs/text"
+        },
+        "billingAddress": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/address"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shippingAddress": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/address"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "countryCode": {
+          "$ref": "#/$defs/country"
+        },
+        "regionCode": {
+          "$ref": "#/$defs/text"
+        },
+        "taxId": {
+          "$ref": "#/$defs/text"
+        },
+        "isBusiness": {
+          "type": "boolean"
+        },
+        "defaultCurrency": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/currency"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "$ref": "#/$defs/text"
+        },
+        "archivedAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "CatalogItem": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "businessId",
+        "name",
+        "kind",
+        "unit",
+        "unitPriceMinor",
+        "currency",
+        "rateId",
+        "priceIncludesTax"
+      ],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": true,
+        "createdAt": true,
+        "updatedAt": true,
+        "deletedAt": true,
+        "businessId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "kind": {
+          "enum": [
+            "goods",
+            "service"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "unitPriceMinor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "currency": {
+          "$ref": "#/$defs/currency"
+        },
+        "rateId": {
+          "type": "string"
+        },
+        "productCode": {
+          "$ref": "#/$defs/text"
+        },
+        "priceIncludesTax": {
+          "type": "boolean"
+        },
+        "archivedAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "NumberingSeries": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "businessId",
+        "docType",
+        "label",
+        "pattern",
+        "reset",
+        "ownerDeviceId",
+        "counters"
+      ],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": true,
+        "createdAt": true,
+        "updatedAt": true,
+        "deletedAt": true,
+        "businessId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "docType": {
+          "enum": [
+            "invoice",
+            "quote"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "reset": {
+          "enum": [
+            "never",
+            "fiscalYear",
+            "calendarYear"
+          ]
+        },
+        "ownerDeviceId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "counters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "periodKey → next sequence number (ENGINE.md §5). Only the owner device writes it."
+        }
+      }
+    },
+    "LineItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "position",
+        "description",
+        "quantity",
+        "unitPriceMinor",
+        "rateId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "position": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "catalogItemId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "productCode": {
+          "$ref": "#/$defs/text"
+        },
+        "unit": {
+          "$ref": "#/$defs/text"
+        },
+        "quantity": {
+          "$ref": "#/$defs/decimal"
+        },
+        "unitPriceMinor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discount": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/discount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rateId": {
+          "type": "string"
+        },
+        "rateSnapshot": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Rate as applied at issue: { percent, category, label }."
+        },
+        "amountMinor": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "taxableMinor": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "taxMinor": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "totalMinor": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "Document": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "businessId",
+        "docType",
+        "lifecycle",
+        "issueDate",
+        "currency",
+        "supplyType",
+        "reverseCharge",
+        "pricesIncludeTax",
+        "shippingMinor",
+        "templateId",
+        "taxConfigRef",
+        "revision",
+        "lines",
+        "totals"
+      ],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": true,
+        "createdAt": true,
+        "updatedAt": true,
+        "deletedAt": true,
+        "businessId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "docType": {
+          "enum": [
+            "invoice",
+            "quote"
+          ]
+        },
+        "number": {
+          "$ref": "#/$defs/text"
+        },
+        "seriesId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "periodKey": {
+          "$ref": "#/$defs/text"
+        },
+        "lifecycle": {
+          "enum": [
+            "draft",
+            "issued",
+            "void"
+          ]
+        },
+        "issueDate": {
+          "$ref": "#/$defs/date"
+        },
+        "supplyDate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dueDate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validUntil": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sentAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "voidedAt": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "voidReason": {
+          "$ref": "#/$defs/text"
+        },
+        "quoteOutcome": {
+          "enum": [
+            "accepted",
+            "declined",
+            "converted",
+            null
+          ]
+        },
+        "convertedFromId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "$ref": "#/$defs/currency"
+        },
+        "exchangeRate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/decimal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "supplyType": {
+          "type": "string"
+        },
+        "placeOfSupply": {
+          "$ref": "#/$defs/text"
+        },
+        "reverseCharge": {
+          "type": "boolean"
+        },
+        "pricesIncludeTax": {
+          "type": "boolean"
+        },
+        "roundOff": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "clientId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sellerSnapshot": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Frozen EngineInput.seller + display fields at issue."
+        },
+        "buyerSnapshot": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Frozen EngineInput.buyer + display fields at issue."
+        },
+        "discount": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/discount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shippingMinor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "notes": {
+          "$ref": "#/$defs/text"
+        },
+        "terms": {
+          "$ref": "#/$defs/text"
+        },
+        "templateId": {
+          "enum": [
+            "classic",
+            "modern",
+            "minimal",
+            "compact"
+          ]
+        },
+        "taxConfigRef": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*@[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "<tax config id>@<configVersion> applied to this document."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineItem"
+          }
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subtotalMinor",
+            "discountMinor",
+            "shippingMinor",
+            "taxableMinor",
+            "taxMinor",
+            "taxNotChargedMinor",
+            "roundOffMinor",
+            "totalMinor"
+          ],
+          "properties": {
+            "subtotalMinor": {
+              "type": "integer"
+            },
+            "discountMinor": {
+              "type": "integer"
+            },
+            "shippingMinor": {
+              "type": "integer"
+            },
+            "taxableMinor": {
+              "type": "integer"
+            },
+            "taxMinor": {
+              "type": "integer"
+            },
+            "taxNotChargedMinor": {
+              "type": "integer"
+            },
+            "roundOffMinor": {
+              "type": "integer"
+            },
+            "totalMinor": {
+              "type": "integer"
+            }
+          }
+        },
+        "computed": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "Full ComputedDocument stored at issue (ENGINE.md §4)."
+        }
+      }
+    },
+    "Payment": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "businessId",
+        "documentId",
+        "amountMinor",
+        "date",
+        "method"
+      ],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": true,
+        "createdAt": true,
+        "updatedAt": true,
+        "deletedAt": true,
+        "businessId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "documentId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "amountMinor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "method": {
+          "enum": [
+            "cash",
+            "bank",
+            "upi",
+            "card",
+            "cheque",
+            "other"
+          ]
+        },
+        "reference": {
+          "$ref": "#/$defs/text"
+        },
+        "note": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "Asset": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "businessId",
+        "kind",
+        "mime",
+        "sha256",
+        "dataBase64"
+      ],
+      "unevaluatedProperties": false,
+      "properties": {
+        "id": true,
+        "createdAt": true,
+        "updatedAt": true,
+        "deletedAt": true,
+        "businessId": {
+          "$ref": "#/$defs/uuid"
+        },
+        "kind": {
+          "enum": [
+            "logo",
+            "signature"
+          ]
+        },
+        "mime": {
+          "enum": [
+            "image/png",
+            "image/jpeg"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dataBase64": {
+          "type": "string",
+          "contentEncoding": "base64"
+        }
+      }
+    }
+  }
+}

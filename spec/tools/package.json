@@ -1,0 +1,13 @@
+{
+  "name": "invoicebuilder-spec-tools",
+  "private": true,
+  "type": "module",
+  "description": "Validation tooling for the shared spec (dev-only; never shipped in an app).",
+  "scripts": {
+    "validate": "node validate.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}

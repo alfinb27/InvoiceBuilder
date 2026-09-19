@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoicebuilder.local/spec/schema/tax-config.schema.json",
+  "title": "Country tax configuration",
+  "description": "Data-driven tax rules interpreted by TaxEngine (spec/tax/ENGINE.md). Adding a country = a new file + fixtures.",
+  "type": "object",
+  "required": ["schemaVersion", "country", "configVersion", "reviewStatus", "paperSize", "fiscalYearStart", "labels",
+               "registrations", "rates", "supplyTypes", "componentRules", "reverseCharge", "rounding", "shipping",
+               "numbering", "foreignCurrency", "checks", "notesCatalog"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "country": { "type": "string", "pattern": "^[A-Z]{2}$", "description": "ISO 3166-1 alpha-2; ZZ = generic." },
+    "configVersion": { "$ref": "#/$defs/date", "description": "Date the rules in this file take effect." },
+    "reviewStatus": { "enum": ["draft", "reviewed"] },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "paperSize": { "enum": ["A4", "Letter"] },
+    "fiscalYearStart": { "type": "string", "pattern": "^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", "description": "MM-DD" },
+    "amountInWords": { "type": "boolean" },
+    "labels": {
+      "type": "object",
+      "required": ["taxName", "taxIdName", "productCodeName"],
+      "additionalProperties": false,
+      "properties": {
+        "taxName": { "type": "string" },
+        "taxIdName": { "type": "string" },
+        "productCodeName": { "type": "string" },
+        "regionName": { "type": "string" },
+        "placeOfSupply": { "type": "string" }
+      }
+    },
+    "taxIdFormats": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "pattern"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "pattern": { "type": "string" },
+          "checksum": { "enum": ["gstinMod36", "ukVatMod97"] },
+          "regionFromPrefix": { "type": "integer", "minimum": 1 },
+          "normalizePrefix": { "type": "string" }
+        }
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "localComponent": { "type": "string" },
+          "active": { "type": "boolean" }
+        }
+      }
+    },
+    "foreignRegion": { "type": "string" },
+    "registrations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "chargesTax", "requiresTaxId", "titles"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "label": { "type": "string" },
+          "chargesTax": { "type": "boolean" },
+          "requiresTaxId": { "type": "boolean" },
+          "titles": {
+            "type": "object",
+            "required": ["invoice", "quote"],
+            "additionalProperties": false,
+            "properties": {
+              "invoice": { "type": "string" },
+              "invoiceAllExempt": { "type": "string" },
+              "quote": { "type": "string" }
+            }
+          },
+          "notes": { "$ref": "#/$defs/noteIds" }
+        }
+      }
+    },
+    "ratesFrom": { "enum": ["config", "business"], "description": "business = rates are defined per business (generic countries)." },
+    "rates": { "type": "array", "items": { "$ref": "#/$defs/rate" } },
+    "supplyTypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "additionalProperties": false,
+        "properties": { "id": { "$ref": "#/$defs/id" }, "label": { "type": "string" } }
+      }
+    },
+    "componentRules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["when", "components"],
+        "additionalProperties": false,
+        "properties": {
+          "when": { "$ref": "#/$defs/condition" },
+          "components": {
+            "oneOf": [
+              { "const": "fromRate" },
+              { "type": "array", "items": { "$ref": "#/$defs/componentRef" } }
+            ]
+          },
+          "notes": { "$ref": "#/$defs/noteIds" }
+        }
+      }
+    },
+    "reverseCharge": {
+      "type": "object",
+      "required": ["supported"],
+      "additionalProperties": false,
+      "properties": { "supported": { "type": "boolean" }, "notes": { "$ref": "#/$defs/noteIds" } }
+    },
+    "rounding": {
+      "type": "object",
+      "required": ["amountMode", "taxLevel", "taxMode"],
+      "additionalProperties": false,
+      "properties": {
+        "amountMode": { "$ref": "#/$defs/roundingMode" },
+        "taxLevel": { "enum": ["line", "invoice"] },
+        "taxMode": { "$ref": "#/$defs/roundingMode" },
+        "grandTotal": {
+          "type": "object",
+          "required": ["roundToMinor", "mode", "label", "defaultOn"],
+          "additionalProperties": false,
+          "properties": {
+            "roundToMinor": { "type": "integer", "minimum": 1 },
+            "mode": { "$ref": "#/$defs/roundingMode" },
+            "label": { "type": "string" },
+            "defaultOn": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "shipping": {
+      "type": "object",
+      "required": ["rule"],
+      "additionalProperties": false,
+      "properties": { "rule": { "enum": ["principalSupplyRate", "apportion"] } }
+    },
+    "productCodes": {
+      "type": "object",
+      "required": ["tiers"],
+      "additionalProperties": false,
+      "properties": {
+        "tiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["b2bDigits", "b2cDigits"],
+            "additionalProperties": false,
+            "properties": {
+              "maxTurnoverMinor": { "type": "integer", "minimum": 0 },
+              "b2bDigits": { "type": "integer", "minimum": 0 },
+              "b2cDigits": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "numbering": {
+      "type": "object",
+      "required": ["reset", "invoicePattern", "quotePattern"],
+      "additionalProperties": false,
+      "properties": {
+        "maxLength": { "type": "integer", "minimum": 1 },
+        "allowedPattern": { "type": "string" },
+        "reset": { "enum": ["never", "fiscalYear", "calendarYear"] },
+        "invoicePattern": { "type": "string" },
+        "quotePattern": { "type": "string" }
+      }
+    },
+    "foreignCurrency": {
+      "type": "object",
+      "required": ["homeTotals", "taxInHomeCurrency"],
+      "additionalProperties": false,
+      "properties": { "homeTotals": { "type": "boolean" }, "taxInHomeCurrency": { "type": "boolean" } }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "severity": { "enum": ["error", "warning"] },
+          "type": { "enum": ["require", "productCodeDigits"], "default": "require" },
+          "require": { "type": "array", "items": { "$ref": "#/$defs/fieldPath" } },
+          "when": { "$ref": "#/$defs/condition" }
+        }
+      }
+    },
+    "notesCatalog": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["text", "placement"],
+        "additionalProperties": false,
+        "properties": { "text": { "type": "string" }, "placement": { "enum": ["top", "bottom"] } }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "decimal": { "type": "string", "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+    "roundingMode": { "enum": ["halfAwayFromZero", "halfEven", "towardZero"] },
+    "noteIds": { "type": "array", "items": { "type": "string" } },
+    "category": { "enum": ["standard", "reduced", "zero", "exempt", "nil", "outsideScope"] },
+    "fieldPath": {
+      "enum": ["seller.taxId", "seller.lutReference", "seller.address", "buyer.name", "buyer.address", "buyer.region",
+               "buyer.taxId", "buyer.country", "draft.exchangeRate", "draft.dueDate"]
+    },
+    "rate": {
+      "type": "object",
+      "required": ["id", "category", "label", "effectiveFrom"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "percent": { "$ref": "#/$defs/decimal" },
+        "category": { "$ref": "#/$defs/category" },
+        "label": { "type": "string" },
+        "effectiveFrom": { "$ref": "#/$defs/date" },
+        "effectiveTo": { "$ref": "#/$defs/date" },
+        "note": { "type": "string" },
+        "components": {
+          "type": "array",
+          "description": "Only for business-defined rates (ratesFrom = business).",
+          "items": {
+            "type": "object",
+            "required": ["code", "label", "percent"],
+            "additionalProperties": false,
+            "properties": {
+              "code": { "type": "string" },
+              "label": { "type": "string" },
+              "percent": { "$ref": "#/$defs/decimal" },
+              "compound": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "componentRef": {
+      "type": "object",
+      "required": ["code", "share"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "description": "Component code, or $localComponent to use the place-of-supply region's local component." },
+        "share": { "$ref": "#/$defs/decimal" },
+        "rateOverride": { "$ref": "#/$defs/decimal" },
+        "categoryOverride": { "$ref": "#/$defs/category" }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supplyType": { "type": "array", "items": { "type": "string" } },
+        "sameRegion": { "type": "boolean" },
+        "sellerRegistration": { "type": "array", "items": { "type": "string" } },
+        "buyerIsBusiness": { "type": "boolean" },
+        "buyerHasTaxId": { "type": "boolean" },
+        "reverseCharge": { "type": "boolean" },
+        "docType": { "type": "array", "items": { "enum": ["invoice", "quote"] } },
+        "foreignCurrency": { "type": "boolean" },
+        "totalAtLeastMinor": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

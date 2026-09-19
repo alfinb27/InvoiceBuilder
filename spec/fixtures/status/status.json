@@ -1,0 +1,244 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "status",
+  "description": "Derived document status and outstanding amount (ENGINE.md 6).",
+  "cases": [
+    {
+      "id": "status-draft",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "draft",
+        "total": 118000,
+        "paid": 0,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "draft",
+        "outstanding": 118000
+      }
+    },
+    {
+      "id": "status-issued-not-sent",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 0,
+        "dueDate": "2026-10-19",
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "issued",
+        "outstanding": 118000
+      }
+    },
+    {
+      "id": "status-sent",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 0,
+        "dueDate": "2026-10-19",
+        "sentAt": 1789800000000,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "sent",
+        "outstanding": 118000
+      }
+    },
+    {
+      "id": "status-due-today-not-overdue",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 0,
+        "dueDate": "2026-09-19",
+        "sentAt": 1789800000000,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "sent",
+        "outstanding": 118000
+      }
+    },
+    {
+      "id": "status-overdue",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 0,
+        "dueDate": "2026-09-18",
+        "sentAt": 1789800000000,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "overdue",
+        "outstanding": 118000
+      }
+    },
+    {
+      "id": "status-partially-paid",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 50000,
+        "dueDate": "2026-10-19",
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "partiallyPaid",
+        "outstanding": 68000
+      }
+    },
+    {
+      "id": "status-overdue-beats-partial",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 50000,
+        "dueDate": "2026-09-01",
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "overdue",
+        "outstanding": 68000
+      }
+    },
+    {
+      "id": "status-paid",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 118000,
+        "dueDate": "2026-09-01",
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "paid",
+        "outstanding": 0
+      }
+    },
+    {
+      "id": "status-overpaid",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 118000,
+        "paid": 120000,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "paid",
+        "outstanding": 0
+      }
+    },
+    {
+      "id": "status-zero-total-paid",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "issued",
+        "total": 0,
+        "paid": 0,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "paid",
+        "outstanding": 0
+      }
+    },
+    {
+      "id": "status-void-with-payment",
+      "input": {
+        "docType": "invoice",
+        "lifecycle": "void",
+        "total": 118000,
+        "paid": 50000,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "void",
+        "outstanding": 68000
+      }
+    },
+    {
+      "id": "status-quote-open",
+      "input": {
+        "docType": "quote",
+        "lifecycle": "issued",
+        "total": 50000,
+        "paid": 0,
+        "validUntil": "2026-10-01",
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "open"
+      }
+    },
+    {
+      "id": "status-quote-sent",
+      "input": {
+        "docType": "quote",
+        "lifecycle": "issued",
+        "total": 50000,
+        "paid": 0,
+        "validUntil": "2026-10-01",
+        "sentAt": 1789800000000,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "sent"
+      }
+    },
+    {
+      "id": "status-quote-expired",
+      "input": {
+        "docType": "quote",
+        "lifecycle": "issued",
+        "total": 50000,
+        "paid": 0,
+        "validUntil": "2026-09-01",
+        "sentAt": 1789800000000,
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "expired"
+      }
+    },
+    {
+      "id": "status-quote-accepted-after-expiry",
+      "input": {
+        "docType": "quote",
+        "lifecycle": "issued",
+        "total": 50000,
+        "paid": 0,
+        "validUntil": "2026-09-01",
+        "outcome": "accepted",
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "accepted"
+      }
+    },
+    {
+      "id": "status-quote-converted",
+      "input": {
+        "docType": "quote",
+        "lifecycle": "issued",
+        "total": 50000,
+        "paid": 0,
+        "outcome": "converted",
+        "today": "2026-09-19"
+      },
+      "expected": {
+        "status": "converted"
+      }
+    }
+  ]
+}

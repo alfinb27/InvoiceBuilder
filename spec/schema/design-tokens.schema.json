@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoicebuilder.local/spec/schema/design-tokens.schema.json",
+  "title": "Design tokens (spec/design/tokens.json)",
+  "type": "object",
+  "required": [
+    "version",
+    "color",
+    "status",
+    "type",
+    "space",
+    "radius",
+    "layout",
+    "pdf"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "color": {
+      "type": "object",
+      "required": [
+        "light",
+        "dark"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/palette"
+        },
+        "dark": {
+          "$ref": "#/$defs/palette"
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "properties": {
+        "$comment": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "$ref": "#/$defs/hex"
+        }
+      }
+    },
+    "type": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "size",
+          "weight"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "size": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "weight": {
+            "enum": [
+              "regular",
+              "medium",
+              "semibold",
+              "bold"
+            ]
+          },
+          "monospacedDigits": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "space": {
+      "$ref": "#/$defs/numbers"
+    },
+    "radius": {
+      "$ref": "#/$defs/numbers"
+    },
+    "layout": {
+      "$ref": "#/$defs/numbers"
+    },
+    "pdf": {
+      "type": "object",
+      "required": [
+        "accentPresets",
+        "fontFamily",
+        "fallbackFonts",
+        "paper"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$comment": {
+          "type": "string"
+        },
+        "accentPresets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/hex"
+          }
+        },
+        "fontFamily": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fallbackFonts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "paper": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "width",
+              "height",
+              "margin"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "width": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "height": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "margin": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "palette": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/hex"
+      }
+    },
+    "numbers": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
+    }
+  }
+}

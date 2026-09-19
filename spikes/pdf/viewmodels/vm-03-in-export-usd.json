@@ -1,0 +1,155 @@
+{
+  "paper": "A4",
+  "accent": "#1F6FEB",
+  "title": "Tax Invoice",
+  "draft": false,
+  "topNotes": [],
+  "seller": {
+    "name": "Bharat Web Studio",
+    "lines": [
+      "12 MG Road, Bengaluru 560001",
+      "Karnataka, India"
+    ],
+    "ids": [
+      {
+        "label": "GSTIN",
+        "value": "29AAGCB7383J1Z4"
+      },
+      {
+        "label": "PAN",
+        "value": "AAGCB7383J"
+      },
+      {
+        "label": "LUT ARN",
+        "value": "AD2903260123456"
+      }
+    ],
+    "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMjAiIGZpbGw9IiMxRjZGRUIiLz48dGV4dCB4PSI0OCIgeT0iNjEiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJXPC90ZXh0Pjwvc3ZnPg=="
+  },
+  "meta": [
+    {
+      "label": "Invoice no.",
+      "value": "INV/26-27/0043"
+    },
+    {
+      "label": "Date",
+      "value": "19 Sep 2026"
+    },
+    {
+      "label": "Place of supply",
+      "value": "96 - Outside India"
+    },
+    {
+      "label": "Due date",
+      "value": "4 Oct 2026"
+    }
+  ],
+  "billTo": {
+    "name": "Acme Inc.",
+    "lines": [
+      "1 Market St, San Francisco, CA 94105",
+      "United States"
+    ],
+    "ids": []
+  },
+  "shipTo": null,
+  "columns": [
+    {
+      "key": "idx",
+      "label": "#"
+    },
+    {
+      "key": "description",
+      "label": "Description"
+    },
+    {
+      "key": "code",
+      "label": "HSN/SAC"
+    },
+    {
+      "key": "qty",
+      "label": "Qty",
+      "align": "right"
+    },
+    {
+      "key": "rate",
+      "label": "Rate",
+      "align": "right"
+    },
+    {
+      "key": "taxable",
+      "label": "Taxable value",
+      "align": "right"
+    },
+    {
+      "key": "taxRate",
+      "label": "GST %",
+      "align": "right"
+    },
+    {
+      "key": "amount",
+      "label": "Amount",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    {
+      "idx": "1",
+      "description": "Mobile app development (hours)",
+      "qty": "40",
+      "rate": "USD 45.00",
+      "taxable": "USD 1,800.00",
+      "taxRate": "0%",
+      "amount": "USD 1,800.00",
+      "code": "998314"
+    }
+  ],
+  "totals": [
+    {
+      "label": "Taxable value",
+      "value": "USD 1,800.00"
+    },
+    {
+      "label": "IGST 0% (zero)",
+      "value": "USD 0.00"
+    },
+    {
+      "label": "Total",
+      "value": "USD 1,800.00",
+      "emphasis": true
+    }
+  ],
+  "home": "Equivalent in INR at 83.25: taxable ₹1,49,850.00, total ₹1,49,850.00",
+  "amountInWords": "US Dollars One Thousand Eight Hundred Only",
+  "payment": {
+    "bank": [
+      {
+        "label": "Account name",
+        "value": "Bharat Web Studio"
+      },
+      {
+        "label": "Account no.",
+        "value": "000123456789"
+      },
+      {
+        "label": "IFSC",
+        "value": "EXMP0001234"
+      }
+    ],
+    "upi": null
+  },
+  "notes": "Thank you for your business. Payment within 15 days of the invoice date.",
+  "terms": "Goods once sold will not be taken back. Subject to Bengaluru jurisdiction.",
+  "bottomNotes": [
+    "SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING WITHOUT PAYMENT OF INTEGRATED TAX"
+  ],
+  "signature": {
+    "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMjAiIGhlaWdodD0iNzAiPjxwYXRoIGQ9Ik0xMCA1MCBDIDQwIDEwLCA2MCA3MCwgOTAgMzUgUyAxNDAgMjAsIDE2MCA0NSBTIDIwMCA2MCwgMjEwIDMwIiBzdHJva2U9IiMxZDJiNGYiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+",
+    "for": "For Bharat Web Studio",
+    "label": "Authorised signatory"
+  },
+  "footer": {
+    "page": "Page {page} of {pages}",
+    "continued": "Continued on next page"
+  }
+}

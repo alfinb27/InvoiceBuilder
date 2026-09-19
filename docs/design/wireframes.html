@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice app wireframes (v0)</title>
+<style>
+  :root { --ink:#1f2937; --muted:#6b7280; --line:#cbd5e1; --fill:#eef2f7; --accent:#1F6FEB; --bg:#f8fafc; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#e5e7eb; --muted:#9ca3af; --line:#374151; --fill:#1f2937; --accent:#4C8DFF; --bg:#0b0f17; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; font: 14px/1.4 -apple-system, system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+  h1 { font-size: 20px; margin: 0 0 4px; } p.lead { color: var(--muted); margin: 0 0 20px; max-width: 70ch; }
+  section.screen { margin: 0 0 36px; }
+  section.screen h2 { font-size: 16px; margin: 0 0 4px; } section.screen p.note { color: var(--muted); margin: 0 0 12px; max-width: 80ch; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .device { border: 2px solid var(--ink); border-radius: 22px; padding: 10px; background: var(--bg); }
+  .phone { width: 260px; min-height: 520px; } .tablet { width: 640px; min-height: 440px; border-radius: 18px; }
+  .label { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+  .screenbox { border: 1px solid var(--line); border-radius: 12px; min-height: 480px; display: flex; flex-direction: column; overflow: hidden; }
+  .tablet .screenbox { min-height: 400px; flex-direction: row; }
+  .pane { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--line); min-width: 0; }
+  .pane:last-child { border-right: 0; } .pane.sidebar { flex: 0 0 120px; background: var(--fill); } .pane.wide { flex: 1.6; }
+  .bar { padding: 8px 10px; border-bottom: 1px solid var(--line); font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+  .bar small { font-weight: 400; color: var(--accent); }
+  .body { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .el { border: 1px dashed var(--line); border-radius: 6px; padding: 5px 7px; font-size: 12px; background: var(--fill); }
+  .el.input { background: transparent; } .el.btn { background: var(--accent); color: #fff; border: 0; text-align: center; font-weight: 600; }
+  .el.chip { display: inline-block; border-radius: 999px; padding: 2px 8px; margin-right: 4px; }
+  .el.big { font-size: 18px; font-weight: 700; } .el.doc { min-height: 150px; background: #fff; color: #111; }
+  .el.list { display: flex; justify-content: space-between; }
+  .tabs { display: flex; justify-content: space-around; border-top: 1px solid var(--line); padding: 6px; font-size: 11px; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  @media (max-width: 700px) { .tablet { width: 100%; } .tablet .screenbox { flex-direction: column; } .pane { border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<h1>Invoice app — low-fi wireframes (v0)</h1>
+<p class="lead">Eight core screens, each shown in the iPhone (compact) layout and the iPad / Android tablet (regular / expanded)
+layout from ADR-0014. Boxes are placeholders for structure only; visual design follows <code>spec/design/tokens.json</code>.</p>
+<div id="app"></div>
+<script>
+// Element shorthand: "t:" title bar, "b:" primary button, "i:" input, "c:" chips, "l:" list row, "k:" big number, "d:" document preview, "g:" 2-col grid, plain text = block.
+const S = {
+  onboarding: {
+    title: "1 · Onboarding", note: "Country → registration type → business details → tax ID (state read from GSTIN) → bank/UPI → logo & signature. Before this, an iCloud check looks for an existing business (ADR-0015).",
+    phone: [["t:Set up your business|Step 2 of 5"], ["i:Country: India"], ["c:Regular GST|Composition|Not registered"], ["i:Business name"], ["i:GSTIN (validated live)"], ["State: Karnataka (from GSTIN)"], ["b:Continue"]],
+    tablet: [["sidebar", ["Country", "Registration", "Business", "Bank & UPI", "Logo & signature"]], ["wide", ["t:Business details", "i:Business name", "i:Address", "g:i:City|i:PIN code", "i:GSTIN", "b:Continue"]]]
+  },
+  dashboard: {
+    title: "2 · Home / dashboard", note: "Outstanding, overdue and paid this month in home currency (SQL SUM); recent documents; one-tap New invoice.",
+    phone: [["t:Home|+ New"], ["g:k:₹1,24,500|k:₹18,000"], ["g:Outstanding|Overdue (3)"], ["Paid this month ₹2,40,000"], ["l:INV/26-27/0042 · Rao Traders|Overdue"], ["l:INV/26-27/0041 · Umesh Foods|Sent"], ["l:QT/26-27/0009 · Acme|Open"], ["tabs"]],
+    tablet: [["sidebar", ["Home", "Invoices", "Quotes", "Clients", "Items", "Settings"]], ["wide", ["t:Home|+ New invoice ⌘N", "g:k:₹1,24,500|k:₹18,000", "g:Outstanding|Overdue (3)", "l:INV/26-27/0042 · Rao Traders|Overdue", "l:INV/26-27/0041 · Umesh Foods|Sent"]]]
+  },
+  list: {
+    title: "3 · Documents list", note: "Segments All / Unpaid / Overdue / Paid / Drafts / Quotes; search by client or number (⌘F); status chips from derived status; context menu on iPad.",
+    phone: [["t:Invoices|Search"], ["c:All|Unpaid|Overdue|Paid|Drafts"], ["l:0042 · Rao Traders ₹11,800|Overdue"], ["l:0041 · Umesh Foods ₹5,900|Partially paid"], ["l:0040 · Anita Sharma ₹2,360|Paid"], ["l:Draft · Acme Inc. USD 1,800|Draft"], ["tabs"]],
+    tablet: [["sidebar", ["Home", "Invoices", "Quotes", "Clients", "Items", "Settings"]], ["", ["t:Invoices|Search ⌘F", "c:All|Unpaid|Overdue|Paid", "l:0042 · Rao Traders|Overdue", "l:0041 · Umesh Foods|Partial", "l:0040 · Anita Sharma|Paid"]], ["wide", ["t:INV/26-27/0042|Share · Record payment", "d:PDF preview of the selected invoice"]]]
+  },
+  builder: {
+    title: "4 · Invoice builder", note: "iPhone: one scrolling form, live totals card pinned at the bottom, preview is a separate screen. iPad/tablet: form beside a live PDF preview (re-rendered 400 ms after typing stops). Advanced (supply type, place of supply, reverse charge, inclusive prices, currency) is collapsed by default. Issue shows blocking issues (e.g. missing GSTIN).",
+    phone: [["t:New invoice|Preview"], ["i:Client: Rao Traders ▾"], ["g:i:Date 19 Sep|i:Due 4 Oct"], ["l:Website development ×2|₹10,000"], ["l:SEO audit ×1|₹4,000"], ["+ Add item (catalogue / one-off)"], ["Advanced ▸ supply type, currency, reverse charge"], ["k:Total ₹16,520"], ["b:Issue invoice"]],
+    tablet: [["", ["t:New invoice|Issue ⌘↩", "i:Client: Rao Traders ▾", "g:i:Date|i:Due", "l:Website development ×2|₹10,000", "l:SEO audit ×1|₹4,000", "+ Add item", "Advanced ▸", "k:Total ₹16,520"]], ["wide", ["t:Live preview|Template: Modern ▾", "d:Live PDF preview (page 1 while typing)"]]]
+  },
+  line: {
+    title: "5 · Line item editor", note: "Sheet on iPhone, popover on iPad. Decimal quantity, unit (UQC), price inclusive/exclusive, discount, tax rate (config rates effective on the supply date), HSN/SAC with digit hint.",
+    phone: [["t:Edit item|Done"], ["i:Description"], ["g:i:Qty 2.5|i:Unit KGS ▾"], ["i:Rate ₹240.00"], ["c:Excl. tax|Incl. tax"], ["i:Discount 10%"], ["i:GST rate 5% ▾"], ["i:HSN/SAC 0902 (4 digits needed)"], ["Line total ₹567.00"]],
+    tablet: [["", ["t:New invoice", "l:Tea leaves ×2.5|₹567", "l:Laptop stand ×1|₹1,457"]], ["", ["t:Popover: edit item|Done", "i:Description", "g:i:Qty|i:Unit", "i:Rate", "i:GST rate ▾", "i:HSN/SAC"]]]
+  },
+  clients: {
+    title: "6 · Clients", note: "B2B/B2C toggle drives GSTIN / VAT fields and place of supply; client detail shows documents and outstanding balance.",
+    phone: [["t:Clients|+ Add"], ["i:Search clients"], ["l:Rao Traders · GSTIN 29…|₹11,800 due"], ["l:Umesh Foods · Maharashtra|₹2,950 due"], ["l:Acme Inc. · United States|—"], ["tabs"]],
+    tablet: [["sidebar", ["Home", "Invoices", "Quotes", "Clients", "Items", "Settings"]], ["", ["t:Clients|+ Add", "l:Rao Traders|₹11,800", "l:Umesh Foods|₹2,950", "l:Acme Inc.|—"]], ["wide", ["t:Rao Traders|Edit · New invoice", "c:B2B|GSTIN 29AABCR1234C1ZU", "Karnataka · 5 Residency Road", "l:INV/26-27/0042|Overdue", "l:INV/26-27/0031|Paid"]]]
+  },
+  items: {
+    title: "7 · Item catalogue", note: "Goods/service, unit, default price (incl./excl. tax), rate, HSN/SAC. Archived items hidden but kept for old invoices.",
+    phone: [["t:Items|+ Add"], ["i:Search items"], ["l:Website development · SAC 998314|₹5,000 · 18%"], ["l:Tea leaves (kg) · HSN 0902|₹240 · 5%"], ["l:Fresh milk (L) · HSN 0401|₹56 · Exempt"], ["tabs"]],
+    tablet: [["sidebar", ["Home", "Invoices", "Quotes", "Clients", "Items", "Settings"]], ["", ["t:Items|+ Add", "l:Website development|₹5,000", "l:Tea leaves (kg)|₹240", "l:Fresh milk (L)|₹56"]], ["wide", ["t:Website development|Save", "c:Service|Goods", "g:i:Price ₹5,000|i:Unit JOB", "i:GST 18% ▾", "i:SAC 998314"]]]
+  },
+  detail: {
+    title: "8 · Invoice detail, share and payment", note: "Status chip, PDF preview, share (WhatsApp one-tap, email, print, save to Files), record payment, send reminder, duplicate, void. First share asks \"Mark as sent?\".",
+    phone: [["t:INV/26-27/0042|•••"], ["c:Overdue|Due 4 Oct"], ["d:PDF preview"], ["g:b:Share|b:Record payment"], ["l:Payment · 25 Sep · UPI|₹5,000"], ["Send reminder (WhatsApp / email)"]],
+    tablet: [["sidebar", ["Home", "Invoices", "Quotes", "Clients", "Items", "Settings"]], ["wide", ["t:INV/26-27/0042|Share · Print ⌘P · Record payment", "c:Overdue|Outstanding ₹6,800", "d:PDF preview (drag out to Mail/Files)"]], ["", ["t:Activity", "l:Issued 19 Sep|", "l:Sent 19 Sep|", "l:Paid ₹5,000 25 Sep|UPI", "Send reminder"]]]
+  }
+};
+function el(spec) {
+  const [kind, rest] = spec.includes(":") && /^[a-z]:/.test(spec) ? [spec[0], spec.slice(2)] : ["", spec];
+  const div = (cls, text) => { const d = document.createElement("div"); d.className = cls; if (text !== undefined) d.textContent = text; return d; };
+  if (spec === "tabs") { const t = div("tabs"); ["Home", "Invoices", "Clients", "Items", "Settings"].forEach(x => t.appendChild(div("", x))); return t; }
+  if (kind === "t") { const [a, b] = rest.split("|"); const bar = div("bar", a); if (b) { const s = document.createElement("small"); s.textContent = b; bar.appendChild(s); } return bar; }
+  if (kind === "b") return div("el btn", rest);
+  if (kind === "i") return div("el input", rest);
+  if (kind === "k") return div("el big", rest);
+  if (kind === "d") return div("el doc", rest);
+  if (kind === "c") { const w = div(""); rest.split("|").forEach(x => w.appendChild(div("el chip", x))); return w; }
+  if (kind === "l") { const [a, b] = rest.split("|"); const r = div("el list"); r.appendChild(div("", a)); r.appendChild(div("", b || "")); return r; }
+  if (kind === "g") { const g = div("grid2"); rest.split("|").forEach(x => g.appendChild(el(/^[a-z]:/.test(x) ? x : x))); return g; }
+  return div("el", rest);
+}
+function frame(label, cls, build) {
+  const wrap = document.createElement("div"); const l = document.createElement("div"); l.className = "label"; l.textContent = label; wrap.appendChild(l);
+  const dev = document.createElement("div"); dev.className = "device " + cls; const box = document.createElement("div"); box.className = "screenbox"; build(box); dev.appendChild(box); wrap.appendChild(dev); return wrap;
+}
+const app = document.getElementById("app");
+for (const s of Object.values(S)) {
+  const sec = document.createElement("section"); sec.className = "screen";
+  sec.innerHTML = `<h2></h2><p class="note"></p>`; sec.querySelector("h2").textContent = s.title; sec.querySelector(".note").textContent = s.note;
+  const row = document.createElement("div"); row.className = "row";
+  row.appendChild(frame("iPhone · compact", "phone", box => {
+    const body = document.createElement("div"); body.className = "body";
+    s.phone.forEach(([spec]) => { const e = el(spec); (e.className === "bar" || e.className === "tabs" ? box : body).appendChild(e); if (e.className === "bar") box.appendChild(body); });
+  }));
+  row.appendChild(frame("iPad / tablet · regular", "tablet", box => {
+    s.tablet.forEach(([kind, items]) => {
+      const pane = document.createElement("div"); pane.className = "pane " + kind;
+      if (kind === "sidebar") { const b = document.createElement("div"); b.className = "body"; items.forEach(x => { const d = document.createElement("div"); d.className = "el"; d.textContent = x; b.appendChild(d); }); pane.appendChild(b); }
+      else { const body = document.createElement("div"); body.className = "body"; items.forEach(spec => { const e = el(spec); if (e.className === "bar") pane.appendChild(e); else body.appendChild(e); }); pane.appendChild(body); }
+      box.appendChild(pane);
+    });
+  }));
+  sec.appendChild(row); app.appendChild(sec);
+}
+</script>
+</body>
+</html>

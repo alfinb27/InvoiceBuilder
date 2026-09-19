@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoicebuilder.local/spec/schema/units.schema.json",
+  "title": "Catalogue units (spec/reference/units.json)",
+  "type": "object",
+  "required": [
+    "units"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {
+      "type": "string"
+    },
+    "units": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "uqc"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uqc": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "GST Unique Quantity Code reported for India."
+          }
+        }
+      }
+    }
+  }
+}

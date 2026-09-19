@@ -1,0 +1,203 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "numbering",
+  "description": "Invoice number patterns, fiscal-year periods and length/character limits (ENGINE.md 5).",
+  "cases": [
+    {
+      "id": "num-in-fy-default",
+      "input": {
+        "pattern": "INV/{fy}/{seq:4}",
+        "reset": "fiscalYear",
+        "date": "2026-09-19",
+        "seq": 42,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "number": "INV/26-27/0042",
+        "periodKey": "FY2026"
+      }
+    },
+    {
+      "id": "num-in-fy-last-day",
+      "input": {
+        "pattern": "INV/{fy}/{seq:4}",
+        "reset": "fiscalYear",
+        "date": "2027-03-31",
+        "seq": 1250,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "number": "INV/26-27/1250",
+        "periodKey": "FY2026"
+      }
+    },
+    {
+      "id": "num-in-fy-first-day",
+      "input": {
+        "pattern": "INV/{fy}/{seq:4}",
+        "reset": "fiscalYear",
+        "date": "2027-04-01",
+        "seq": 1,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "number": "INV/27-28/0001",
+        "periodKey": "FY2027"
+      }
+    },
+    {
+      "id": "num-in-device-series-b",
+      "input": {
+        "pattern": "INV/{fy}/B{seq:4}",
+        "reset": "fiscalYear",
+        "date": "2026-09-19",
+        "seq": 7,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "number": "INV/26-27/B0007",
+        "periodKey": "FY2026"
+      }
+    },
+    {
+      "id": "num-in-seq-overflows-padding",
+      "input": {
+        "pattern": "INV/{fy}/{seq:4}",
+        "reset": "fiscalYear",
+        "date": "2026-09-19",
+        "seq": 12345,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "number": "INV/26-27/12345",
+        "periodKey": "FY2026"
+      }
+    },
+    {
+      "id": "num-in-too-long",
+      "input": {
+        "pattern": "INVOICE/{fyLong}/{seq:5}",
+        "reset": "fiscalYear",
+        "date": "2026-09-19",
+        "seq": 1,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "error": "number_too_long"
+      }
+    },
+    {
+      "id": "num-in-invalid-chars",
+      "input": {
+        "pattern": "INV#{seq:4}",
+        "reset": "never",
+        "date": "2026-09-19",
+        "seq": 3,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "error": "number_invalid_chars"
+      }
+    },
+    {
+      "id": "num-in-quote-series",
+      "input": {
+        "pattern": "QT/{fy}/{seq:4}",
+        "reset": "fiscalYear",
+        "date": "2026-09-19",
+        "seq": 9,
+        "fiscalYearStart": "04-01",
+        "maxLength": 16,
+        "allowedPattern": "^[A-Za-z0-9/-]+$"
+      },
+      "expected": {
+        "number": "QT/26-27/0009",
+        "periodKey": "FY2026"
+      }
+    },
+    {
+      "id": "num-gb-never-reset",
+      "input": {
+        "pattern": "INV-{seq:4}",
+        "reset": "never",
+        "fiscalYearStart": "04-06",
+        "date": "2026-09-19",
+        "seq": 318
+      },
+      "expected": {
+        "number": "INV-0318",
+        "periodKey": "all"
+      }
+    },
+    {
+      "id": "num-gb-tax-year-boundary",
+      "input": {
+        "pattern": "{fy}-{seq:3}",
+        "reset": "fiscalYear",
+        "fiscalYearStart": "04-06",
+        "date": "2027-04-05",
+        "seq": 88
+      },
+      "expected": {
+        "number": "26-27-088",
+        "periodKey": "FY2026"
+      }
+    },
+    {
+      "id": "num-gb-tax-year-start",
+      "input": {
+        "pattern": "{fy}-{seq:3}",
+        "reset": "fiscalYear",
+        "fiscalYearStart": "04-06",
+        "date": "2027-04-06",
+        "seq": 1
+      },
+      "expected": {
+        "number": "27-28-001",
+        "periodKey": "FY2027"
+      }
+    },
+    {
+      "id": "num-calendar-year-month",
+      "input": {
+        "pattern": "{yyyy}{mm}-{seq:3}",
+        "reset": "calendarYear",
+        "fiscalYearStart": "01-01",
+        "date": "2026-09-19",
+        "seq": 15
+      },
+      "expected": {
+        "number": "202609-015",
+        "periodKey": "CY2026"
+      }
+    },
+    {
+      "id": "num-short-year",
+      "input": {
+        "pattern": "A{yy}-{seq:2}",
+        "reset": "calendarYear",
+        "fiscalYearStart": "01-01",
+        "date": "2026-01-01",
+        "seq": 1
+      },
+      "expected": {
+        "number": "A26-01",
+        "periodKey": "CY2026"
+      }
+    }
+  ]
+}

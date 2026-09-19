@@ -1,0 +1,247 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "validation",
+  "description": "GSTIN (mod-36) and UK VAT number (mod-97 / 9755) validation and normalisation (ENGINE.md 8).",
+  "cases": [
+    {
+      "id": "gstin-29aagcb7383j1z4",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": "29AAGCB7383J1Z4"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "29AAGCB7383J1Z4",
+        "region": "29"
+      }
+    },
+    {
+      "id": "gstin-27aapfu0939f1zv",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": "27aapfu0939f1zv"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "27AAPFU0939F1ZV",
+        "region": "27"
+      }
+    },
+    {
+      "id": "gstin-33aaacc1206d1zn",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": " 33AAACC1206D1ZN "
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "33AAACC1206D1ZN",
+        "region": "33"
+      }
+    },
+    {
+      "id": "gstin-29aagcb7383j1z5",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": "29AAGCB7383J1Z5"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "29AAGCB7383J1Z5",
+        "error": "checksum"
+      }
+    },
+    {
+      "id": "gstin-29aagcb7383j1x4",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": "29AAGCB7383J1X4"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "29AAGCB7383J1X4",
+        "error": "format"
+      }
+    },
+    {
+      "id": "gstin-29aagc7383j1z4",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": "29AAGC7383J1Z4"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "29AAGC7383J1Z4",
+        "error": "format"
+      }
+    },
+    {
+      "id": "gstin-99aabcr1234c1zn",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": "99AABCR1234C1ZN"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "99AABCR1234C1ZN",
+        "error": "unknown_region"
+      }
+    },
+    {
+      "id": "gstin-04aabcu9603r1zv",
+      "input": {
+        "config": "IN@2025-09-22",
+        "format": "gstin",
+        "value": "04AABCU9603R1ZV"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "04AABCU9603R1ZV",
+        "region": "04"
+      }
+    },
+    {
+      "id": "gbvat-gb980780684",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GB980780684"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GB980780684"
+      }
+    },
+    {
+      "id": "gbvat-gb-980-7806-84",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GB 980 7806 84"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GB980780684"
+      }
+    },
+    {
+      "id": "gbvat-980780684",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "980780684"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GB980780684"
+      }
+    },
+    {
+      "id": "gbvat-gb999999973",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GB999999973"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GB999999973"
+      }
+    },
+    {
+      "id": "gbvat-gb980780685",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GB980780685"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "GB980780685",
+        "error": "checksum"
+      }
+    },
+    {
+      "id": "gbvat-gb123456789",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GB123456789"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "GB123456789",
+        "error": "checksum"
+      }
+    },
+    {
+      "id": "gbvat-gb980780684001",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GB980780684001"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GB980780684001"
+      }
+    },
+    {
+      "id": "gbvat-gbgd001",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GBGD001"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GBGD001"
+      }
+    },
+    {
+      "id": "gbvat-gbha599",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GBHA599"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GBHA599"
+      }
+    },
+    {
+      "id": "gbvat-gbgd500",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GBGD500"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "GBGD500",
+        "error": "format"
+      }
+    },
+    {
+      "id": "gbvat-gb12345",
+      "input": {
+        "config": "GB@2026-09-19",
+        "format": "gbVat",
+        "value": "GB12345"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "GB12345",
+        "error": "format"
+      }
+    }
+  ]
+}

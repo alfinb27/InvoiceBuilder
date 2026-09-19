@@ -1,0 +1,77 @@
+/* "Modern" invoice template for the PDF spike. Print-first CSS: A4, repeated table header, unsplittable rows and totals. */
+@font-face { font-family: "InvoiceSans"; src: url("../fonts/NotoSans-Regular.ttf") format("truetype"); font-weight: 400; unicode-range: U+0000-08FF, U+0980-1CCF, U+1D00-A8DF, U+A900-FFFF; }
+@font-face { font-family: "InvoiceSans"; src: url("../fonts/NotoSansDevanagari-Regular.ttf") format("truetype"); font-weight: 400; unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+25CC, U+A8E0-A8FF; }
+@font-face { font-family: "InvoiceSans"; src: url("../fonts/NotoSans-SemiBold.ttf") format("truetype"); font-weight: 600; unicode-range: U+0000-08FF, U+0980-1CCF, U+1D00-A8DF, U+A900-FFFF; }
+@font-face { font-family: "InvoiceSans"; src: url("../fonts/NotoSansDevanagari-SemiBold.ttf") format("truetype"); font-weight: 600; unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+25CC, U+A8E0-A8FF; }
+@font-face { font-family: "InvoiceSans"; src: url("../fonts/NotoSans-Bold.ttf") format("truetype"); font-weight: 700; unicode-range: U+0000-08FF, U+0980-1CCF, U+1D00-A8DF, U+A900-FFFF; }
+@font-face { font-family: "InvoiceSans"; src: url("../fonts/NotoSansDevanagari-Bold.ttf") format("truetype"); font-weight: 700; unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+25CC, U+A8E0-A8FF; }
+
+:root { --accent: #1F6FEB; --ink: #111827; --muted: #4B5563; --line: #D8DEE6; --soft: #F3F5F8; }
+
+@page {
+  size: A4;
+  margin: 14mm 12mm 16mm 12mm;
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt "InvoiceSans", sans-serif; color: #6B7280; }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font: 9pt/1.4 "InvoiceSans", sans-serif; color: var(--ink); }
+main { width: 100%; }
+h1, h2, h3, p, dl, dd { margin: 0; }
+h3 { font-size: 7.5pt; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 3pt; }
+
+.top-note { border: 1pt solid var(--ink); text-align: center; font-weight: 600; padding: 4pt; margin-bottom: 8pt; }
+
+.doc-header { display: flex; justify-content: space-between; gap: 16pt; border-top: 5pt solid var(--accent); padding-top: 10pt; }
+.brand { display: flex; gap: 10pt; align-items: flex-start; }
+.logo { width: 42pt; height: 42pt; object-fit: contain; }
+.seller h1 { font-size: 13pt; font-weight: 700; margin-bottom: 2pt; }
+.seller p { color: var(--muted); }
+.title-box { text-align: right; min-width: 170pt; }
+.doc-title { font-size: 18pt; font-weight: 700; color: var(--accent); margin-bottom: 6pt; }
+.draft-badge { display: inline-block; border: 1pt solid #B91C1C; color: #B91C1C; font-weight: 700; padding: 1pt 6pt; margin-bottom: 4pt; }
+
+dl.meta, dl.ids { display: grid; grid-template-columns: auto auto; column-gap: 8pt; row-gap: 1pt; }
+dl.meta { justify-content: end; }
+dl.meta dt, dl.ids dt { color: var(--muted); }
+dl.meta dd { font-weight: 600; text-align: right; }
+dl.ids { justify-content: start; margin-top: 3pt; }
+
+.parties { display: flex; gap: 16pt; margin: 14pt 0 10pt; }
+.party { flex: 1; background: var(--soft); border-radius: 4pt; padding: 8pt 10pt; }
+.party-name { font-weight: 600; font-size: 10pt; }
+
+table.items { width: 100%; border-collapse: collapse; }
+table.items thead { display: table-header-group; }
+table.items th { background: var(--accent); color: #fff; font-weight: 600; font-size: 8pt; text-align: left; padding: 5pt 6pt; }
+table.items td { border-bottom: .75pt solid var(--line); padding: 5pt 6pt; vertical-align: top; }
+table.items tr { break-inside: avoid; page-break-inside: avoid; }
+table.items td[data-key="idx"], table.items th[data-key="idx"] { width: 18pt; color: var(--muted); }
+table.items td[data-key="description"] { width: 38%; }
+table.items .sub { color: var(--muted); font-size: 8pt; }
+.num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.summary { display: flex; justify-content: space-between; gap: 16pt; margin-top: 10pt; break-inside: avoid; page-break-inside: avoid; }
+.summary-left { flex: 1; }
+.words { font-weight: 600; }
+.home { margin-top: 6pt; color: var(--muted); }
+table.totals { border-collapse: collapse; min-width: 200pt; }
+table.totals th { text-align: left; font-weight: 400; color: var(--muted); padding: 2pt 8pt 2pt 0; }
+table.totals td { padding: 2pt 0; }
+table.totals tr.grand th, table.totals tr.grand td { border-top: 1.5pt solid var(--ink); font-size: 11pt; font-weight: 700; color: var(--ink); padding-top: 5pt; }
+
+.payment { display: flex; gap: 16pt; align-items: flex-end; margin-top: 16pt; break-inside: avoid; page-break-inside: avoid; }
+.bank { flex: 1; }
+.upi { text-align: center; }
+.upi .qr { width: 78pt; height: 78pt; }
+.upi .caption { font-size: 7pt; color: var(--muted); }
+.upi .upi-id { font-weight: 600; font-size: 8pt; }
+.signature { text-align: center; min-width: 140pt; }
+.signature .sign { height: 36pt; }
+.signature .sign-label { border-top: .75pt solid var(--ink); padding-top: 2pt; color: var(--muted); }
+
+.notes { margin-top: 10pt; break-inside: avoid; page-break-inside: avoid; }
+.bottom-note { margin-top: 10pt; font-weight: 600; text-align: center; border: 1pt dashed var(--ink); padding: 4pt; break-inside: avoid; }
+
+@media screen { body { background: #e5e7eb; } main { width: 210mm; min-height: 297mm; margin: 12px auto; padding: 14mm 12mm; background: #fff; } }

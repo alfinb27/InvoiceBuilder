@@ -1,0 +1,397 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "rounding",
+  "description": "round(x, mode) primitive (ENGINE.md 2.2), including exact halves and negatives.",
+  "cases": [
+    {
+      "id": "round-halfawayfromzero-2p5",
+      "input": {
+        "value": "2.5",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 3
+      }
+    },
+    {
+      "id": "round-halfeven-2p5",
+      "input": {
+        "value": "2.5",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 2
+      }
+    },
+    {
+      "id": "round-towardzero-2p5",
+      "input": {
+        "value": "2.5",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 2
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-neg2p5",
+      "input": {
+        "value": "-2.5",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": -3
+      }
+    },
+    {
+      "id": "round-halfeven-neg2p5",
+      "input": {
+        "value": "-2.5",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": -2
+      }
+    },
+    {
+      "id": "round-towardzero-neg2p5",
+      "input": {
+        "value": "-2.5",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": -2
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-2p4",
+      "input": {
+        "value": "2.4",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 2
+      }
+    },
+    {
+      "id": "round-halfeven-2p4",
+      "input": {
+        "value": "2.4",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 2
+      }
+    },
+    {
+      "id": "round-towardzero-2p4",
+      "input": {
+        "value": "2.4",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 2
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-2p6",
+      "input": {
+        "value": "2.6",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 3
+      }
+    },
+    {
+      "id": "round-halfeven-2p6",
+      "input": {
+        "value": "2.6",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 3
+      }
+    },
+    {
+      "id": "round-towardzero-2p6",
+      "input": {
+        "value": "2.6",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 2
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-3p5",
+      "input": {
+        "value": "3.5",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 4
+      }
+    },
+    {
+      "id": "round-halfeven-3p5",
+      "input": {
+        "value": "3.5",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 4
+      }
+    },
+    {
+      "id": "round-towardzero-3p5",
+      "input": {
+        "value": "3.5",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 3
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-neg3p5",
+      "input": {
+        "value": "-3.5",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": -4
+      }
+    },
+    {
+      "id": "round-halfeven-neg3p5",
+      "input": {
+        "value": "-3.5",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": -4
+      }
+    },
+    {
+      "id": "round-towardzero-neg3p5",
+      "input": {
+        "value": "-3.5",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": -3
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-0p5",
+      "input": {
+        "value": "0.5",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 1
+      }
+    },
+    {
+      "id": "round-halfeven-0p5",
+      "input": {
+        "value": "0.5",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 0
+      }
+    },
+    {
+      "id": "round-towardzero-0p5",
+      "input": {
+        "value": "0.5",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 0
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-neg0p5",
+      "input": {
+        "value": "-0.5",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": -1
+      }
+    },
+    {
+      "id": "round-halfeven-neg0p5",
+      "input": {
+        "value": "-0.5",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 0
+      }
+    },
+    {
+      "id": "round-towardzero-neg0p5",
+      "input": {
+        "value": "-0.5",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 0
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-1234p4999",
+      "input": {
+        "value": "1234.4999",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 1234
+      }
+    },
+    {
+      "id": "round-halfeven-1234p4999",
+      "input": {
+        "value": "1234.4999",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 1234
+      }
+    },
+    {
+      "id": "round-towardzero-1234p4999",
+      "input": {
+        "value": "1234.4999",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 1234
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-103p5",
+      "input": {
+        "value": "103.5",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 104
+      }
+    },
+    {
+      "id": "round-halfeven-103p5",
+      "input": {
+        "value": "103.5",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 104
+      }
+    },
+    {
+      "id": "round-towardzero-103p5",
+      "input": {
+        "value": "103.5",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 103
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-1666p6666666666667",
+      "input": {
+        "value": "1666.6666666666667",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 1667
+      }
+    },
+    {
+      "id": "round-halfeven-1666p6666666666667",
+      "input": {
+        "value": "1666.6666666666667",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 1667
+      }
+    },
+    {
+      "id": "round-towardzero-1666p6666666666667",
+      "input": {
+        "value": "1666.6666666666667",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 1666
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-neg7p9",
+      "input": {
+        "value": "-7.9",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": -8
+      }
+    },
+    {
+      "id": "round-halfeven-neg7p9",
+      "input": {
+        "value": "-7.9",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": -8
+      }
+    },
+    {
+      "id": "round-towardzero-neg7p9",
+      "input": {
+        "value": "-7.9",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": -7
+      }
+    },
+    {
+      "id": "round-halfawayfromzero-0",
+      "input": {
+        "value": "0",
+        "mode": "halfAwayFromZero"
+      },
+      "expected": {
+        "result": 0
+      }
+    },
+    {
+      "id": "round-halfeven-0",
+      "input": {
+        "value": "0",
+        "mode": "halfEven"
+      },
+      "expected": {
+        "result": 0
+      }
+    },
+    {
+      "id": "round-towardzero-0",
+      "input": {
+        "value": "0",
+        "mode": "towardZero"
+      },
+      "expected": {
+        "result": 0
+      }
+    }
+  ]
+}

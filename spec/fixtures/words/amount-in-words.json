@@ -1,0 +1,147 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "words",
+  "description": "Amount in words (ENGINE.md 7.3): Indian system for INR, international otherwise.",
+  "cases": [
+    {
+      "id": "words-inr-12055025",
+      "input": {
+        "minor": 12055025,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees One Lakh Twenty Thousand Five Hundred Fifty and Twenty Five Paise Only"
+      }
+    },
+    {
+      "id": "words-inr-100",
+      "input": {
+        "minor": 100,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees One Only"
+      }
+    },
+    {
+      "id": "words-inr-50",
+      "input": {
+        "minor": 50,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees Zero and Fifty Paise Only"
+      }
+    },
+    {
+      "id": "words-inr-0",
+      "input": {
+        "minor": 0,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees Zero Only"
+      }
+    },
+    {
+      "id": "words-inr-1180000",
+      "input": {
+        "minor": 1180000,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees Eleven Thousand Eight Hundred Only"
+      }
+    },
+    {
+      "id": "words-inr-10000000000",
+      "input": {
+        "minor": 10000000000,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees Ten Crore Only"
+      }
+    },
+    {
+      "id": "words-inr-1000000000000",
+      "input": {
+        "minor": 1000000000000,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees One Thousand Crore Only"
+      }
+    },
+    {
+      "id": "words-inr-9999999",
+      "input": {
+        "minor": 9999999,
+        "currency": "INR"
+      },
+      "expected": {
+        "text": "Indian Rupees Ninety Nine Thousand Nine Hundred Ninety Nine and Ninety Nine Paise Only"
+      }
+    },
+    {
+      "id": "words-usd-123450",
+      "input": {
+        "minor": 123450,
+        "currency": "USD"
+      },
+      "expected": {
+        "text": "US Dollars One Thousand Two Hundred Thirty Four and Fifty Cents Only"
+      }
+    },
+    {
+      "id": "words-usd-100000000",
+      "input": {
+        "minor": 100000000,
+        "currency": "USD"
+      },
+      "expected": {
+        "text": "US Dollars One Million Only"
+      }
+    },
+    {
+      "id": "words-jpy-1235",
+      "input": {
+        "minor": 1235,
+        "currency": "JPY"
+      },
+      "expected": {
+        "text": "Japanese Yen One Thousand Two Hundred Thirty Five Only"
+      }
+    },
+    {
+      "id": "words-kwd-1235",
+      "input": {
+        "minor": 1235,
+        "currency": "KWD"
+      },
+      "expected": {
+        "text": "Kuwaiti Dinars One and Two Hundred Thirty Five Fils Only"
+      }
+    },
+    {
+      "id": "words-gbp-1000001",
+      "input": {
+        "minor": 1000001,
+        "currency": "GBP"
+      },
+      "expected": {
+        "text": "Pounds Ten Thousand and One Pence Only"
+      }
+    },
+    {
+      "id": "words-eur-11111",
+      "input": {
+        "minor": 11111,
+        "currency": "EUR"
+      },
+      "expected": {
+        "text": "Euros One Hundred Eleven and Eleven Cents Only"
+      }
+    }
+  ]
+}

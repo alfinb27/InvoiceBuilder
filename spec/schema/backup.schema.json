@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoicebuilder.local/spec/schema/backup.schema.json",
+  "title": "Portable backup file (.invoicebackup)",
+  "description": "One JSON file written and read by both apps (ADR-0013). Restore validates against this schema, checks counts and asset hashes, takes a safety snapshot, then replaces all data.",
+  "type": "object",
+  "required": ["format", "formatVersion", "createdAt", "app", "dbSchemaVersion", "counts", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": "invoicebuilder-backup" },
+    "formatVersion": { "const": 1 },
+    "createdAt": { "type": "integer", "minimum": 0, "description": "epoch ms UTC" },
+    "app": {
+      "type": "object", "required": ["platform", "version"], "additionalProperties": false,
+      "properties": { "platform": { "enum": ["ios", "android"] }, "version": { "type": "string" } }
+    },
+    "dbSchemaVersion": { "type": "integer", "minimum": 1, "description": "Highest migration number applied (spec/schema/db/migrations)." },
+    "counts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["businesses", "clients", "catalogItems", "numberingSeries", "documents", "payments", "assets"],
+      "properties": {
+        "businesses": { "type": "integer" }, "clients": { "type": "integer" }, "catalogItems": { "type": "integer" },
+        "numberingSeries": { "type": "integer" }, "documents": { "type": "integer" }, "payments": { "type": "integer" },
+        "assets": { "type": "integer" }
+      }
+    },
+    "data": {
+      "type": "object", "additionalProperties": false,
+      "required": ["businesses", "clients", "catalogItems", "numberingSeries", "documents", "payments", "assets"],
+      "properties": {
+        "businesses": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/Business" } },
+        "clients": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/Client" } },
+        "catalogItems": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/CatalogItem" } },
+        "numberingSeries": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/NumberingSeries" } },
+        "documents": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/Document" } },
+        "payments": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/Payment" } },
+        "assets": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/Asset" } }
+      }
+    }
+  }
+}
