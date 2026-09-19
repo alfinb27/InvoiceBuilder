@@ -1,0 +1,38 @@
+name: ios
+
+# InvoiceCore and InvoiceData run on macOS without a simulator (fast); InvoiceUI and the app's UI smoke tests run on
+# the first available iPhone simulator of the runner image.
+on:
+  push:
+    paths:
+      - "ios/**"
+      - "spec/**"
+      - ".github/workflows/ios.yml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "ios/**"
+      - "spec/**"
+      - ".github/workflows/ios.yml"
+      - "Makefile"
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core (every implemented fixture) and data tests
+        run: |
+          make test-core-ios
+          make test-data-ios
+      - name: Pick a simulator
+        id: sim
+        run: |
+          name=$(xcrun simctl list devices available | grep -m1 -oE 'iPhone [0-9]+( Pro)?' || true)
+          echo "Using simulator: $name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+      - name: InvoiceUI view-model tests
+        run: make test-ui-ios SIM="${{ steps.sim.outputs.name }}"
+      - name: App UI smoke tests
+        run: make test-app-ios SIM="${{ steps.sim.outputs.name }}"

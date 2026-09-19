@@ -27,8 +27,8 @@ Signed out → local-only + banner. Different Apple ID → pause and ask; never 
 CloudKit schema must be deployed to Production before release.
 
 ## Desk spike (2026-09-19)
-SQLiteData 1.12.0 resolves with GRDB 7.11.1 (+13 transitive packages, including swift-syntax). Compiling needs full
-Xcode (swift-perception uses the SwiftUI macro plugin, which Command Line Tools lack). Our schema meets SQLiteData's
+SQLiteData 1.12.0 resolves with GRDB 7.11.1 (+13 transitive packages, including swift-syntax) and compiles with
+Xcode 27 (full Xcode is required: swift-perception uses the SwiftUI macro plugin, which Command Line Tools lack). Our schema meets SQLiteData's
 documented sync rules after one change: primary keys are now `NOT NULL ON CONFLICT REPLACE`. Conflict handling is
 per-column "last edit wins". Device checks: `docs/spikes/sync-spike.md`.
 

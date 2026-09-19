@@ -3,12 +3,12 @@
 - **Date:** 2026-09-19 · **Decision:** ADR-0015 stays **Proposed** until the device run below
 - **Desk result:** no blockers found; one schema change applied.
 
-## What ran here (macOS, Command Line Tools only)
+## What ran here (macOS)
 
 | Step | Result |
 |---|---|
 | Resolve GRDB + SQLiteData (`spikes/sync/Package.swift`) | ✓ SQLiteData 1.12.0, GRDB 7.11.1, plus 13 transitive packages: swift-structured-queries 0.39.2, swift-sharing 2.10.1, swift-dependencies 1.17.1, swift-perception 2.0.12, swift-syntax 604.0.0, swift-snapshot-testing 1.19.5, swift-custom-dump, swift-identified-collections, swift-issue-reporting, swift-concurrency-extras, swift-clocks, combine-schedulers, swift-collections |
-| Compile | ✗ **blocked by the environment**: swift-perception needs the SwiftUI macro plugin (`SwiftUIMacros.StateMacro`), which ships with Xcode, not Command Line Tools. Re-run with Xcode. |
+| Compile | ✓ with Xcode 27.0 (2026-09-19, `swift build` in `spikes/sync`). Command Line Tools alone could not build it: swift-perception needs the SwiftUI macro plugin that ships with Xcode. |
 | Review our schema against SQLiteData's sync rules (`CloudKitSync.md` in the 1.12.0 checkout) | ✓ after one change (below) |
 
 ## SQLiteData rules vs our schema (`spec/schema/db`)

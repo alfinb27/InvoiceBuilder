@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "0B7C2A61-5D4E-4A8B-9F3E-2C1D6E8F4A01",
+      "name" : "Default",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:InvoiceApp.xcodeproj",
+        "identifier" : "C0FFEE000000000000000011",
+        "name" : "InvoiceAppUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

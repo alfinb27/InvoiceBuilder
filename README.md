@@ -15,7 +15,7 @@ Native iOS/iPadOS (Swift, SwiftUI, GRDB, StoreKit 2, iCloud sync) first, then na
 |---|---|
 | `spec/` | JSON Schemas, tax configs, reference data, DB schema, PDF labels, design tokens, golden fixtures, tooling |
 | `docs/` | Plan, ADRs, compliance notes, spike reports, product notes |
-| `ios/` | iOS/iPadOS app (from Phase 1) |
+| `ios/` | iOS/iPadOS app: `InvoiceApp.xcodeproj` + local packages in `ios/Packages/` (see `ios/CLAUDE.md`) |
 | `android/` | Android app (from Phase 7) |
 
 ## Common commands
@@ -23,6 +23,9 @@ Native iOS/iPadOS (Swift, SwiftUI, GRDB, StoreKit 2, iCloud sync) first, then na
 ```sh
 make setup           # install spec tooling (once; needs Node 20+ and the sqlite3 CLI)
 make validate-spec   # validate configs + fixtures against the schemas and consistency rules
+make test-ios        # iOS: core + data (swift test), InvoiceUI and UI tests (simulator; needs Xcode)
 ```
 
-Status: **Phase 0 desk work complete** — see [`docs/phase-0-status.md`](docs/phase-0-status.md) for what needs accounts, Xcode, Android Studio or devices.
+Status: **Phase 1 built and tested on simulators** (iOS data layer, onboarding, clients, catalogue, settings,
+adaptive iPhone/iPad shell) — see [`docs/phase-1-status.md`](docs/phase-1-status.md). Phase 0 items that still need
+accounts or devices are in [`docs/phase-0-status.md`](docs/phase-0-status.md).

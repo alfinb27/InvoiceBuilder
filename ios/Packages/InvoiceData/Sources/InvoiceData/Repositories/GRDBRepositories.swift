@@ -1,0 +1,270 @@
+import Foundation
+import GRDB
+import InvoiceCore
+
+// GRDB implementations of InvoiceCore's repository protocols. Reads never return tombstoned rows; deletes write a
+// tombstone (`spec/setup.md` §1). `save` inserts or updates by id, keeps the stored `created_at` and stamps
+// `updated_at`.
+
+public struct GRDBBusinessRepository: BusinessRepository {
+    let database: AppDatabase
+    let time: TimeSource
+
+    public init(database: AppDatabase, time: TimeSource) {
+        self.database = database
+        self.time = time
+    }
+
+    public func observeBusiness(id: String) -> AsyncThrowingStream<Business?, any Error> {
+        database.observe { db in try BusinessRecord.live.filter(key: id).fetchOne(db)?.business() }
+    }
+
+    public func fetchBusiness(id: String) async throws -> Business? {
+        try await database.writer.read { db in try BusinessRecord.live.filter(key: id).fetchOne(db)?.business() }
+    }
+
+    public func fetchBusinesses() async throws -> [Business] {
+        try await database.writer.read { db in
+            try BusinessRecord.live.order(DBColumns.createdAt, DBColumns.id).fetchAll(db).map { try $0.business() }
+        }
+    }
+
+    @discardableResult
+    public func save(_ business: Business) async throws -> Business {
+        let now = time.now()
+        return try await database.writer.write { db in
+            var stored = business
+            stored.updatedAt = now
+            if let existing = try BusinessRecord.fetchOne(db, key: business.id) {
+                stored.createdAt = existing.createdAt
+                try BusinessRecord(stored).update(db)
+            } else {
+                stored.createdAt = now
+                try BusinessRecord(stored).insert(db)
+            }
+            return stored
+        }
+    }
+}
+
+public struct GRDBClientRepository: ClientRepository {
+    let database: AppDatabase
+    let time: TimeSource
+
+    public init(database: AppDatabase, time: TimeSource) {
+        self.database = database
+        self.time = time
+    }
+
+    public func observeClients(businessID: String) -> AsyncThrowingStream<[Client], any Error> {
+        database.observe { db in
+            try ClientRecord.live.filter(DBColumns.businessID == businessID).fetchAll(db).map { try $0.client() }
+        }
+    }
+
+    public func observeClient(id: String) -> AsyncThrowingStream<Client?, any Error> {
+        database.observe { db in try ClientRecord.live.filter(key: id).fetchOne(db)?.client() }
+    }
+
+    public func fetchClient(id: String) async throws -> Client? {
+        try await database.writer.read { db in try ClientRecord.live.filter(key: id).fetchOne(db)?.client() }
+    }
+
+    @discardableResult
+    public func save(_ client: Client) async throws -> Client {
+        let now = time.now()
+        return try await database.writer.write { db in
+            var stored = client
+            stored.updatedAt = now
+            if let existing = try ClientRecord.fetchOne(db, key: client.id) {
+                stored.createdAt = existing.createdAt
+                try ClientRecord(stored).update(db)
+            } else {
+                stored.createdAt = now
+                try ClientRecord(stored).insert(db)
+            }
+            return stored
+        }
+    }
+
+    public func setArchived(_ archived: Bool, clientID: String) async throws {
+        try await database.stamp(ClientRecord.self, id: clientID, now: time.now(), column: "archived_at",
+                                 set: archived)
+    }
+
+    public func delete(clientID: String) async throws {
+        try await database.stamp(ClientRecord.self, id: clientID, now: time.now(), column: "deleted_at", set: true)
+    }
+}
+
+public struct GRDBCatalogRepository: CatalogRepository {
+    let database: AppDatabase
+    let time: TimeSource
+
+    public init(database: AppDatabase, time: TimeSource) {
+        self.database = database
+        self.time = time
+    }
+
+    public func observeItems(businessID: String) -> AsyncThrowingStream<[CatalogItem], any Error> {
+        database.observe { db in
+            try CatalogItemRecord.live.filter(DBColumns.businessID == businessID).fetchAll(db).map { $0.item() }
+        }
+    }
+
+    public func observeItem(id: String) -> AsyncThrowingStream<CatalogItem?, any Error> {
+        database.observe { db in try CatalogItemRecord.live.filter(key: id).fetchOne(db)?.item() }
+    }
+
+    public func fetchItem(id: String) async throws -> CatalogItem? {
+        try await database.writer.read { db in try CatalogItemRecord.live.filter(key: id).fetchOne(db)?.item() }
+    }
+
+    @discardableResult
+    public func save(_ item: CatalogItem) async throws -> CatalogItem {
+        let now = time.now()
+        return try await database.writer.write { db in
+            var stored = item
+            stored.updatedAt = now
+            if let existing = try CatalogItemRecord.fetchOne(db, key: item.id) {
+                stored.createdAt = existing.createdAt
+                try CatalogItemRecord(stored).update(db)
+            } else {
+                stored.createdAt = now
+                try CatalogItemRecord(stored).insert(db)
+            }
+            return stored
+        }
+    }
+
+    public func setArchived(_ archived: Bool, itemID: String) async throws {
+        try await database.stamp(CatalogItemRecord.self, id: itemID, now: time.now(), column: "archived_at",
+                                 set: archived)
+    }
+
+    public func delete(itemID: String) async throws {
+        try await database.stamp(CatalogItemRecord.self, id: itemID, now: time.now(), column: "deleted_at", set: true)
+    }
+
+    public func countItems(businessID: String, usingRate rateID: String) async throws -> Int {
+        try await database.writer.read { db in
+            try CatalogItemRecord.live.filter(DBColumns.businessID == businessID && DBColumns.rateID == rateID)
+                .fetchCount(db)
+        }
+    }
+}
+
+public struct GRDBNumberingSeriesRepository: NumberingSeriesRepository {
+    let database: AppDatabase
+    let time: TimeSource
+
+    public init(database: AppDatabase, time: TimeSource) {
+        self.database = database
+        self.time = time
+    }
+
+    public func observeSeries(businessID: String) -> AsyncThrowingStream<[NumberingSeries], any Error> {
+        database.observe { db in
+            try NumberingSeriesRecord.live.filter(DBColumns.businessID == businessID)
+                .order(Column("doc_type"), DBColumns.createdAt, DBColumns.id)
+                .fetchAll(db).map { try $0.series() }
+        }
+    }
+
+    @discardableResult
+    public func save(_ series: NumberingSeries) async throws -> NumberingSeries {
+        let now = time.now()
+        return try await database.writer.write { db in
+            var stored = series
+            stored.updatedAt = now
+            if let existing = try NumberingSeriesRecord.fetchOne(db, key: series.id) {
+                stored.createdAt = existing.createdAt
+                try NumberingSeriesRecord(stored).update(db)
+            } else {
+                stored.createdAt = now
+                try NumberingSeriesRecord(stored).insert(db)
+            }
+            return stored
+        }
+    }
+}
+
+public struct GRDBAssetRepository: AssetRepository {
+    let database: AppDatabase
+
+    public init(database: AppDatabase) {
+        self.database = database
+    }
+
+    public func fetchAsset(id: String) async throws -> Asset? {
+        try await database.writer.read { db in try AssetRecord.live.filter(key: id).fetchOne(db)?.asset() }
+    }
+
+    public func observeAsset(id: String) -> AsyncThrowingStream<Asset?, any Error> {
+        database.observe { db in try AssetRecord.live.filter(key: id).fetchOne(db)?.asset() }
+    }
+}
+
+public struct GRDBDeviceStateRepository: DeviceStateRepository {
+    let database: AppDatabase
+    let time: TimeSource
+    let ids: IDGenerator
+
+    public init(database: AppDatabase, time: TimeSource, ids: IDGenerator) {
+        self.database = database
+        self.time = time
+        self.ids = ids
+    }
+
+    public func loadOrCreate(deviceName: String) async throws -> DeviceState {
+        let now = time.now()
+        let newID = ids.make()
+        return try await database.writer.write { db in
+            if let existing = try DeviceStateRecord.current(db) { return try existing.deviceState() }
+            let state = DeviceState(id: newID, deviceName: deviceName, createdAt: now, updatedAt: now)
+            try DeviceStateRecord(state).insert(db)
+            return state
+        }
+    }
+
+    public func setActiveBusiness(id: String?) async throws {
+        let now = time.now()
+        try await database.writer.write { db in try DeviceStateRecord.setActiveBusiness(id, now: now, db: db) }
+    }
+}
+
+// MARK: - Shared helpers
+
+extension SnakeCaseRecord {
+    /// Rows that are not tombstoned.
+    static var live: QueryInterfaceRequest<Self> { filter(DBColumns.deletedAt == nil) }
+}
+
+extension DeviceStateRecord {
+    /// This device's row: the earliest one if there are several (`spec/setup.md` §2).
+    static func current(_ db: Database) throws -> DeviceStateRecord? {
+        try order(DBColumns.createdAt, DBColumns.id).fetchOne(db)
+    }
+
+    static func setActiveBusiness(_ businessID: String?, now: Int64, db: Database) throws {
+        guard var record = try current(db) else { throw RecordNotFound(table: databaseTableName, id: "this device") }
+        var state = try record.deviceState()
+        state.preferences.activeBusinessId = businessID
+        state.updatedAt = now
+        record = try DeviceStateRecord(state)
+        try record.update(db)
+    }
+}
+
+extension AppDatabase {
+    /// Sets (or clears) a timestamp column such as `archived_at` or `deleted_at` on a live row and stamps
+    /// `updated_at`. Throws when the row is missing or already tombstoned.
+    func stamp<Record: SnakeCaseRecord>(_ type: Record.Type, id: String, now: Int64, column: String, set: Bool)
+        async throws {
+        let changed = try await writer.write { db in
+            try Record.live.filter(key: id).updateAll(
+                db, Column(column).set(to: set ? now : nil), Column("updated_at").set(to: now))
+        }
+        if changed == 0 { throw RecordNotFound(table: Record.databaseTableName, id: id) }
+    }
+}

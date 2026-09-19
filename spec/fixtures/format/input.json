@@ -1,0 +1,316 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "input",
+  "description": "Typed money amounts and decimals (spec/setup.md 11): parsing into minor units and canonical decimal strings.",
+  "cases": [
+    {
+      "id": "input-money-inr-one-decimal",
+      "input": {
+        "op": "money",
+        "text": "1234.5",
+        "currency": "INR"
+      },
+      "expected": {
+        "minor": 123450
+      }
+    },
+    {
+      "id": "input-money-inr-indian-grouping",
+      "input": {
+        "op": "money",
+        "text": "1,23,456.78",
+        "currency": "INR"
+      },
+      "expected": {
+        "minor": 12345678
+      }
+    },
+    {
+      "id": "input-money-inr-integer",
+      "input": {
+        "op": "money",
+        "text": "250",
+        "currency": "INR"
+      },
+      "expected": {
+        "minor": 25000
+      }
+    },
+    {
+      "id": "input-money-leading-dot",
+      "input": {
+        "op": "money",
+        "text": ".5",
+        "currency": "INR"
+      },
+      "expected": {
+        "minor": 50
+      }
+    },
+    {
+      "id": "input-money-trailing-dot",
+      "input": {
+        "op": "money",
+        "text": "12.",
+        "currency": "INR"
+      },
+      "expected": {
+        "minor": 1200
+      }
+    },
+    {
+      "id": "input-money-gbp-spaces",
+      "input": {
+        "op": "money",
+        "text": " 1 000 ",
+        "currency": "GBP"
+      },
+      "expected": {
+        "minor": 100000
+      }
+    },
+    {
+      "id": "input-money-leading-zeros",
+      "input": {
+        "op": "money",
+        "text": "007.50",
+        "currency": "GBP"
+      },
+      "expected": {
+        "minor": 750
+      }
+    },
+    {
+      "id": "input-money-zero",
+      "input": {
+        "op": "money",
+        "text": "0.00",
+        "currency": "INR"
+      },
+      "expected": {
+        "minor": 0
+      }
+    },
+    {
+      "id": "input-money-empty",
+      "input": {
+        "op": "money",
+        "text": "   ",
+        "currency": "INR"
+      },
+      "expected": {
+        "error": "empty"
+      }
+    },
+    {
+      "id": "input-money-letters",
+      "input": {
+        "op": "money",
+        "text": "12a",
+        "currency": "INR"
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "input-money-two-points",
+      "input": {
+        "op": "money",
+        "text": "1.2.3",
+        "currency": "INR"
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "input-money-lone-point",
+      "input": {
+        "op": "money",
+        "text": ".",
+        "currency": "INR"
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "input-money-negative",
+      "input": {
+        "op": "money",
+        "text": "-5",
+        "currency": "INR"
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "input-money-too-many-decimals",
+      "input": {
+        "op": "money",
+        "text": "1.234",
+        "currency": "INR"
+      },
+      "expected": {
+        "error": "tooManyDecimals"
+      }
+    },
+    {
+      "id": "input-money-jpy-fraction",
+      "input": {
+        "op": "money",
+        "text": "12.5",
+        "currency": "JPY"
+      },
+      "expected": {
+        "error": "tooManyDecimals"
+      }
+    },
+    {
+      "id": "input-money-jpy-grouped",
+      "input": {
+        "op": "money",
+        "text": "1,235",
+        "currency": "JPY"
+      },
+      "expected": {
+        "minor": 1235
+      }
+    },
+    {
+      "id": "input-money-kwd-three-decimals",
+      "input": {
+        "op": "money",
+        "text": "1.235",
+        "currency": "KWD"
+      },
+      "expected": {
+        "minor": 1235
+      }
+    },
+    {
+      "id": "input-money-max",
+      "input": {
+        "op": "money",
+        "text": "10000000000000",
+        "currency": "INR"
+      },
+      "expected": {
+        "minor": 1000000000000000
+      }
+    },
+    {
+      "id": "input-money-too-large",
+      "input": {
+        "op": "money",
+        "text": "10000000000000.01",
+        "currency": "INR"
+      },
+      "expected": {
+        "error": "tooLarge"
+      }
+    },
+    {
+      "id": "input-decimal-trailing-zeros",
+      "input": {
+        "op": "decimal",
+        "text": "1.500"
+      },
+      "expected": {
+        "value": "1.5"
+      }
+    },
+    {
+      "id": "input-decimal-leading-dot",
+      "input": {
+        "op": "decimal",
+        "text": ".25"
+      },
+      "expected": {
+        "value": "0.25"
+      }
+    },
+    {
+      "id": "input-decimal-trailing-dot",
+      "input": {
+        "op": "decimal",
+        "text": "12."
+      },
+      "expected": {
+        "value": "12"
+      }
+    },
+    {
+      "id": "input-decimal-leading-zeros",
+      "input": {
+        "op": "decimal",
+        "text": "007"
+      },
+      "expected": {
+        "value": "7"
+      }
+    },
+    {
+      "id": "input-decimal-zero-with-fraction",
+      "input": {
+        "op": "decimal",
+        "text": "0.000"
+      },
+      "expected": {
+        "value": "0"
+      }
+    },
+    {
+      "id": "input-decimal-padded",
+      "input": {
+        "op": "decimal",
+        "text": " 8.875 "
+      },
+      "expected": {
+        "value": "8.875"
+      }
+    },
+    {
+      "id": "input-decimal-double-zero",
+      "input": {
+        "op": "decimal",
+        "text": "00.50"
+      },
+      "expected": {
+        "value": "0.5"
+      }
+    },
+    {
+      "id": "input-decimal-comma",
+      "input": {
+        "op": "decimal",
+        "text": "1,5"
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "input-decimal-negative",
+      "input": {
+        "op": "decimal",
+        "text": "-1"
+      },
+      "expected": {
+        "error": "invalid"
+      }
+    },
+    {
+      "id": "input-decimal-empty",
+      "input": {
+        "op": "decimal",
+        "text": ""
+      },
+      "expected": {
+        "error": "empty"
+      }
+    }
+  ]
+}

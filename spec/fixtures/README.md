@@ -20,6 +20,8 @@ Every file is validated by `make validate-spec` against `spec/schema/fixtures.sc
 | `numbering` | invoice number patterns and periods | §5 |
 | `status` | derived document status | §6 |
 | `upi` | UPI payment links | §9 |
+| `field` | setup field rules (IFSC, UPI ID, sort code, IBAN, BIC, PAN, postcodes, company number, HSN/SAC) | `spec/setup.md` §8 |
+| `input` | typed money amounts and decimals | `spec/setup.md` §11 |
 
 ## How runners compare results
 

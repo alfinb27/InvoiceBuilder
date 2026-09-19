@@ -13,6 +13,7 @@ redefines it. Start here before changing anything about money, tax, numbering, s
 | `tax/IN.json`, `GB.json`, `GENERIC.json` | Country tax configs (data-driven rules) |
 | `tax/ENGINE.md` | Normative tax engine, numbering, status, formatting and validation rules |
 | `billing.md` | Entitlements, free tier, purchase state machine |
+| `setup.md` | Onboarding, business profile, clients, catalogue, numbering-series settings, images, field rules |
 | `reference/` | Countries (ISO 3166-1), currencies (ISO 4217 subset), units (GST UQC + service units) |
 | `pdf/labels/en.json` | PDF label strings |
 | `design/tokens.json` | Colours, type, spacing, status chip colours, PDF paper sizes |

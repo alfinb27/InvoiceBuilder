@@ -143,6 +143,8 @@ for (const f of walk(join(SPEC, "fixtures"))) {
     seen.set(c.id, relative(SPEC, f));
     if (doc.kind === "tax") checkTaxCase(f, c);
     if (doc.kind === "validation" && !configs[c.input.config]) fail(f, `case ${c.id}: unknown config ${c.input.config}`);
+    if (doc.kind === "input" && c.input.op === "money" && !currencyCodes.has(c.input.currency))
+      fail(f, `case ${c.id}: money input needs a currency from reference/currencies.json`);
   }
 }
 

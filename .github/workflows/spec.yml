@@ -6,6 +6,7 @@ on:
     paths:
       - "spec/**"
       - "ios/Packages/InvoiceCore/**"
+      - "ios/Packages/InvoiceData/**"
       - "android/core/domain/**"
       - ".github/workflows/spec.yml"
       - "Makefile"
@@ -13,6 +14,7 @@ on:
     paths:
       - "spec/**"
       - "ios/Packages/InvoiceCore/**"
+      - "ios/Packages/InvoiceData/**"
       - "android/core/domain/**"
       - ".github/workflows/spec.yml"
       - "Makefile"
