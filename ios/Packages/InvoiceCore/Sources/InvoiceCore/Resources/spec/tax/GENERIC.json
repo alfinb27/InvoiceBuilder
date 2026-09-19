@@ -1,0 +1,61 @@
+{
+  "$schema": "../schema/tax-config.schema.json",
+  "schemaVersion": 1,
+  "country": "ZZ",
+  "configVersion": "2026-09-19",
+  "reviewStatus": "draft",
+  "paperSize": "A4",
+  "fiscalYearStart": "01-01",
+  "amountInWords": false,
+  "labels": {
+    "taxName": "Tax",
+    "taxIdName": "Tax ID",
+    "productCodeName": "Item code"
+  },
+  "taxIdFormats": [],
+  "regions": [],
+  "registrations": [
+    {
+      "id": "registered",
+      "label": "Registered for tax",
+      "chargesTax": true,
+      "requiresTaxId": false,
+      "titles": { "invoice": "Invoice", "quote": "Quotation" }
+    },
+    {
+      "id": "notRegistered",
+      "label": "Not registered for tax",
+      "chargesTax": false,
+      "requiresTaxId": false,
+      "titles": { "invoice": "Invoice", "quote": "Quotation" }
+    }
+  ],
+  "ratesFrom": "business",
+  "rates": [],
+  "supplyTypes": [
+    { "id": "domestic", "label": "Standard" },
+    { "id": "exportWithoutTax", "label": "Export or no tax" }
+  ],
+  "componentRules": [
+    { "when": { "supplyType": ["domestic"] }, "components": "fromRate" },
+    {
+      "when": { "supplyType": ["exportWithoutTax"] },
+      "components": [{ "code": "TAX", "share": "1", "rateOverride": "0", "categoryOverride": "zero" }]
+    }
+  ],
+  "reverseCharge": { "supported": false },
+  "rounding": {
+    "amountMode": "halfAwayFromZero",
+    "taxLevel": "line",
+    "taxMode": "halfAwayFromZero"
+  },
+  "shipping": { "rule": "apportion" },
+  "numbering": {
+    "reset": "never",
+    "invoicePattern": "INV-{seq:4}",
+    "quotePattern": "QT-{seq:4}"
+  },
+  "foreignCurrency": { "homeTotals": true, "taxInHomeCurrency": false },
+  "checks": [],
+  "notesCatalog": {}
+}

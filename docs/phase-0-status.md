@@ -12,7 +12,7 @@
 | 3 | Spec v0: JSON Schemas, `IN`/`GB`/`GENERIC` configs, reference data, DB schema, `ENGINE.md`, `billing.md`, labels, tokens, fonts | ✅ Done | `spec/` — `make validate-spec` passes |
 | 4 | Fixtures v0 (target ≈ 30 tax + others) | ✅ Done: **184 cases** (48 tax, 39 rounding, 25 format, 19 validation, 16 status, 14 words, 13 numbering, 7 distribute, 3 UPI) + a sample backup | `spec/fixtures/`, `spec/samples/` |
 | 5 | PDF spike | ✅ Decided on desk evidence → **Option B, native drawing** (ADR-0006) · 🔲 device checks | `docs/spikes/pdf-spike.md`, `docs/spikes/pdf/` |
-| 6 | Sync spike | ◐ Desk review done; schema fixed (`ON CONFLICT REPLACE` primary keys) · 🔲 compile needs Xcode · 🔲 two-device run | `docs/spikes/sync-spike.md`, ADR-0015 (Proposed) |
+| 6 | Sync spike | ◐ Desk review done; schema fixed (`ON CONFLICT REPLACE` primary keys) · ✅ compiles with Xcode 27 (2026-09-19) · 🔲 two-device run | `docs/spikes/sync-spike.md`, ADR-0015 (Proposed) |
 | 7 | Wireframes (8 screens × iPhone/iPad), design tokens, name check | ✅ Wireframes and tokens · ◐ name: pick a brand, reserve in App Store Connect | `docs/design/wireframes.html`, `spec/design/tokens.json`, `docs/product/naming.md` |
 | 8 | Accounts (Apple, Google Play), privacy policy | 🔲 Needs you · ✅ privacy policy drafted | `docs/product/privacy-policy.md` |
 
@@ -42,8 +42,8 @@
 
 ## Your next actions (in order)
 
-1. **Install Xcode** (current release, from the App Store): Phase 1, the sync-spike compile and all iOS device checks
-   need it (Command Line Tools lack SwiftUI macro plugins).
+1. ~~**Install Xcode**~~ Done (Xcode 27.0). Finish its first launch: `sudo xcodebuild -runFirstLaunch`
+   (see `docs/phase-1-status.md`).
 2. **Create the Google Play Console account now**: identity verification takes days, and a new personal account must
    run a 14-day closed test with 12+ testers before production (an organisation account needs a D-U-N-S number).
 3. **Apple Developer Program + Paid Apps Agreement** (banking/tax), then **choose the app name and bundle ID**

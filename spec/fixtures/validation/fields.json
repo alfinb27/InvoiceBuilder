@@ -1,0 +1,477 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "field",
+  "description": "Setup field rules: normalisation and validation of bank, UPI, postal, company and product-code fields (spec/setup.md 8).",
+  "cases": [
+    {
+      "id": "field-email-valid",
+      "input": {
+        "rule": "email",
+        "value": " anita@example.in "
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "anita@example.in"
+      }
+    },
+    {
+      "id": "field-email-no-at",
+      "input": {
+        "rule": "email",
+        "value": "anita.example.in"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "anita.example.in",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-email-no-dot-in-domain",
+      "input": {
+        "rule": "email",
+        "value": "anita@example"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "anita@example",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-email-space-inside",
+      "input": {
+        "rule": "email",
+        "value": "anita sharma@example.in"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "anita sharma@example.in",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-ifsc-valid-lowercase",
+      "input": {
+        "rule": "ifsc",
+        "value": "sbin0001234"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "SBIN0001234"
+      }
+    },
+    {
+      "id": "field-ifsc-spaces",
+      "input": {
+        "rule": "ifsc",
+        "value": "HDFC 0000 123"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "HDFC0000123"
+      }
+    },
+    {
+      "id": "field-ifsc-fifth-not-zero",
+      "input": {
+        "rule": "ifsc",
+        "value": "SBIN1001234"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "SBIN1001234",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-ifsc-too-short",
+      "input": {
+        "rule": "ifsc",
+        "value": "SBIN000123"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "SBIN000123",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-upi-valid-mixed-case",
+      "input": {
+        "rule": "upiVpa",
+        "value": " BharatWeb@ExampleBank "
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "bharatweb@examplebank"
+      }
+    },
+    {
+      "id": "field-upi-dots-and-hyphen",
+      "input": {
+        "rule": "upiVpa",
+        "value": "rao.traders-1@okhdfcbank"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "rao.traders-1@okhdfcbank"
+      }
+    },
+    {
+      "id": "field-upi-no-at",
+      "input": {
+        "rule": "upiVpa",
+        "value": "raotraders"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "raotraders",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-upi-one-char-name",
+      "input": {
+        "rule": "upiVpa",
+        "value": "a@upi"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "a@upi",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-upi-handle-starts-with-digit",
+      "input": {
+        "rule": "upiVpa",
+        "value": "rao@1bank"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "rao@1bank",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-sortcode-hyphens",
+      "input": {
+        "rule": "sortCode",
+        "value": "12-34-56"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "12-34-56"
+      }
+    },
+    {
+      "id": "field-sortcode-plain",
+      "input": {
+        "rule": "sortCode",
+        "value": "123456"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "12-34-56"
+      }
+    },
+    {
+      "id": "field-sortcode-spaces",
+      "input": {
+        "rule": "sortCode",
+        "value": "12 34 56"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "12-34-56"
+      }
+    },
+    {
+      "id": "field-sortcode-too-short",
+      "input": {
+        "rule": "sortCode",
+        "value": "12-34-5"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "12345",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-iban-gb-grouped",
+      "input": {
+        "rule": "iban",
+        "value": "GB82 WEST 1234 5698 7654 32"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "GB82WEST12345698765432"
+      }
+    },
+    {
+      "id": "field-iban-de-lowercase",
+      "input": {
+        "rule": "iban",
+        "value": "de89 3704 0044 0532 0130 00"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "DE89370400440532013000"
+      }
+    },
+    {
+      "id": "field-iban-bad-checksum",
+      "input": {
+        "rule": "iban",
+        "value": "GB82WEST12345698765433"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "GB82WEST12345698765433",
+        "error": "checksum"
+      }
+    },
+    {
+      "id": "field-iban-bad-format",
+      "input": {
+        "rule": "iban",
+        "value": "GB82-WEST-1234"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "GB82-WEST-1234",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-bic-8",
+      "input": {
+        "rule": "bic",
+        "value": "deutdeff"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "DEUTDEFF"
+      }
+    },
+    {
+      "id": "field-bic-11",
+      "input": {
+        "rule": "bic",
+        "value": "DEUT DE FF 500"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "DEUTDEFF500"
+      }
+    },
+    {
+      "id": "field-bic-digit-in-bank-code",
+      "input": {
+        "rule": "bic",
+        "value": "DEUT1EFF"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "DEUT1EFF",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-pan-valid",
+      "input": {
+        "rule": "pan",
+        "value": "aagcb7383j"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "AAGCB7383J"
+      }
+    },
+    {
+      "id": "field-pan-too-short",
+      "input": {
+        "rule": "pan",
+        "value": "AAGCB7383"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "AAGCB7383",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-pin-with-space",
+      "input": {
+        "rule": "postalCodeIN",
+        "value": "560 001"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "560001"
+      }
+    },
+    {
+      "id": "field-pin-leading-zero",
+      "input": {
+        "rule": "postalCodeIN",
+        "value": "060001"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "060001",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-pin-five-digits",
+      "input": {
+        "rule": "postalCodeIN",
+        "value": "56001"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "56001",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-postcode-gb-no-space",
+      "input": {
+        "rule": "postalCodeGB",
+        "value": "sw1a1aa"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "SW1A 1AA"
+      }
+    },
+    {
+      "id": "field-postcode-gb-short-outward",
+      "input": {
+        "rule": "postalCodeGB",
+        "value": "M1 1AE"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "M1 1AE"
+      }
+    },
+    {
+      "id": "field-postcode-gb-extra-spaces",
+      "input": {
+        "rule": "postalCodeGB",
+        "value": " ec1a   1bb "
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "EC1A 1BB"
+      }
+    },
+    {
+      "id": "field-postcode-gb-digits",
+      "input": {
+        "rule": "postalCodeGB",
+        "value": "12345"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "12 345",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-company-8-digits",
+      "input": {
+        "rule": "companyNumberGB",
+        "value": "01234567"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "01234567"
+      }
+    },
+    {
+      "id": "field-company-padded",
+      "input": {
+        "rule": "companyNumberGB",
+        "value": "1234567"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "01234567"
+      }
+    },
+    {
+      "id": "field-company-scotland",
+      "input": {
+        "rule": "companyNumberGB",
+        "value": "sc123456"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "SC123456"
+      }
+    },
+    {
+      "id": "field-company-short-prefix",
+      "input": {
+        "rule": "companyNumberGB",
+        "value": "SC12345"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "SC12345",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-hsn-4-digits",
+      "input": {
+        "rule": "hsnSac",
+        "value": "0902"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "0902"
+      }
+    },
+    {
+      "id": "field-sac-6-digits-spaced",
+      "input": {
+        "rule": "hsnSac",
+        "value": "99 83 14"
+      },
+      "expected": {
+        "valid": true,
+        "normalized": "998314"
+      }
+    },
+    {
+      "id": "field-hsn-letter",
+      "input": {
+        "rule": "hsnSac",
+        "value": "09A2"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "09A2",
+        "error": "format"
+      }
+    },
+    {
+      "id": "field-hsn-9-digits",
+      "input": {
+        "rule": "hsnSac",
+        "value": "123456789"
+      },
+      "expected": {
+        "valid": false,
+        "normalized": "123456789",
+        "error": "format"
+      }
+    }
+  ]
+}

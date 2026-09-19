@@ -10,17 +10,18 @@ case "$MODE" in
   sync|--check) ;;
   *) echo "usage: $(basename "$0") [--check]" >&2; exit 2 ;;
 esac
-SOURCES=(tax reference pdf/labels pdf/fonts design)
-# "<module root>|<bundled spec folder inside the module>"
+# "<module root>|<bundled spec folder inside the module>|<spec folders to bundle>"
 TARGETS=(
-  "ios/Packages/InvoiceCore|Sources/InvoiceCore/Resources/spec"
-  "android/core/domain|src/main/resources/spec"
+  "ios/Packages/InvoiceCore|Sources/InvoiceCore/Resources/spec|tax reference pdf/labels pdf/fonts design"
+  "ios/Packages/InvoiceData|Sources/InvoiceData/Resources/spec|schema/db/migrations"
+  "android/core/domain|src/main/resources/spec|tax reference pdf/labels pdf/fonts design"
 )
 status=0
 for target in "${TARGETS[@]}"; do
-  module="${target%%|*}"
-  dest="$module/${target#*|}"
+  IFS='|' read -r module folder sources <<<"$target"
+  dest="$module/$folder"
   if [[ ! -d "$ROOT/$module" ]]; then echo "skip: $module (module not created yet)"; continue; fi
+  read -r -a SOURCES <<<"$sources"
   for src in "${SOURCES[@]}"; do
     from="$ROOT/spec/$src"; to="$ROOT/$dest/$src"
     if [[ "$MODE" == "--check" ]]; then
