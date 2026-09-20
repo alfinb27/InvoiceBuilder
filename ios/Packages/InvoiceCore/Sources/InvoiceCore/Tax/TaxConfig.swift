@@ -21,6 +21,8 @@ public struct TaxConfig: Decodable, Hashable, Sendable {
     public let ratesFrom: RatesSource
     public let rates: [TaxRate]
     public let supplyTypes: [SupplyType]
+    /// The supply type a new draft starts with (`spec/documents.md` §2.1).
+    public let supplyTypeDefaults: [SupplyTypeDefault]
     public let componentRules: [ComponentRule]
     public let reverseCharge: ReverseChargeRules
     public let rounding: RoundingRules
@@ -34,8 +36,8 @@ public struct TaxConfig: Decodable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey {
         case schemaVersion, country, configVersion, reviewStatus, currency, paperSize, fiscalYearStart, amountInWords,
              labels, taxIdFormats, regions, foreignRegion, registrations, ratesFrom, rates, supplyTypes,
-             componentRules, reverseCharge, rounding, shipping, productCodes, numbering, foreignCurrency, checks,
-             notesCatalog
+             supplyTypeDefaults, componentRules, reverseCharge, rounding, shipping, productCodes, numbering,
+             foreignCurrency, checks, notesCatalog
     }
 
     public init(from decoder: any Decoder) throws {
@@ -56,6 +58,7 @@ public struct TaxConfig: Decodable, Hashable, Sendable {
         ratesFrom = try c.decodeIfPresent(RatesSource.self, forKey: .ratesFrom) ?? .config
         rates = try c.decode([TaxRate].self, forKey: .rates)
         supplyTypes = try c.decode([SupplyType].self, forKey: .supplyTypes)
+        supplyTypeDefaults = try c.decodeIfPresent([SupplyTypeDefault].self, forKey: .supplyTypeDefaults) ?? []
         componentRules = try c.decode([ComponentRule].self, forKey: .componentRules)
         reverseCharge = try c.decode(ReverseChargeRules.self, forKey: .reverseCharge)
         rounding = try c.decode(RoundingRules.self, forKey: .rounding)
@@ -219,6 +222,18 @@ public struct TaxCategory: RawRepresentable, Codable, Hashable, Sendable {
 public struct SupplyType: Codable, Hashable, Sendable, Identifiable {
     public let id: String
     public let label: String
+}
+
+/// `supplyTypeDefaults` entry: every key `when` lists must match (`spec/documents.md` §2.1).
+public struct SupplyTypeDefault: Codable, Hashable, Sendable {
+    public struct Condition: Codable, Hashable, Sendable {
+        public let buyerForeign: Bool?
+        public let buyerIsBusiness: Bool?
+        public let sellerHasLutReference: Bool?
+    }
+
+    public let when: Condition
+    public let supplyType: String
 }
 
 public struct ComponentRule: Decodable, Hashable, Sendable {

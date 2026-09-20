@@ -26,6 +26,7 @@ make validate-spec   # validate configs + fixtures against the schemas and consi
 make test-ios        # iOS: core + data (swift test), InvoiceUI and UI tests (simulator; needs Xcode)
 ```
 
-Status: **Phase 1 built and tested on simulators** (iOS data layer, onboarding, clients, catalogue, settings,
-adaptive iPhone/iPad shell) — see [`docs/phase-1-status.md`](docs/phase-1-status.md). Phase 0 items that still need
-accounts or devices are in [`docs/phase-0-status.md`](docs/phase-0-status.md).
+Status: **Phase 2 built and tested on simulators** (tax engine and document core proven by 337 fixtures; the
+invoice and quote builder on iPhone and iPad) — see [`docs/phase-2-status.md`](docs/phase-2-status.md). The fixture
+review by a CA and a UK accountant is the open gate. Earlier phases: [`docs/phase-1-status.md`](docs/phase-1-status.md),
+[`docs/phase-0-status.md`](docs/phase-0-status.md).

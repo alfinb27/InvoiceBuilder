@@ -127,6 +127,8 @@ final class NumberingSettingsViewModel {
         var series: [NumberingSeries] = []
         var editing: NumberingSeries?
         var draft: NumberingSeriesDraft?
+        /// Period key → the highest sequence already issued from the series being edited.
+        var highestIssued: [String: Int] = [:]
         var attemptedSave = false
         var errorMessage: String?
     }
@@ -158,7 +160,22 @@ final class NumberingSettingsViewModel {
         guard rules.isEditable(series) else { return }
         state.editing = series
         state.draft = NumberingSeriesDraft(series: series, periodKey: rules.periodKey(reset: series.reset))
+        state.highestIssued = [:]
         state.attemptedSave = false
+        Task { await loadHighestIssued(series) }
+    }
+
+    /// The highest numbers already issued in today's period for each reset choice (`spec/setup.md` §6).
+    private func loadHighestIssued(_ series: NumberingSeries) async {
+        var highest: [String: Int] = [:]
+        for reset in NumberingReset.known {
+            let key = rules.periodKey(reset: reset)
+            if let value = try? await session.dependencies.documents.highestIssuedSequence(seriesID: series.id,
+                                                                                          periodKey: key) {
+                highest[key] = value
+            }
+        }
+        if state.editing?.id == series.id { state.highestIssued = highest }
     }
 
     func cancelEditing() {
@@ -167,7 +184,8 @@ final class NumberingSettingsViewModel {
     }
 
     var draftIssues: [NumberingSeriesField: FieldIssue] {
-        state.draft.map(rules.issues) ?? [:]
+        guard let draft = state.draft else { return [:] }
+        return rules.issues(draft, highestIssued: state.highestIssued[rules.periodKey(reset: draft.reset)])
     }
 
     /// Issues are shown as soon as the pattern changes, so the preview and its problem appear together.

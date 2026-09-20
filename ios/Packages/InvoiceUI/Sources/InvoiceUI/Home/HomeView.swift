@@ -2,7 +2,8 @@ import InvoiceCore
 import Observation
 import SwiftUI
 
-/// Home: the business at a glance and what to set up next. Invoices, quotes and the dashboard join it in Phase 2–4.
+/// Home: the business at a glance, what to set up next and quick actions for invoices and quotes. The dashboard
+/// joins it in Phase 4.
 @MainActor @Observable
 final class HomeViewModel {
     struct State: Equatable {
@@ -92,11 +93,18 @@ struct HomeView: View {
 
     private var comingNext: some View {
         Card {
-            VStack(alignment: .leading, spacing: Theme.Space.s) {
+            VStack(alignment: .leading, spacing: Theme.Space.m) {
                 Label("Invoices and quotes", systemImage: "doc.text")
                     .font(.headline)
-                Text("Creating and sharing invoices arrives in the next test build. Everything you set up now is used there.")
-                    .font(.subheadline)
+                HStack(spacing: Theme.Space.m) {
+                    Button("New invoice", systemImage: "doc.badge.plus") { session.startNewDocument(.invoice) }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("homeNewInvoice")
+                    Button("New quote") { session.startNewDocument(.quote) }
+                        .buttonStyle(.bordered)
+                }
+                Text("PDFs and sharing arrive in the next test build.")
+                    .font(.footnote)
                     .foregroundStyle(Theme.textSecondary)
             }
         }

@@ -1,8 +1,9 @@
+import InvoiceCore
 import Observation
 
 /// The app's sections: a tab bar on iPhone, a sidebar on iPad (`TabView` `.sidebarAdaptable`, ADR-0014).
 public enum AppTab: String, Hashable, CaseIterable, Sendable {
-    case home, clients, items, settings
+    case home, documents, clients, items, settings
 }
 
 /// All navigation state. It lives here, in long-lived objects, never in views, so it survives iPad window resizing
@@ -10,6 +11,7 @@ public enum AppTab: String, Hashable, CaseIterable, Sendable {
 @MainActor @Observable
 public final class AppRouter {
     public var selectedTab: AppTab = .home
+    public let documents = DocumentsRouter()
     public let clients = ListDetailRouter()
     public let items = ListDetailRouter()
     public let settings = SettingsRouter()
@@ -50,6 +52,36 @@ public final class ListDetailRouter {
     /// After a delete or archive: stop showing a row that left the current list.
     public func didRemove(_ id: String) {
         if selection == id { selection = nil }
+    }
+}
+
+/// The Invoices tab: which type the list shows, the open document and the search text.
+@MainActor @Observable
+public final class DocumentsRouter {
+    public var docType: DocumentType = .invoice
+    /// The document in the detail column (pushed on iPhone).
+    public var selection: DocumentRoute?
+    public var searchText = ""
+
+    public init() {}
+
+    public func open(_ id: String) { selection = .existing(id) }
+
+    /// After a draft was deleted: stop showing it.
+    public func didRemove(_ id: String) {
+        if selection?.id == id { selection = nil }
+    }
+}
+
+/// A document in the detail column: a stored one, or a new draft that is written on its first change.
+public enum DocumentRoute: Identifiable, Hashable, Sendable {
+    case new(DocumentType, id: String)
+    case existing(String)
+
+    public var id: String {
+        switch self {
+        case .new(_, let id), .existing(let id): id
+        }
     }
 }
 

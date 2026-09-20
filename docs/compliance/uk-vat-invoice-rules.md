@@ -41,3 +41,12 @@
 6. Exchange rates for foreign-currency invoices: we use a user-entered rate. Should the app suggest HMRC period rates or record the rate source?
 7. We always issue full VAT invoices (never simplified). Any downside for small retail sales?
 8. Delivery charges on mixed-rate invoices are apportioned by value across rates — acceptable default?
+
+Added in Phase 2 (`spec/documents.md`, fixtures `spec/fixtures/tax/gb-combinations.json`, `errors.json`):
+
+9. A new invoice for an overseas **business** client defaults to "Services to an overseas business" (outside the
+   scope); overseas consumers stay UK supplies. Right defaults, given goods exports need "Goods exported"?
+10. Issuing is blocked while a foreign-currency invoice has no exchange rate (VAT must also be shown in sterling).
+    Should the rate instead default to something (e.g. HMRC's monthly rate) with a warning?
+11. Invoice numbers come from a series per device (e.g. `INV-0001` on the iPhone, `INV-B0001` on an iPad), allocated
+    only at issue and never reused. Does "a sequential number based on one or more series" cover this?

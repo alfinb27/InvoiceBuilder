@@ -18,6 +18,10 @@ struct FixtureCase: Sendable, CustomTestStringConvertible {
     let kind: String
     let input: JSONValue
     let expected: JSONValue
+    /// The raw `input` object, for decoding it into typed values (tax cases).
+    let inputData: Data
+    /// Tax cases name their config next to `input`.
+    let config: String?
 
     var testDescription: String { id }
 
@@ -42,11 +46,18 @@ enum Fixtures {
         let files = enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == "json" }
             .sorted { $0.path < $1.path }
         return files.flatMap { url -> [FixtureCase] in
-            guard let data = try? Data(contentsOf: url), let file = try? JSONDecoder().decode(File.self, from: data)
-            else { return [FixtureCase(id: "unreadable: \(url.lastPathComponent)", kind: "?", input: .null, expected: .null)] }
-            return file.cases.map { raw in
-                FixtureCase(id: raw["id"]?.stringValue ?? "?", kind: file.kind, input: raw["input"] ?? .null,
-                            expected: raw["expected"] ?? .null)
+            guard let data = try? Data(contentsOf: url), let file = try? JSONDecoder().decode(File.self, from: data),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let rawCases = object["cases"] as? [[String: Any]]
+            else {
+                return [FixtureCase(id: "unreadable: \(url.lastPathComponent)", kind: "?", input: .null, expected: .null,
+                                    inputData: Data(), config: nil)]
+            }
+            return zip(file.cases, rawCases).map { raw, rawObject in
+                let inputData = (try? JSONSerialization.data(withJSONObject: rawObject["input"] ?? [:])) ?? Data()
+                return FixtureCase(id: raw["id"]?.stringValue ?? "?", kind: file.kind, input: raw["input"] ?? .null,
+                                   expected: raw["expected"] ?? .null, inputData: inputData,
+                                   config: raw["config"]?.stringValue)
             }
         }
     }()
@@ -136,6 +147,11 @@ indirect enum JSONValue: Decodable, Sendable, Equatable, CustomStringConvertible
 /// Builds `JSONValue`s from results.
 extension JSONValue {
     static func optional(_ value: String?) -> JSONValue { value.map(JSONValue.string) ?? .null }
+
+    /// The JSON form of any encodable result (nil optionals are absent, which fixtures treat like null).
+    static func encoding<Value: Encodable>(_ value: Value) throws -> JSONValue {
+        try JSONDecoder().decode(JSONValue.self, from: JSONEncoder().encode(value))
+    }
 }
 
 /// Fails the current test with every difference between `actual` and the fixture's `expected`.

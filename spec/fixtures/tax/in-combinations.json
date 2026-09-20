@@ -1,0 +1,2867 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "tax",
+  "description": "India GST combinations (Phase 2a): inclusive and exclusive prices crossed with discounts, shipping, UTGST, exports, reverse charge, composition, unregistered sellers, rate slabs and rounding boundaries.",
+  "cases": [
+    {
+      "id": "in-inter-inclusive-shipping",
+      "reviewed": false,
+      "explain": "Inter-state, prices include GST, with shipping: IGST is taken out of each inclusive amount; shipping follows the principal supply (the 5% saree line). L1: 2 x 236000 = 472000, taxable 449524 (IGST 5% 22476); L2: 1 x 59000 = 59000, taxable 50000 (IGST 18% 9000); shipping 11800, taxable 11238; tax lines: IGST 5% on 460762 = 23038, IGST 18% on 50000 = 9000; total = taxable 510762 + tax 32038 + round-off 0 = 542800.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Umesh Foods",
+          "address": "Andheri East, Mumbai 400069",
+          "country": "IN",
+          "region": "27",
+          "taxId": "27AAPFU0939F1ZV",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "pricesIncludeTax": true,
+          "shipping": 11800,
+          "lines": [
+            {
+              "description": "Handloom silk saree",
+              "productCode": "5007",
+              "quantity": "2",
+              "unitPrice": 236000,
+              "rateId": "gst_5"
+            },
+            {
+              "description": "Tailoring",
+              "productCode": "998822",
+              "quantity": "1",
+              "unitPrice": 59000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": true,
+        "reverseCharge": false,
+        "placeOfSupply": "27",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 472000,
+            "discount": 0,
+            "taxable": 449524,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "5",
+                "amount": 22476
+              }
+            ]
+          },
+          {
+            "amount": 59000,
+            "discount": 0,
+            "taxable": 50000,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "18",
+                "amount": 9000
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 11800,
+          "taxable": 11238
+        },
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "5",
+            "category": "standard",
+            "taxable": 460762,
+            "tax": 23038,
+            "charged": true
+          },
+          {
+            "component": "IGST",
+            "rate": "18",
+            "category": "standard",
+            "taxable": 50000,
+            "tax": 9000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 531000,
+          "discount": 0,
+          "shipping": 11800,
+          "taxable": 510762,
+          "tax": 32038,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 542800
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-intra-both-discounts",
+      "reviewed": false,
+      "explain": "Intra-state with a 10% line discount and a 5% invoice discount shared pro rata by line amount before tax. L1: 3 x 150000 less 10% = 405000, invoice discount -20250, taxable 384750 (CGST 9% 34628, SGST 9% 34628); L2: 1 x 99900 = 99900, invoice discount -4995, taxable 94905 (CGST 2.5% 2373, SGST 2.5% 2373); tax lines: CGST 9% on 384750 = 34628, SGST 9% on 384750 = 34628, CGST 2.5% on 94905 = 2373, SGST 2.5% on 94905 = 2373; total = taxable 479655 + tax 74002 + round-off 43 = 553700.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "discount": {
+            "type": "percent",
+            "value": "5"
+          },
+          "lines": [
+            {
+              "description": "Consulting",
+              "productCode": "998311",
+              "quantity": "3",
+              "unitPrice": 150000,
+              "discount": {
+                "type": "percent",
+                "value": "10"
+              },
+              "rateId": "gst_18"
+            },
+            {
+              "description": "Tea leaves",
+              "productCode": "0902",
+              "quantity": "1",
+              "unitPrice": 99900,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 405000,
+            "discount": 20250,
+            "taxable": 384750,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 34628
+              },
+              {
+                "component": "SGST",
+                "rate": "9",
+                "amount": 34628
+              }
+            ]
+          },
+          {
+            "amount": 99900,
+            "discount": 4995,
+            "taxable": 94905,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "2.5",
+                "amount": 2373
+              },
+              {
+                "component": "SGST",
+                "rate": "2.5",
+                "amount": 2373
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 384750,
+            "tax": 34628,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 384750,
+            "tax": 34628,
+            "charged": true
+          },
+          {
+            "component": "CGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 94905,
+            "tax": 2373,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 94905,
+            "tax": 2373,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 504900,
+          "discount": 25245,
+          "shipping": 0,
+          "taxable": 479655,
+          "tax": 74002,
+          "taxNotCharged": 0,
+          "roundOff": 43,
+          "total": 553700
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-inter-percent-discount-shipping",
+      "reviewed": false,
+      "explain": "Inter-state, 7.5% invoice discount and shipping; shipping is not discounted and takes the rate of the larger line. L1: 10 x 12500 = 125000, invoice discount -9375, taxable 115625 (IGST 18% 20813); L2: 4 x 7499 = 29996, invoice discount -2250, taxable 27746 (IGST 5% 1387); shipping 25000, taxable 25000; tax lines: IGST 18% on 140625 = 25313, IGST 5% on 27746 = 1387; total = taxable 168371 + tax 26700 + round-off 29 = 195100.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Umesh Foods",
+          "address": "Andheri East, Mumbai 400069",
+          "country": "IN",
+          "region": "27",
+          "taxId": "27AAPFU0939F1ZV",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "discount": {
+            "type": "percent",
+            "value": "7.5"
+          },
+          "shipping": 25000,
+          "lines": [
+            {
+              "description": "LED panels",
+              "productCode": "9405",
+              "quantity": "10",
+              "unitPrice": 12500,
+              "rateId": "gst_18"
+            },
+            {
+              "description": "Jute bags",
+              "productCode": "6305",
+              "quantity": "4",
+              "unitPrice": 7499,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "27",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 125000,
+            "discount": 9375,
+            "taxable": 115625,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "18",
+                "amount": 20813
+              }
+            ]
+          },
+          {
+            "amount": 29996,
+            "discount": 2250,
+            "taxable": 27746,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "5",
+                "amount": 1387
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 25000,
+          "taxable": 25000
+        },
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "18",
+            "category": "standard",
+            "taxable": 140625,
+            "tax": 25313,
+            "charged": true
+          },
+          {
+            "component": "IGST",
+            "rate": "5",
+            "category": "standard",
+            "taxable": 27746,
+            "tax": 1387,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 154996,
+          "discount": 11625,
+          "shipping": 25000,
+          "taxable": 168371,
+          "tax": 26700,
+          "taxNotCharged": 0,
+          "roundOff": 29,
+          "total": 195100
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-intra-inclusive-invoice-discount",
+      "reviewed": false,
+      "explain": "Intra-state B2C, prices include GST, ₹50 off the invoice: the discount is shared across the inclusive amounts, then tax is extracted. L1: 1 x 118000 = 118000, invoice discount -4245, taxable 96403 (CGST 9% 8676, SGST 9% 8676); L2: 2 x 10500 = 21000, invoice discount -755, taxable 19281 (CGST 2.5% 482, SGST 2.5% 482); tax lines: CGST 9% on 96403 = 8676, SGST 9% on 96403 = 8676, CGST 2.5% on 19281 = 482, SGST 2.5% on 19281 = 482; total = taxable 115684 + tax 18316 + round-off 0 = 134000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Anita Sharma",
+          "country": "IN",
+          "region": "29",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "pricesIncludeTax": true,
+          "discount": {
+            "type": "amount",
+            "value": 5000
+          },
+          "lines": [
+            {
+              "description": "Bluetooth speaker",
+              "productCode": "8518",
+              "quantity": "1",
+              "unitPrice": 118000,
+              "rateId": "gst_18"
+            },
+            {
+              "description": "Packaged tea",
+              "productCode": "0902",
+              "quantity": "2",
+              "unitPrice": 10500,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": true,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 118000,
+            "discount": 4245,
+            "taxable": 96403,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 8676
+              },
+              {
+                "component": "SGST",
+                "rate": "9",
+                "amount": 8676
+              }
+            ]
+          },
+          {
+            "amount": 21000,
+            "discount": 755,
+            "taxable": 19281,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "2.5",
+                "amount": 482
+              },
+              {
+                "component": "SGST",
+                "rate": "2.5",
+                "amount": 482
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 96403,
+            "tax": 8676,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 96403,
+            "tax": 8676,
+            "charged": true
+          },
+          {
+            "component": "CGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 19281,
+            "tax": 482,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 19281,
+            "tax": 482,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 139000,
+          "discount": 5000,
+          "shipping": 0,
+          "taxable": 115684,
+          "tax": 18316,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 134000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-utgst-inclusive",
+      "reviewed": false,
+      "explain": "Chandigarh to Chandigarh, price includes GST: CGST 9% + UTGST 9% extracted from the inclusive price. L1: 1 x 590000 = 590000, taxable 500000 (CGST 9% 45000, UTGST 9% 45000); tax lines: CGST 9% on 500000 = 45000, UTGST 9% on 500000 = 45000; total = taxable 500000 + tax 90000 + round-off 0 = 590000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "04AABCU9603R1ZV",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "Sector 17, Chandigarh 160017"
+        },
+        "buyer": {
+          "name": "Harpreet Steel",
+          "address": "Industrial Area Phase 1, Chandigarh 160002",
+          "country": "IN",
+          "region": "04",
+          "taxId": "04AAACH1234D1ZF",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "pricesIncludeTax": true,
+          "lines": [
+            {
+              "description": "Office chairs",
+              "productCode": "9401",
+              "quantity": "1",
+              "unitPrice": 590000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": true,
+        "reverseCharge": false,
+        "placeOfSupply": "04",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 590000,
+            "discount": 0,
+            "taxable": 500000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 45000
+              },
+              {
+                "component": "UTGST",
+                "rate": "9",
+                "amount": 45000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 500000,
+            "tax": 45000,
+            "charged": true
+          },
+          {
+            "component": "UTGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 500000,
+            "tax": 45000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 590000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 500000,
+          "tax": 90000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 590000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-utgst-shipping-principal",
+      "reviewed": false,
+      "explain": "Chandigarh intra-UT with shipping: the 5% fabric line has the largest amount, so shipping is taxed at CGST 2.5% + UTGST 2.5%. L1: 5 x 23000 = 115000, taxable 115000 (CGST 9% 10350, UTGST 9% 10350); L2: 2 x 150000 = 300000, taxable 300000 (CGST 2.5% 7500, UTGST 2.5% 7500); shipping 20000, taxable 20000; tax lines: CGST 9% on 115000 = 10350, UTGST 9% on 115000 = 10350, CGST 2.5% on 320000 = 8000, UTGST 2.5% on 320000 = 8000; total = taxable 435000 + tax 36700 + round-off 0 = 471700.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "04AABCU9603R1ZV",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "Sector 17, Chandigarh 160017"
+        },
+        "buyer": {
+          "name": "Harpreet Steel",
+          "address": "Industrial Area Phase 1, Chandigarh 160002",
+          "country": "IN",
+          "region": "04",
+          "taxId": "04AAACH1234D1ZF",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "shipping": 20000,
+          "lines": [
+            {
+              "description": "Steel brackets",
+              "productCode": "7326",
+              "quantity": "5",
+              "unitPrice": 23000,
+              "rateId": "gst_18"
+            },
+            {
+              "description": "Cotton fabric",
+              "productCode": "5208",
+              "quantity": "2",
+              "unitPrice": 150000,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "04",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 115000,
+            "discount": 0,
+            "taxable": 115000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 10350
+              },
+              {
+                "component": "UTGST",
+                "rate": "9",
+                "amount": 10350
+              }
+            ]
+          },
+          {
+            "amount": 300000,
+            "discount": 0,
+            "taxable": 300000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "2.5",
+                "amount": 7500
+              },
+              {
+                "component": "UTGST",
+                "rate": "2.5",
+                "amount": 7500
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 20000,
+          "taxable": 20000
+        },
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 115000,
+            "tax": 10350,
+            "charged": true
+          },
+          {
+            "component": "UTGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 115000,
+            "tax": 10350,
+            "charged": true
+          },
+          {
+            "component": "CGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 320000,
+            "tax": 8000,
+            "charged": true
+          },
+          {
+            "component": "UTGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 320000,
+            "tax": 8000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 415000,
+          "discount": 0,
+          "shipping": 20000,
+          "taxable": 435000,
+          "tax": 36700,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 471700
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-quarter-percent-small-rounding",
+      "reviewed": false,
+      "explain": "0.25% GST (rough diamonds) on a small amount: CGST and SGST 0.125% each, rounded per component. L1: 7 x 1111 = 7777, taxable 7777 (CGST 0.125% 10, SGST 0.125% 10); tax lines: CGST 0.125% on 7777 = 10, SGST 0.125% on 7777 = 10; total = taxable 7777 + tax 20 + round-off 3 = 7800.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Rough diamonds",
+              "productCode": "7102",
+              "quantity": "7",
+              "unitPrice": 1111,
+              "rateId": "gst_0_25"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 7777,
+            "discount": 0,
+            "taxable": 7777,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "0.125",
+                "amount": 10
+              },
+              {
+                "component": "SGST",
+                "rate": "0.125",
+                "amount": 10
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "0.125",
+            "category": "standard",
+            "taxable": 7777,
+            "tax": 10,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "0.125",
+            "category": "standard",
+            "taxable": 7777,
+            "tax": 10,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 7777,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 7777,
+          "tax": 20,
+          "taxNotCharged": 0,
+          "roundOff": 3,
+          "total": 7800
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-gold-3pct-decimal-grams",
+      "reviewed": false,
+      "explain": "Gold at 3% (1.5% + 1.5%) with a quantity in grams to three decimals; B2C total above ₹50,000 without a buyer address. L1: 12.345 x 612050 = 7555757, taxable 7555757 (CGST 1.5% 113336, SGST 1.5% 113336); tax lines: CGST 1.5% on 7555757 = 113336, SGST 1.5% on 7555757 = 113336; total = taxable 7555757 + tax 226672 + round-off -29 = 7782400.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Anita Sharma",
+          "country": "IN",
+          "region": "29",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Gold chain 22K (grams)",
+              "productCode": "7113",
+              "quantity": "12.345",
+              "unitPrice": 612050,
+              "rateId": "gst_3"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 7555757,
+            "discount": 0,
+            "taxable": 7555757,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "1.5",
+                "amount": 113336
+              },
+              {
+                "component": "SGST",
+                "rate": "1.5",
+                "amount": 113336
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "1.5",
+            "category": "standard",
+            "taxable": 7555757,
+            "tax": 113336,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "1.5",
+            "category": "standard",
+            "taxable": 7555757,
+            "tax": 113336,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 7555757,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 7555757,
+          "tax": 226672,
+          "taxNotCharged": 0,
+          "roundOff": -29,
+          "total": 7782400
+        },
+        "home": null,
+        "notes": [],
+        "issues": [
+          {
+            "code": "buyer_details_required",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    {
+      "id": "in-intra-40pct",
+      "reviewed": false,
+      "explain": "The 40% slab from 2025-09-22 (large motorcycles): CGST 20% + SGST 20%. L1: 1 x 24000000 = 24000000, taxable 24000000 (CGST 20% 4800000, SGST 20% 4800000); tax lines: CGST 20% on 24000000 = 4800000, SGST 20% on 24000000 = 4800000; total = taxable 24000000 + tax 9600000 + round-off 0 = 33600000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Motorcycle above 350 cc",
+              "productCode": "8711",
+              "quantity": "1",
+              "unitPrice": 24000000,
+              "rateId": "gst_40"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 24000000,
+            "discount": 0,
+            "taxable": 24000000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "20",
+                "amount": 4800000
+              },
+              {
+                "component": "SGST",
+                "rate": "20",
+                "amount": 4800000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 24000000,
+            "tax": 4800000,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 24000000,
+            "tax": 4800000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 24000000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 24000000,
+          "tax": 9600000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 33600000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-inter-40pct-inclusive",
+      "reviewed": false,
+      "explain": "Inter-state at 40%, price includes GST: IGST = 700000 × 40 / 140 exactly. L1: 100 x 7000 = 700000, taxable 500000 (IGST 40% 200000); tax lines: IGST 40% on 500000 = 200000; total = taxable 500000 + tax 200000 + round-off 0 = 700000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Umesh Foods",
+          "address": "Andheri East, Mumbai 400069",
+          "country": "IN",
+          "region": "27",
+          "taxId": "27AAPFU0939F1ZV",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "pricesIncludeTax": true,
+          "lines": [
+            {
+              "description": "Aerated beverages",
+              "productCode": "2202",
+              "quantity": "100",
+              "unitPrice": 7000,
+              "rateId": "gst_40"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": true,
+        "reverseCharge": false,
+        "placeOfSupply": "27",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 700000,
+            "discount": 0,
+            "taxable": 500000,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "40",
+                "amount": 200000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "40",
+            "category": "standard",
+            "taxable": 500000,
+            "tax": 200000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 700000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 500000,
+          "tax": 200000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 700000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-shipping-tie-lowest-index",
+      "reviewed": false,
+      "explain": "Two lines with equal amounts: shipping takes the rate of the first one (5%). L1: 1 x 100000 = 100000, taxable 100000 (CGST 2.5% 2500, SGST 2.5% 2500); L2: 1 x 100000 = 100000, taxable 100000 (CGST 9% 9000, SGST 9% 9000); shipping 10000, taxable 10000; tax lines: CGST 2.5% on 110000 = 2750, SGST 2.5% on 110000 = 2750, CGST 9% on 100000 = 9000, SGST 9% on 100000 = 9000; total = taxable 210000 + tax 23500 + round-off 0 = 233500.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "shipping": 10000,
+          "lines": [
+            {
+              "description": "Spices",
+              "productCode": "0910",
+              "quantity": "1",
+              "unitPrice": 100000,
+              "rateId": "gst_5"
+            },
+            {
+              "description": "Kitchen scale",
+              "productCode": "8423",
+              "quantity": "1",
+              "unitPrice": 100000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 100000,
+            "discount": 0,
+            "taxable": 100000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "2.5",
+                "amount": 2500
+              },
+              {
+                "component": "SGST",
+                "rate": "2.5",
+                "amount": 2500
+              }
+            ]
+          },
+          {
+            "amount": 100000,
+            "discount": 0,
+            "taxable": 100000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 9000
+              },
+              {
+                "component": "SGST",
+                "rate": "9",
+                "amount": 9000
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 10000,
+          "taxable": 10000
+        },
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 110000,
+            "tax": 2750,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 110000,
+            "tax": 2750,
+            "charged": true
+          },
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 100000,
+            "tax": 9000,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 100000,
+            "tax": 9000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 200000,
+          "discount": 0,
+          "shipping": 10000,
+          "taxable": 210000,
+          "tax": 23500,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 233500
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-shipping-exempt-principal",
+      "reviewed": false,
+      "explain": "The principal supply is exempt milk, so shipping is exempt too; the paneer line keeps 5%, so it is still a tax invoice. L1: 100 x 5600 = 560000, taxable 560000 (no tax); L2: 2 x 9000 = 18000, taxable 18000 (CGST 2.5% 450, SGST 2.5% 450); shipping 15000, taxable 15000; tax lines: exempt 0% on 575000 = 0, CGST 2.5% on 18000 = 450, SGST 2.5% on 18000 = 450; total = taxable 593000 + tax 900 + round-off 0 = 593900.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "shipping": 15000,
+          "lines": [
+            {
+              "description": "Fresh milk",
+              "productCode": "0401",
+              "quantity": "100",
+              "unitPrice": 5600,
+              "rateId": "exempt"
+            },
+            {
+              "description": "Paneer",
+              "productCode": "0406",
+              "quantity": "2",
+              "unitPrice": 9000,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 560000,
+            "discount": 0,
+            "taxable": 560000,
+            "taxes": [
+              {
+                "component": null,
+                "rate": "0",
+                "amount": 0
+              }
+            ]
+          },
+          {
+            "amount": 18000,
+            "discount": 0,
+            "taxable": 18000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "2.5",
+                "amount": 450
+              },
+              {
+                "component": "SGST",
+                "rate": "2.5",
+                "amount": 450
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 15000,
+          "taxable": 15000
+        },
+        "taxLines": [
+          {
+            "component": null,
+            "rate": "0",
+            "category": "exempt",
+            "taxable": 575000,
+            "tax": 0,
+            "charged": true
+          },
+          {
+            "component": "CGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 18000,
+            "tax": 450,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 18000,
+            "tax": 450,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 578000,
+          "discount": 0,
+          "shipping": 15000,
+          "taxable": 593000,
+          "tax": 900,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 593900
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-export-lut-inclusive-flag",
+      "reviewed": false,
+      "explain": "Export under LUT with the inclusive-price flag on: IGST is 0%, so nothing is extracted and the typed price is the taxable value. L1: 40 x 5000 = 200000, taxable 200000 (IGST 0% 0); tax lines: IGST 0% on 200000 = 0; total = taxable 200000 + tax 0 + round-off 0 = 200000; home INR at 83.25: total 16650000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001",
+          "lutReference": "AD2903260123456"
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "exportWithoutTax",
+          "exchangeRate": "83.25",
+          "pricesIncludeTax": true,
+          "lines": [
+            {
+              "description": "App development (hours)",
+              "productCode": "998314",
+              "quantity": "40",
+              "unitPrice": 5000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": true,
+        "reverseCharge": false,
+        "placeOfSupply": "96",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 200000,
+            "discount": 0,
+            "taxable": 200000,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "0",
+                "amount": 0
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "0",
+            "category": "zero",
+            "taxable": 200000,
+            "tax": 0,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 200000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 200000,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 200000
+        },
+        "home": {
+          "currency": "INR",
+          "rate": "83.25",
+          "taxable": 16650000,
+          "tax": 0,
+          "total": 16650000
+        },
+        "notes": [
+          {
+            "id": "export_lut",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-export-lut-shipping-usd",
+      "reviewed": false,
+      "explain": "Export of goods under LUT billed in USD with freight: zero-rated IGST 0% on goods and freight; totals shown in INR. L1: 300 x 450 = 135000, taxable 135000 (IGST 0% 0); shipping 4500, taxable 4500; tax lines: IGST 0% on 139500 = 0; total = taxable 139500 + tax 0 + round-off 0 = 139500; home INR at 83.10: total 11592450.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001",
+          "lutReference": "AD2903260123456"
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "exportWithoutTax",
+          "exchangeRate": "83.10",
+          "shipping": 4500,
+          "lines": [
+            {
+              "description": "Cotton T-shirts",
+              "productCode": "6109",
+              "quantity": "300",
+              "unitPrice": 450,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "96",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 135000,
+            "discount": 0,
+            "taxable": 135000,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "0",
+                "amount": 0
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 4500,
+          "taxable": 4500
+        },
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "0",
+            "category": "zero",
+            "taxable": 139500,
+            "tax": 0,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 135000,
+          "discount": 0,
+          "shipping": 4500,
+          "taxable": 139500,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 139500
+        },
+        "home": {
+          "currency": "INR",
+          "rate": "83.10",
+          "taxable": 11592450,
+          "tax": 0,
+          "total": 11592450
+        },
+        "notes": [
+          {
+            "id": "export_lut",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-export-igst-billed-in-inr",
+      "reviewed": false,
+      "explain": "Export with IGST paid, billed in rupees: IGST 18% charged, export note, no home-currency block. L1: 1 x 850000 = 850000, taxable 850000 (IGST 18% 153000); tax lines: IGST 18% on 850000 = 153000; total = taxable 850000 + tax 153000 + round-off 0 = 1003000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "exportWithTax",
+          "lines": [
+            {
+              "description": "Software licence",
+              "productCode": "997331",
+              "quantity": "1",
+              "unitPrice": 850000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "96",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 850000,
+            "discount": 0,
+            "taxable": 850000,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "18",
+                "amount": 153000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "18",
+            "category": "standard",
+            "taxable": 850000,
+            "tax": 153000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 850000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 850000,
+          "tax": 153000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 1003000
+        },
+        "home": null,
+        "notes": [
+          {
+            "id": "export_igst",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-export-igst-usd-discount",
+      "reviewed": false,
+      "explain": "Export with IGST paid in USD with a 10% invoice discount; IGST per line, totals converted at 83.4567. Round-off is switched off on the invoice (the builder's default for foreign-currency documents, spec/documents.md). L1: 2 x 49999 = 99998, invoice discount -10000, taxable 89998 (IGST 18% 16200); L2: 1 x 12000 = 12000, invoice discount -1200, taxable 10800 (IGST 5% 540); tax lines: IGST 18% on 89998 = 16200, IGST 5% on 10800 = 540; total = taxable 100798 + tax 16740 + round-off 0 = 117538; home INR at 83.4567: total 9809334.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "exportWithTax",
+          "exchangeRate": "83.4567",
+          "discount": {
+            "type": "percent",
+            "value": "10"
+          },
+          "roundOff": false,
+          "lines": [
+            {
+              "description": "Design sprint",
+              "productCode": "998391",
+              "quantity": "2",
+              "unitPrice": 49999,
+              "rateId": "gst_18"
+            },
+            {
+              "description": "Brand guidelines",
+              "productCode": "998399",
+              "quantity": "1",
+              "unitPrice": 12000,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "96",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 99998,
+            "discount": 10000,
+            "taxable": 89998,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "18",
+                "amount": 16200
+              }
+            ]
+          },
+          {
+            "amount": 12000,
+            "discount": 1200,
+            "taxable": 10800,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "5",
+                "amount": 540
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "18",
+            "category": "standard",
+            "taxable": 89998,
+            "tax": 16200,
+            "charged": true
+          },
+          {
+            "component": "IGST",
+            "rate": "5",
+            "category": "standard",
+            "taxable": 10800,
+            "tax": 540,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 111998,
+          "discount": 11200,
+          "shipping": 0,
+          "taxable": 100798,
+          "tax": 16740,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 117538
+        },
+        "home": {
+          "currency": "INR",
+          "rate": "83.4567",
+          "taxable": 8412268,
+          "tax": 1397065,
+          "total": 9809334
+        },
+        "notes": [
+          {
+            "id": "export_igst",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-rcm-inter-state",
+      "reviewed": false,
+      "explain": "Reverse charge on an inter-state supply: IGST shown but not charged; the recipient pays it. L1: 1 x 250000 = 250000, taxable 250000 (IGST 18% 45000); tax lines: IGST 18% on 250000 = 45000 (not charged); total = taxable 250000 + tax 0 + round-off 0 = 250000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Umesh Foods",
+          "address": "Andheri East, Mumbai 400069",
+          "country": "IN",
+          "region": "27",
+          "taxId": "27AAPFU0939F1ZV",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "reverseCharge": true,
+          "lines": [
+            {
+              "description": "Legal services",
+              "productCode": "998212",
+              "quantity": "1",
+              "unitPrice": 250000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": true,
+        "placeOfSupply": "27",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 250000,
+            "discount": 0,
+            "taxable": 250000,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "18",
+                "amount": 45000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "18",
+            "category": "standard",
+            "taxable": 250000,
+            "tax": 45000,
+            "charged": false
+          }
+        ],
+        "totals": {
+          "subtotal": 250000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 250000,
+          "tax": 0,
+          "taxNotCharged": 45000,
+          "roundOff": 0,
+          "total": 250000
+        },
+        "home": null,
+        "notes": [
+          {
+            "id": "rcm",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-rcm-with-shipping",
+      "reviewed": false,
+      "explain": "Goods transport under reverse charge with an extra delivery charge: CGST and SGST on both are shown, not charged. L1: 2 x 45000 = 90000, taxable 90000 (CGST 2.5% 2250, SGST 2.5% 2250); shipping 5000, taxable 5000; tax lines: CGST 2.5% on 95000 = 2375 (not charged), SGST 2.5% on 95000 = 2375 (not charged); total = taxable 95000 + tax 0 + round-off 0 = 95000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "reverseCharge": true,
+          "shipping": 5000,
+          "lines": [
+            {
+              "description": "Goods transport",
+              "productCode": "996511",
+              "quantity": "2",
+              "unitPrice": 45000,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": true,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 90000,
+            "discount": 0,
+            "taxable": 90000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "2.5",
+                "amount": 2250
+              },
+              {
+                "component": "SGST",
+                "rate": "2.5",
+                "amount": 2250
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 5000,
+          "taxable": 5000
+        },
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 95000,
+            "tax": 2375,
+            "charged": false
+          },
+          {
+            "component": "SGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 95000,
+            "tax": 2375,
+            "charged": false
+          }
+        ],
+        "totals": {
+          "subtotal": 90000,
+          "discount": 0,
+          "shipping": 5000,
+          "taxable": 95000,
+          "tax": 0,
+          "taxNotCharged": 4750,
+          "roundOff": 0,
+          "total": 95000
+        },
+        "home": null,
+        "notes": [
+          {
+            "id": "rcm",
+            "placement": "bottom"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-composition-quote",
+      "reviewed": false,
+      "explain": "A composition dealer's quotation: titled Quotation, no tax, composition declaration at the top. L1: 50 x 24000 = 1200000, taxable 1200000; total = taxable 1200000 + tax 0 + round-off 0 = 1200000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "composition",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Anita Sharma",
+          "country": "IN",
+          "region": "29",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "quote",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Catering per plate",
+              "productCode": "996334",
+              "quantity": "50",
+              "unitPrice": 24000,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Quotation",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 1200000,
+            "discount": 0,
+            "taxable": 1200000
+          }
+        ],
+        "taxLines": [],
+        "totals": {
+          "subtotal": 1200000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 1200000,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 1200000
+        },
+        "home": null,
+        "notes": [
+          {
+            "id": "composition_declaration",
+            "placement": "top"
+          }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-composition-hsn-missing",
+      "reviewed": false,
+      "explain": "Composition dealer selling to a registered buyer with a 2-digit HSN: 4 digits are needed, so the line is flagged. L1: 10 x 5000 = 50000, taxable 50000; total = taxable 50000 + tax 0 + round-off 0 = 50000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "composition",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Snacks",
+              "productCode": "19",
+              "quantity": "10",
+              "unitPrice": 5000,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Bill of Supply",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 50000,
+            "discount": 0,
+            "taxable": 50000
+          }
+        ],
+        "taxLines": [],
+        "totals": {
+          "subtotal": 50000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 50000,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 50000
+        },
+        "home": null,
+        "notes": [
+          {
+            "id": "composition_declaration",
+            "placement": "top"
+          }
+        ],
+        "issues": [
+          {
+            "code": "product_code_missing",
+            "severity": "warning",
+            "lines": [
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "in-unregistered-with-shipping",
+      "reviewed": false,
+      "explain": "Seller not registered for GST: no tax on goods or shipping; plain Invoice title. L1: 12 x 15000 = 180000, taxable 180000; shipping 6000, taxable 6000; total = taxable 186000 + tax 0 + round-off 0 = 186000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "unregistered",
+          "region": "29",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Anita Sharma",
+          "country": "IN",
+          "region": "29",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "shipping": 6000,
+          "lines": [
+            {
+              "description": "Handmade candles",
+              "quantity": "12",
+              "unitPrice": 15000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 180000,
+            "discount": 0,
+            "taxable": 180000
+          }
+        ],
+        "shipping": {
+          "amount": 6000,
+          "taxable": 6000
+        },
+        "taxLines": [],
+        "totals": {
+          "subtotal": 180000,
+          "discount": 0,
+          "shipping": 6000,
+          "taxable": 186000,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 186000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-exempt-and-nil-bill-of-supply",
+      "reviewed": false,
+      "explain": "A regular dealer selling only nil-rated and exempt goods issues a Bill of Supply. L1: 25 x 4000 = 100000, taxable 100000 (no tax); L2: 10 x 5600 = 56000, taxable 56000 (no tax); tax lines: nil 0% on 100000 = 0, exempt 0% on 56000 = 0; total = taxable 156000 + tax 0 + round-off 0 = 156000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Anita Sharma",
+          "country": "IN",
+          "region": "29",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Fresh vegetables",
+              "productCode": "0709",
+              "quantity": "25",
+              "unitPrice": 4000,
+              "rateId": "nil"
+            },
+            {
+              "description": "Fresh milk",
+              "productCode": "0401",
+              "quantity": "10",
+              "unitPrice": 5600,
+              "rateId": "exempt"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Bill of Supply",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 100000,
+            "discount": 0,
+            "taxable": 100000,
+            "taxes": [
+              {
+                "component": null,
+                "rate": "0",
+                "amount": 0
+              }
+            ]
+          },
+          {
+            "amount": 56000,
+            "discount": 0,
+            "taxable": 56000,
+            "taxes": [
+              {
+                "component": null,
+                "rate": "0",
+                "amount": 0
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": null,
+            "rate": "0",
+            "category": "nil",
+            "taxable": 100000,
+            "tax": 0,
+            "charged": true
+          },
+          {
+            "component": null,
+            "rate": "0",
+            "category": "exempt",
+            "taxable": 56000,
+            "tax": 0,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 156000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 156000,
+          "tax": 0,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 156000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-quantity-three-decimals",
+      "reviewed": false,
+      "explain": "Quantity with three decimals: 1.125 × 333.33 = 374.99625 rounds to ₹375.00 before tax. L1: 1.125 x 33333 = 37500, taxable 37500 (CGST 9% 3375, SGST 9% 3375); tax lines: CGST 9% on 37500 = 3375, SGST 9% on 37500 = 3375; total = taxable 37500 + tax 6750 + round-off 50 = 44300.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Silver wire (kg)",
+              "productCode": "7106",
+              "quantity": "1.125",
+              "unitPrice": 33333,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 37500,
+            "discount": 0,
+            "taxable": 37500,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 3375
+              },
+              {
+                "component": "SGST",
+                "rate": "9",
+                "amount": 3375
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 37500,
+            "tax": 3375,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 37500,
+            "tax": 3375,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 37500,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 37500,
+          "tax": 6750,
+          "taxNotCharged": 0,
+          "roundOff": 50,
+          "total": 44300
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-b2c-high-value-with-details",
+      "reviewed": false,
+      "explain": "Unregistered buyer, total above ₹50,000, with name, address and state: no warning. L1: 1 x 6000000 = 6000000, taxable 6000000 (CGST 9% 540000, SGST 9% 540000); tax lines: CGST 9% on 6000000 = 540000, SGST 9% on 6000000 = 540000; total = taxable 6000000 + tax 1080000 + round-off 0 = 7080000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Meera Iyer",
+          "address": "18 Jayanagar 4th Block, Bengaluru 560011",
+          "country": "IN",
+          "region": "29",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Laptop",
+              "productCode": "8471",
+              "quantity": "1",
+              "unitPrice": 6000000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 6000000,
+            "discount": 0,
+            "taxable": 6000000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 540000
+              },
+              {
+                "component": "SGST",
+                "rate": "9",
+                "amount": 540000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 6000000,
+            "tax": 540000,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 6000000,
+            "tax": 540000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 6000000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 6000000,
+          "tax": 1080000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 7080000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-b2c-just-below-threshold",
+      "reviewed": false,
+      "explain": "Walk-in buyer with no details and a total just under ₹50,000 after round-off: no warning. L1: 1 x 4237200 = 4237200, taxable 4237200 (CGST 9% 381348, SGST 9% 381348); tax lines: CGST 9% on 4237200 = 381348, SGST 9% on 4237200 = 381348; total = taxable 4237200 + tax 762696 + round-off 4 = 4999900.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Walk-in customer",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Tablet",
+              "productCode": "8471",
+              "quantity": "1",
+              "unitPrice": 4237200,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 4237200,
+            "discount": 0,
+            "taxable": 4237200,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "9",
+                "amount": 381348
+              },
+              {
+                "component": "SGST",
+                "rate": "9",
+                "amount": 381348
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 4237200,
+            "tax": 381348,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "9",
+            "category": "standard",
+            "taxable": 4237200,
+            "tax": 381348,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 4237200,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 4237200,
+          "tax": 762696,
+          "taxNotCharged": 0,
+          "roundOff": 4,
+          "total": 4999900
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-place-of-supply-override",
+      "reviewed": false,
+      "explain": "Buyer in Karnataka but the event is held in Maharashtra: place of supply set to 27 on the invoice, so IGST applies. L1: 1 x 300000 = 300000, taxable 300000 (IGST 18% 54000); tax lines: IGST 18% on 300000 = 54000; total = taxable 300000 + tax 54000 + round-off 0 = 354000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "placeOfSupply": "27",
+          "lines": [
+            {
+              "description": "Event management",
+              "productCode": "998596",
+              "quantity": "1",
+              "unitPrice": 300000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "27",
+        "sameRegion": false,
+        "lines": [
+          {
+            "amount": 300000,
+            "discount": 0,
+            "taxable": 300000,
+            "taxes": [
+              {
+                "component": "IGST",
+                "rate": "18",
+                "amount": 54000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "IGST",
+            "rate": "18",
+            "category": "standard",
+            "taxable": 300000,
+            "tax": 54000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 300000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 300000,
+          "tax": 54000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 354000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-supply-date-selects-new-rate",
+      "reviewed": false,
+      "explain": "Issued on 20 September 2025 for a supply on 23 September 2025: the 40% rate (from 22 September) is in force, no warning. L1: 1 x 400000000 = 400000000, taxable 400000000 (CGST 20% 80000000, SGST 20% 80000000); tax lines: CGST 20% on 400000000 = 80000000, SGST 20% on 400000000 = 80000000; total = taxable 400000000 + tax 160000000 + round-off 0 = 560000000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2025-09-20",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "supplyDate": "2025-09-23",
+          "lines": [
+            {
+              "description": "Premium SUV",
+              "productCode": "8703",
+              "quantity": "1",
+              "unitPrice": 400000000,
+              "rateId": "gst_40"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 400000000,
+            "discount": 0,
+            "taxable": 400000000,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "20",
+                "amount": 80000000
+              },
+              {
+                "component": "SGST",
+                "rate": "20",
+                "amount": 80000000
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 400000000,
+            "tax": 80000000,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "20",
+            "category": "standard",
+            "taxable": 400000000,
+            "tax": 80000000,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 400000000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 400000000,
+          "tax": 160000000,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 560000000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "in-roundoff-down-43-paise",
+      "reviewed": false,
+      "explain": "Grand total ₹1,050.43 rounds down to ₹1,050. L1: 1 x 100041 = 100041, taxable 100041 (CGST 2.5% 2501, SGST 2.5% 2501); tax lines: CGST 2.5% on 100041 = 2501, SGST 2.5% on 100041 = 2501; total = taxable 100041 + tax 5002 + round-off -43 = 105000.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Consumables",
+              "productCode": "3926",
+              "quantity": "1",
+              "unitPrice": 100041,
+              "rateId": "gst_5"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "placeOfSupply": "29",
+        "sameRegion": true,
+        "lines": [
+          {
+            "amount": 100041,
+            "discount": 0,
+            "taxable": 100041,
+            "taxes": [
+              {
+                "component": "CGST",
+                "rate": "2.5",
+                "amount": 2501
+              },
+              {
+                "component": "SGST",
+                "rate": "2.5",
+                "amount": 2501
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "CGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 100041,
+            "tax": 2501,
+            "charged": true
+          },
+          {
+            "component": "SGST",
+            "rate": "2.5",
+            "category": "standard",
+            "taxable": 100041,
+            "tax": 2501,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 100041,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 100041,
+          "tax": 5002,
+          "taxNotCharged": 0,
+          "roundOff": -43,
+          "total": 105000
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    }
+  ]
+}

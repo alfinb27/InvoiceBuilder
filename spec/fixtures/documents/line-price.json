@@ -1,0 +1,401 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "document",
+  "description": "Catalogue prices converted to a document's currency and price basis (spec/documents.md §3.1).",
+  "cases": [
+    {
+      "id": "line-price-same-basis",
+      "explain": "Same currency and price basis: the price is copied. basis unchanged; 50000 → 50000 → halfAwayFromZero 50000.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 50000,
+          "currency": "INR",
+          "priceIncludesTax": false,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "INR",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 50000
+      }
+    },
+    {
+      "id": "line-price-inclusive-to-exclusive",
+      "explain": "₹118 including 18% GST on an invoice with prices before tax: ₹100. basis inclusive → exclusive: × 100 / (100 + 18); 11800 → 10000 → halfAwayFromZero 10000.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 11800,
+          "currency": "INR",
+          "priceIncludesTax": true,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "INR",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 10000
+      }
+    },
+    {
+      "id": "line-price-inclusive-to-exclusive-rounded",
+      "explain": "₹999 including 18% GST: 846.610… rupees before tax, rounded half away from zero. basis inclusive → exclusive: × 100 / (100 + 18); 99900 → 84661.016949 → halfAwayFromZero 84661.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 99900,
+          "currency": "INR",
+          "priceIncludesTax": true,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "INR",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 84661
+      }
+    },
+    {
+      "id": "line-price-exclusive-to-inclusive",
+      "explain": "₹333.33 before 18% GST on an invoice with tax-inclusive prices. basis exclusive → inclusive: × (100 + 18) / 100; 33333 → 39332.940000 → halfAwayFromZero 39333.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 33333,
+          "currency": "INR",
+          "priceIncludesTax": false,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "INR",
+          "pricesIncludeTax": true
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 39333
+      }
+    },
+    {
+      "id": "line-price-exempt-rate",
+      "explain": "An exempt rate has 0%: nothing to add or remove. basis inclusive → exclusive: × 100 / (100 + 0); 5600 → 5600 → halfAwayFromZero 5600.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 5600,
+          "currency": "INR",
+          "priceIncludesTax": true,
+          "rateId": "exempt"
+        },
+        "document": {
+          "currency": "INR",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 5600
+      }
+    },
+    {
+      "id": "line-price-composition-no-conversion",
+      "explain": "A composition dealer does not charge GST, so the price basis is never converted. basis unchanged (seller does not charge tax); 11800 → 11800 → halfAwayFromZero 11800.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "composition",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 11800,
+          "currency": "INR",
+          "priceIncludesTax": true,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "INR",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 11800
+      }
+    },
+    {
+      "id": "line-price-half-away-from-zero",
+      "explain": "50p before 5% VAT on a VAT-inclusive invoice: 52.5p rounds to 53p. basis exclusive → inclusive: × (100 + 5) / 100; 50 → 52.500000 → halfAwayFromZero 53.",
+      "input": {
+        "op": "linePrice",
+        "config": "GB@2026-09-19",
+        "registration": "vatRegistered",
+        "homeCurrency": "GBP",
+        "item": {
+          "unitPriceMinor": 50,
+          "currency": "GBP",
+          "priceIncludesTax": false,
+          "rateId": "reduced"
+        },
+        "document": {
+          "currency": "GBP",
+          "pricesIncludeTax": true
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 53
+      }
+    },
+    {
+      "id": "line-price-home-to-usd",
+      "explain": "₹8,325 on a USD invoice at 83.25 rupees per dollar: $100. basis unchanged; currency × 10^(2 − 2) / 83.25; 832500 → 10000 → halfAwayFromZero 10000.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 832500,
+          "currency": "INR",
+          "priceIncludesTax": false,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "USD",
+          "pricesIncludeTax": false,
+          "exchangeRate": "83.25"
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 10000
+      }
+    },
+    {
+      "id": "line-price-home-to-usd-rounded",
+      "explain": "₹1,000 at 83.4567 rupees per dollar. basis unchanged; currency × 10^(2 − 2) / 83.4567; 100000 → 1198.226146 → halfAwayFromZero 1198.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 100000,
+          "currency": "INR",
+          "priceIncludesTax": false,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "USD",
+          "pricesIncludeTax": false,
+          "exchangeRate": "83.4567"
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 1198
+      }
+    },
+    {
+      "id": "line-price-basis-and-currency",
+      "explain": "₹1,180 including 18% GST on a USD invoice before tax: one rounding after both conversions. basis inclusive → exclusive: × 100 / (100 + 18); currency × 10^(2 − 2) / 83.25; 118000 → 1201.201201 → halfAwayFromZero 1201.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 118000,
+          "currency": "INR",
+          "priceIncludesTax": true,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "USD",
+          "pricesIncludeTax": false,
+          "exchangeRate": "83.25"
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 1201
+      }
+    },
+    {
+      "id": "line-price-no-exchange-rate",
+      "explain": "A foreign-currency invoice without an exchange rate cannot convert a rupee price. basis unchanged; no exchange rate to convert from the home currency.",
+      "input": {
+        "op": "linePrice",
+        "config": "IN@2025-09-22",
+        "registration": "regular",
+        "homeCurrency": "INR",
+        "item": {
+          "unitPriceMinor": 50000,
+          "currency": "INR",
+          "priceIncludesTax": false,
+          "rateId": "gst_18"
+        },
+        "document": {
+          "currency": "USD",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "error": "exchange_rate_missing"
+      }
+    },
+    {
+      "id": "line-price-to-zero-decimal-currency",
+      "explain": "£10 on a JPY invoice at 0.0052 pounds per yen (yen have no minor units). basis unchanged; currency × 10^(0 − 2) / 0.0052; 1000 → 1923.076923 → halfAwayFromZero 1923.",
+      "input": {
+        "op": "linePrice",
+        "config": "GB@2026-09-19",
+        "registration": "vatRegistered",
+        "homeCurrency": "GBP",
+        "item": {
+          "unitPriceMinor": 1000,
+          "currency": "GBP",
+          "priceIncludesTax": false,
+          "rateId": "standard"
+        },
+        "document": {
+          "currency": "JPY",
+          "pricesIncludeTax": false,
+          "exchangeRate": "0.0052"
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 1923
+      }
+    },
+    {
+      "id": "line-price-custom-compound",
+      "explain": "A custom 5% + compound 10% rate is 15.5% in effect: $115.50 including tax → $100. basis inclusive → exclusive: × 100 / (100 + 15.5); 11550 → 10000 → halfAwayFromZero 10000.",
+      "input": {
+        "op": "linePrice",
+        "config": "GENERIC@2026-09-19",
+        "registration": "registered",
+        "homeCurrency": "USD",
+        "customRates": [
+          {
+            "id": "sales",
+            "category": "standard",
+            "label": "Sales tax 8.875%",
+            "effectiveFrom": "2020-01-01",
+            "components": [
+              {
+                "code": "SALES",
+                "label": "Sales tax",
+                "percent": "8.875"
+              }
+            ]
+          },
+          {
+            "id": "compound",
+            "category": "standard",
+            "label": "5% + 10% compound",
+            "effectiveFrom": "2020-01-01",
+            "components": [
+              {
+                "code": "A",
+                "label": "Tax A",
+                "percent": "5"
+              },
+              {
+                "code": "B",
+                "label": "Tax B",
+                "percent": "10",
+                "compound": true
+              }
+            ]
+          }
+        ],
+        "item": {
+          "unitPriceMinor": 11550,
+          "currency": "USD",
+          "priceIncludesTax": true,
+          "rateId": "compound"
+        },
+        "document": {
+          "currency": "USD",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 10000
+      }
+    },
+    {
+      "id": "line-price-custom-sales-tax",
+      "explain": "$108.88 including 8.875% sales tax → $100.00 (100.0045… rounded). basis inclusive → exclusive: × 100 / (100 + 8.875); 10888 → 10000.459242 → halfAwayFromZero 10000.",
+      "input": {
+        "op": "linePrice",
+        "config": "GENERIC@2026-09-19",
+        "registration": "registered",
+        "homeCurrency": "USD",
+        "customRates": [
+          {
+            "id": "sales",
+            "category": "standard",
+            "label": "Sales tax 8.875%",
+            "effectiveFrom": "2020-01-01",
+            "components": [
+              {
+                "code": "SALES",
+                "label": "Sales tax",
+                "percent": "8.875"
+              }
+            ]
+          },
+          {
+            "id": "compound",
+            "category": "standard",
+            "label": "5% + 10% compound",
+            "effectiveFrom": "2020-01-01",
+            "components": [
+              {
+                "code": "A",
+                "label": "Tax A",
+                "percent": "5"
+              },
+              {
+                "code": "B",
+                "label": "Tax B",
+                "percent": "10",
+                "compound": true
+              }
+            ]
+          }
+        ],
+        "item": {
+          "unitPriceMinor": 10888,
+          "currency": "USD",
+          "priceIncludesTax": true,
+          "rateId": "sales"
+        },
+        "document": {
+          "currency": "USD",
+          "pricesIncludeTax": false
+        }
+      },
+      "expected": {
+        "unitPriceMinor": 10000
+      }
+    }
+  ]
+}

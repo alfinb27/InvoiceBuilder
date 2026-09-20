@@ -51,6 +51,9 @@
     { "id": "exportServicesB2B", "label": "Services to an overseas business" },
     { "id": "exportGoods", "label": "Goods exported outside the UK" }
   ],
+  "supplyTypeDefaults": [
+    { "when": { "buyerForeign": true, "buyerIsBusiness": true }, "supplyType": "exportServicesB2B" }
+  ],
   "componentRules": [
     {
       "when": { "supplyType": ["domestic"] },

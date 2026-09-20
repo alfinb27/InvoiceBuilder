@@ -1,0 +1,159 @@
+# Documents: drafts, issuing, duplicating and converting (v0)
+
+Normative for the document features of both apps: invoice and quote drafts, the builder's defaults, issuing
+(`IssueDocument`), duplicating, converting a quote and deleting a draft. iOS implements it in `InvoiceCore`
+(`DocumentRules`, `LinePricing`, `NumberAllocator`, `DocumentService`), `InvoiceData` (`GRDBDocumentRepository`,
+`GRDBDocumentService`) and `InvoiceUI` (the builder); Android in `:core:domain`, `:core:data` and `:app`, with the
+same names. Field shapes are in `schema/domain.schema.json#/$defs/Document`; tax results come only from
+`TaxEngine.compute` (`tax/ENGINE.md`). Pure functions here are proven by `fixtures/documents/*.json` (kind
+`document`). Record rules (ids, timestamps, trimming, tombstones) are `setup.md` §1.
+
+## 1. Lifecycle
+
+| Lifecycle | Number | Editable | Deletable | Tax results |
+|---|---|---|---|---|
+| `draft` | none | yes, autosaved | yes (tombstone) | recomputed on every change; totals columns stored, `computed` = `NULL` |
+| `issued` | allocated at issue, never changes | Phase 4 (revision) | never | frozen at issue |
+| `void` | kept | no | never | kept (Phase 4) |
+
+- Drafts refer to the **live** business and client and re-take both snapshots (§4) on every save.
+- **Issuing** freezes the snapshots, allocates the number and stores the `ComputedDocument` (§6).
+- Display status is derived (`ENGINE.md` §6), never stored. Until payments exist (Phase 4), `paid = 0`.
+- Void, payments, the quote outcomes accepted/declined and revising an issued document are Phase 4.
+
+## 2. New drafts
+
+A new document is written on its first change (or its first line), never when the builder merely opens.
+
+| Field | Invoice | Quote |
+|---|---|---|
+| `issueDate` | today | today |
+| `dueDate` | `issueDate + business.paymentTermsDays` days | `null` |
+| `validUntil` | `null` | `issueDate + 30` days |
+| `currency` | `client.defaultCurrency ?? business.homeCurrency` | same |
+| `supplyType` | §2.1 | same |
+| `notes`, `terms`, `templateId` | the business defaults (`defaultNotes`, `defaultTerms`, `templateId`) | same |
+| `taxConfigRef` | the `ref` of the business's config family in force on `supplyDate ?? issueDate` | same |
+
+Everything else starts empty: `supplyDate`, `exchangeRate`, `placeOfSupply`, `discount`, `clientId` = `null`;
+`reverseCharge` and `pricesIncludeTax` = `false`; `roundOff` = `null` (the config default), except that a
+foreign-currency document starts with `roundOff = false` (rounding a total to a whole unit is a home-currency
+convention); `shippingMinor = 0`; `revision = 0`; no lines; totals 0.
+
+### 2.1 Supply type
+The first `config.supplyTypeDefaults` entry whose `when` matches, else the first `config.supplyTypes` entry. Keys
+(all listed keys must match):
+
+| Key | True when |
+|---|---|
+| `buyerForeign` | a client is chosen and its `countryCode` ≠ the business `countryCode` |
+| `buyerIsBusiness` | a client is chosen and `isBusiness` |
+| `sellerHasLutReference` | `business.extraIds.lutReference` is not empty |
+
+IN: a foreign client defaults to `exportWithoutTax` when the business has a LUT reference, else `exportWithTax`.
+GB: a foreign business client defaults to `exportServicesB2B`. Everything else defaults to `domestic`.
+
+### 2.2 Changes that move other fields (drafts)
+- **Client chosen or changed:** `currency`, `supplyType` and `roundOff` are set again as for a new draft with that
+  client; `placeOfSupply` is cleared; `exchangeRate` is cleared when the currency changes.
+- **Currency changed:** `exchangeRate` is cleared; `roundOff` = `false` for a foreign currency, `null` for the home
+  currency.
+- **Issue date changed:** `dueDate` and `validUntil` (when set) move by the same number of days.
+- **Type changed** (invoice ↔ quote): the target type's `dueDate` / `validUntil` defaults apply from `issueDate`.
+- **Prices-include-tax toggled:** line prices are not converted; the toggle says how typed prices are read.
+
+## 3. Lines
+
+- Positions are `0…n−1` in display order; reordering, inserting or removing renumbers them.
+- **From the catalogue:** `catalogItemId` = the item, `description` = `item.name`, `productCode`, `unit` and `rateId`
+  from the item, `quantity = "1"`, `unitPriceMinor` = `linePrice` (§3.1), no discount.
+- **One-off line:** `quantity = "1"`; `rateId` = the previous line's rate; with no previous line, the first rate in
+  force when the seller does not charge tax (the rate is not shown then), otherwise none (the user picks one).
+- **Duplicate line:** a copy with a new id inserted after the original.
+- A line needs a non-empty `description`, a spec decimal `quantity` ≥ 0, `unitPriceMinor` ≥ 0 and a `rateId` before
+  the document can be issued (§6).
+
+### 3.1 `linePrice(item, document) → unitPriceMinor | exchange_rate_missing`
+Converts a catalogue price (home currency, its own price basis) to the document's currency and price basis, with
+one rounding (`round(x, config.rounding.amountMode)`, `ENGINE.md` §2.2):
+
+- **Basis factor** `b`: when the seller's registration charges tax and `item.priceIncludesTax ≠
+  document.pricesIncludeTax`, with `R` = the rate's effective percent: inclusive → exclusive `b = 100 / (100 + R)`;
+  exclusive → inclusive `b = (100 + R) / 100`. Otherwise `b = 1`.
+  - `R` for a config rate is its `percent`. For a custom rate, start with `acc = 0` and for each component in order
+    add `(100 + (compound ? acc : 0)) × percent / 100` to `acc`; `R = acc` (5% + compound 10% → `15.5`).
+- **Currency factor** `c`: `1` when `item.currency = document.currency`; else, when `item.currency` is the home
+  currency and `document.exchangeRate` is set, `c = 10^(docExp − homeExp) / exchangeRate`; otherwise the result is
+  `exchange_rate_missing` (the builder adds the line with price 0 and asks for the price).
+- `unitPriceMinor = round(item.unitPriceMinor × b × c, amountMode)`.
+
+## 4. Snapshots
+
+`sellerSnapshot` and `buyerSnapshot` are the engine's `seller` / `buyer` (`ENGINE.md` §1) plus display fields, in one
+flat JSON object each. Empty text is omitted.
+
+- **Seller:** `registration`, `taxId`, `region` (the business address `regionCode`, else read from the tax ID),
+  `country`, `homeCurrency`, `lutReference`, `address` (the business address on one line: `line1, line2, city
+  postalCode`), `turnoverMinor`, `customRates`; display: `name`, `legalName`, `postalAddress` (the `address` object),
+  `email`, `phone`, `website`, `extraIds`, `bank`, `upiVpa`, `logoAssetId`, `signatureAssetId`.
+- **Buyer** (only when a client is chosen): `name`, `address` (billing address on one line), `country`, `region`,
+  `taxId`, `isBusiness`; display: `contactName`, `email`, `phone`, `billingAddress`, `shippingAddress`.
+- **Without a client** the engine buyer is `{ isBusiness: false }` (a domestic walk-in customer) and
+  `buyerSnapshot = null`.
+- If the client of a draft has been deleted, the draft keeps its last buyer snapshot and the builder shows the
+  client as removed.
+
+## 5. Saving a draft (autosave)
+
+The builder saves 500 ms after the last change and when it closes. A save writes, in one transaction:
+the document row (both snapshots re-taken from the live business and client; the totals columns from the engine
+result, or 0 when the engine returns an error; `computed = NULL`), every current line (update by id, insert new ones;
+`rate_snapshot` and the computed line columns `NULL`), and a tombstone for every stored line no longer in the draft.
+Closing the builder on a draft with no client and no lines deletes it (§8).
+
+## 6. Issuing (`IssueDocument`)
+
+One write transaction; any failure leaves the database unchanged.
+
+1. Load the draft (live, lifecycle `draft`), its live lines, the live business and the live client (if any).
+2. Take both snapshots (§4) and the config in force on `supplyDate ?? issueDate`; compute.
+3. **Blocking problems** (none may remain, else nothing is written):
+   `no_lines`; `line_description_missing` (line indexes); `line_rate_missing` (line indexes, a line without a rate);
+   the engine error (`code`, `line`); every engine issue with severity `error`.
+4. **Series:** the live `numbering_series` of the document type whose `ownerDeviceId` is this device (earliest
+   `createdAt`, then lowest `id`); none → `no_series`.
+5. **Number** (`NumberAllocator`, `ENGINE.md` §5): `periodKey` from `issueDate`; `sequence =
+   max(counters[periodKey] ?? 1, 1)`; `number = format(pattern, …, sequence)`; `number_too_long` /
+   `number_invalid_chars` are blocking. Then `counters[periodKey] = sequence + 1`.
+6. **Write:** the document gets `lifecycle = issued`, `number`, `seriesId`, `periodKey`, `sequence`, both snapshots,
+   `taxConfigRef` of the config used, `revision = 1`, the totals columns and `computed` (the full
+   `ComputedDocument`). Each line gets `rateSnapshot = { percent: computed rate, category, label }`, `amountMinor`,
+   `taxableMinor`, and, when the config rounds tax per line, `taxMinor` (Σ its taxes) and `totalMinor = taxable +
+   tax` (both `NULL` when tax is rounded per invoice). One `tax_line` row per `computed.taxLines` entry
+   (`line_id = NULL`, same component, rate, category, taxable, tax, charged).
+7. **Invoices only** (never quotes or drafts): the free-tier counter increments (`billing.md`): `app_state`
+   key `issued_invoice_count` (+1, created at 1) and `device_state.free_counter_mirror` (+1).
+
+The next number offered in Settings (`setup.md` §6) must stay above the highest `sequence` already issued in that
+series and period.
+
+## 7. Duplicate and convert
+
+- **Duplicate** (any live document) → a new draft of the same type: new ids for it and its lines; `issueDate` =
+  today; `dueDate` / `validUntil` = the §2 defaults from today; client, currency, exchange rate, supply type, place of
+  supply, reverse charge, prices-include-tax, round-off, discount, shipping, notes, terms, template and lines
+  (position, catalogue link, description, product code, unit, quantity, price, discount, rate) are copied; number,
+  series, period, sequence, sent/void fields, quote outcome, `convertedFromId`, `computed` and the computed line
+  columns are not. It is saved at once (§5), which re-takes both snapshots (a deleted client's last buyer snapshot is
+  kept, as for any draft).
+- **Convert quote** (an issued, live quote whose `quoteOutcome` is not `converted`) → a new invoice draft built like a
+  duplicate, with `docType = invoice`, `convertedFromId` = the quote, `dueDate` = today + payment terms and
+  `validUntil = null`; in the same transaction the quote's `quoteOutcome` becomes `converted`. The quote's content
+  never changes. Otherwise the error is `not_convertible`.
+
+## 8. Deleting a draft
+
+Only drafts can be deleted: the document gets a tombstone (its lines are unreachable through it). Saving that
+draft again (its builder is still open, §5) revives it with the new content, so no edit is ever lost. If it was
+converted from a quote and no other live document has the same `convertedFromId`, the quote's `quoteOutcome` returns
+to `null`. Deleting an issued or void document is the error `not_a_draft`.

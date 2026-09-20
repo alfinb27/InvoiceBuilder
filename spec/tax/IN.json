@@ -108,6 +108,10 @@
     { "id": "exportWithoutTax", "label": "Export under LUT or bond (no IGST)" },
     { "id": "exportWithTax", "label": "Export with IGST paid" }
   ],
+  "supplyTypeDefaults": [
+    { "when": { "buyerForeign": true, "sellerHasLutReference": true }, "supplyType": "exportWithoutTax" },
+    { "when": { "buyerForeign": true }, "supplyType": "exportWithTax" }
+  ],
   "componentRules": [
     {
       "when": { "supplyType": ["domestic"], "sameRegion": true },

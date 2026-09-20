@@ -48,7 +48,8 @@ public struct NumberingSeriesRules: Sendable {
         return preview(pattern: draft.pattern, reset: draft.reset, seq: seq)
     }
 
-    public func issues(_ draft: NumberingSeriesDraft) -> [NumberingSeriesField: FieldIssue] {
+    /// `highestIssued`: the highest sequence already issued from the series in the draft's current period.
+    public func issues(_ draft: NumberingSeriesDraft, highestIssued: Int? = nil) -> [NumberingSeriesField: FieldIssue] {
         var issues: [NumberingSeriesField: FieldIssue] = [:]
         if draft.label.trimmedOrNil == nil { issues[.label] = .required }
         let patternIssues = Numbering.issues(inPattern: draft.pattern)
@@ -62,6 +63,8 @@ public struct NumberingSeriesRules: Sendable {
             issues[.nextNumber] = .required
         } else if !next.isASCIIDigits || (Int(next) ?? 0) < 1 || next.count > 9 {
             issues[.nextNumber] = .invalidNumber(.invalid)
+        } else if let highestIssued, let value = Int(next), value <= highestIssued {
+            issues[.nextNumber] = .alreadyIssued(highest: highestIssued)
         }
         return issues
     }

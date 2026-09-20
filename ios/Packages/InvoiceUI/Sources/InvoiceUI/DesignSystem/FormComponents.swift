@@ -20,7 +20,8 @@ struct FormTextField: View {
                 .font(.footnote)
                 .foregroundStyle(Theme.textSecondary)
                 .accessibilityHidden(true)
-            TextField(title, text: $text, prompt: Text(prompt ?? ""), axis: axis)
+            TextField(title, text: keyboard == .decimalPad ? $text.decimalPadInput() : $text,
+                      prompt: Text(prompt ?? ""), axis: axis)
                 .keyboardType(keyboard)
                 .textInputAutocapitalization(capitalization)
                 .textContentType(contentType)
@@ -103,6 +104,50 @@ extension View {
     }
 }
 
+/// A label and a value (usually an amount) side by side, stacked at accessibility text sizes so amounts never wrap
+/// in the middle of a number.
+struct AdaptiveRow<Label: View, Value: View>: View {
+    var alignment: VerticalAlignment = .firstTextBaseline
+    @ViewBuilder let label: Label
+    @ViewBuilder let value: Value
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: Theme.Space.xxs) {
+                label
+                value
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(alignment: alignment, spacing: Theme.Space.m) {
+                label
+                Spacer(minLength: Theme.Space.s)
+                value.layoutPriority(1)
+            }
+        }
+    }
+}
+
+// MARK: - Decimal pads
+
+/// A decimal pad types the device locale's decimal separator, while the spec parsers (`spec/setup.md` §11) read `.`
+/// as the decimal point and drop `,` as a grouping mark. On comma-decimal locales a typed `,` becomes `.` as it is
+/// typed, so "12,5" is 12.5, never 125.
+enum DecimalPadText {
+    static func normalized(_ text: String, locale: Locale = .current) -> String {
+        guard locale.decimalSeparator == "," else { return text }
+        return text.replacingOccurrences(of: ",", with: ".")
+    }
+}
+
+extension Binding where Value == String {
+    /// This binding with the locale's decimal separator turned into `.` on the way in.
+    func decimalPadInput(locale: Locale = .current) -> Binding<String> {
+        Binding(get: { wrappedValue }, set: { wrappedValue = DecimalPadText.normalized($0, locale: locale) })
+    }
+}
+
 // MARK: - Messages
 
 /// Human text for `FieldIssue`s. `field` is the field's name as shown on screen.
@@ -134,6 +179,10 @@ enum IssueMessages {
             "Numbers made with this pattern would be longer than \(maxLength.map(String.init) ?? "allowed") characters"
         case .invalidNumbering(.numberInvalidChars):
             "Numbers can only use letters, digits, / and -"
+        case .alreadyIssued(let highest):
+            "Number \(highest) has already been issued. Start at \(highest + 1) or later."
+        case .exceedsLineAmount:
+            "The discount is more than the line amount"
         }
     }
 

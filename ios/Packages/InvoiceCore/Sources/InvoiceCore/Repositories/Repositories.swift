@@ -60,3 +60,38 @@ public protocol BusinessSetupService: Sendable {
     /// tombstoned (`spec/setup.md` §9).
     func setImage(_ image: ImagePayload?, kind: AssetKind, businessID: String) async throws -> Business
 }
+
+public protocol DocumentRepository: Sendable {
+    /// Live documents of a business, drafts included, newest issue date first (then most recently edited).
+    func observeDocuments(businessID: String) -> AsyncThrowingStream<[DocumentSummary], any Error>
+    /// A live document with its live lines in position order; nil once it is gone.
+    func observeDocument(id: String) -> AsyncThrowingStream<Document?, any Error>
+    func fetchDocument(id: String) async throws -> Document?
+    /// Writes a draft as given (`spec/documents.md` §5): the row, its lines (update by id, insert new ones) and a
+    /// tombstone for each stored line no longer in it. Only drafts; stamps `updatedAt` (and `createdAt` on insert).
+    @discardableResult func saveDraft(_ document: Document) async throws -> Document
+    /// The highest `sequence` issued from `seriesID` in `periodKey`, or nil.
+    func highestIssuedSequence(seriesID: String, periodKey: String) async throws -> Int?
+}
+
+/// Document operations that write several rows in one transaction (`spec/documents.md` §6–8).
+public protocol DocumentService: Sendable {
+    /// `IssueDocument`: blocking problems, number, frozen snapshots, stored results and the free-tier counter.
+    func issue(documentID: String, deviceID: String) async throws -> Document
+    /// A new saved draft copying the document.
+    func duplicate(documentID: String) async throws -> Document
+    /// A new saved invoice draft from an issued quote, which becomes `converted`.
+    func convertQuote(documentID: String) async throws -> Document
+    /// Tombstones a draft (and releases the quote it was converted from).
+    func deleteDraft(documentID: String) async throws
+}
+
+public enum DocumentServiceError: Error, Equatable, Sendable {
+    case notFound
+    /// `not_a_draft`: only drafts can be issued, edited or deleted.
+    case notADraft
+    /// `not_convertible`: only an issued quote that is not converted yet.
+    case notConvertible
+    /// Issuing is blocked; nothing was written.
+    case blocked([IssueProblem])
+}

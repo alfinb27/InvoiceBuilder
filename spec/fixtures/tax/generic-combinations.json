@@ -1,0 +1,683 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "tax",
+  "description": "Generic (business-defined rates) combinations (Phase 2a): compound tax with discounts, apportioned shipping, inclusive prices, foreign currency and quotes.",
+  "cases": [
+    {
+      "id": "generic-compound-with-discount",
+      "reviewed": false,
+      "explain": "Compound tax (5%, then 10% on price plus the first tax) after a 10% invoice discount. L1: 3 x 2000 = 6000, invoice discount -600, taxable 5400 (A 5% 270, B 10% 567); tax lines: A 5% on 5400 = 270, B 10% on 5400 = 567; total = taxable 5400 + tax 837 + round-off 0 = 6237.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "domestic",
+          "discount": {
+            "type": "percent",
+            "value": "10"
+          },
+          "lines": [
+            {
+              "description": "Consulting",
+              "quantity": "3",
+              "unitPrice": 2000,
+              "rateId": "compound"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 6000,
+            "discount": 600,
+            "taxable": 5400,
+            "taxes": [
+              {
+                "component": "A",
+                "rate": "5",
+                "amount": 270
+              },
+              {
+                "component": "B",
+                "rate": "10",
+                "amount": 567
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "A",
+            "rate": "5",
+            "category": "standard",
+            "taxable": 5400,
+            "tax": 270,
+            "charged": true
+          },
+          {
+            "component": "B",
+            "rate": "10",
+            "category": "standard",
+            "taxable": 5400,
+            "tax": 567,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 6000,
+          "discount": 600,
+          "shipping": 0,
+          "taxable": 5400,
+          "tax": 837,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 6237
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "generic-two-rates-shipping",
+      "reviewed": false,
+      "explain": "Two business rates with shipping apportioned to them by value. L1: 1 x 10000 = 10000, taxable 10000 (SALES 8.875% 888); L2: 2 x 2500 = 5000, taxable 5000 (TAX 10% 500); shipping 1500, taxable 1500; tax lines: SALES 8.875% on 11000 = 977, TAX 10% on 5500 = 550; total = taxable 16500 + tax 1527 + round-off 0 = 18027.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Jo Smith",
+          "address": "9 Elm St, Austin, TX",
+          "country": "US",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "domestic",
+          "shipping": 1500,
+          "lines": [
+            {
+              "description": "Groceries",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "sales"
+            },
+            {
+              "description": "Prepared food",
+              "quantity": "2",
+              "unitPrice": 2500,
+              "rateId": "tenpct"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 10000,
+            "discount": 0,
+            "taxable": 10000,
+            "taxes": [
+              {
+                "component": "SALES",
+                "rate": "8.875",
+                "amount": 888
+              }
+            ]
+          },
+          {
+            "amount": 5000,
+            "discount": 0,
+            "taxable": 5000,
+            "taxes": [
+              {
+                "component": "TAX",
+                "rate": "10",
+                "amount": 500
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 1500,
+          "taxable": 1500
+        },
+        "taxLines": [
+          {
+            "component": "SALES",
+            "rate": "8.875",
+            "category": "standard",
+            "taxable": 11000,
+            "tax": 977,
+            "charged": true
+          },
+          {
+            "component": "TAX",
+            "rate": "10",
+            "category": "standard",
+            "taxable": 5500,
+            "tax": 550,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 15000,
+          "discount": 0,
+          "shipping": 1500,
+          "taxable": 16500,
+          "tax": 1527,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 18027
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "generic-inclusive-shipping",
+      "reviewed": false,
+      "explain": "Tax-inclusive price with shipping: sales tax extracted from both. L1: 1 x 10888 = 10888, taxable 10000 (SALES 8.875% 888); shipping 1000, taxable 918; tax lines: SALES 8.875% on 10918 = 970; total = taxable 10918 + tax 970 + round-off 0 = 11888.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Jo Smith",
+          "address": "9 Elm St, Austin, TX",
+          "country": "US",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "domestic",
+          "pricesIncludeTax": true,
+          "shipping": 1000,
+          "lines": [
+            {
+              "description": "Headphones",
+              "quantity": "1",
+              "unitPrice": 10888,
+              "rateId": "sales"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Invoice",
+        "inclusive": true,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 10888,
+            "discount": 0,
+            "taxable": 10000,
+            "taxes": [
+              {
+                "component": "SALES",
+                "rate": "8.875",
+                "amount": 888
+              }
+            ]
+          }
+        ],
+        "shipping": {
+          "amount": 1000,
+          "taxable": 918
+        },
+        "taxLines": [
+          {
+            "component": "SALES",
+            "rate": "8.875",
+            "category": "standard",
+            "taxable": 10918,
+            "tax": 970,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 10888,
+          "discount": 0,
+          "shipping": 1000,
+          "taxable": 10918,
+          "tax": 970,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 11888
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "generic-foreign-currency-eur",
+      "reviewed": false,
+      "explain": "A US business billing in EUR: totals also shown in USD at 1.0875. L1: 2 x 4500 = 9000, taxable 9000 (TAX 10% 900); tax lines: TAX 10% on 9000 = 900; total = taxable 9000 + tax 900 + round-off 0 = 9900; home USD at 1.0875: total 10766.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Weber Maschinenbau GmbH",
+          "address": "Hauptstrasse 5, 10115 Berlin",
+          "country": "DE",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "EUR",
+          "supplyType": "domestic",
+          "exchangeRate": "1.0875",
+          "lines": [
+            {
+              "description": "Translation",
+              "quantity": "2",
+              "unitPrice": 4500,
+              "rateId": "tenpct"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Invoice",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 9000,
+            "discount": 0,
+            "taxable": 9000,
+            "taxes": [
+              {
+                "component": "TAX",
+                "rate": "10",
+                "amount": 900
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "TAX",
+            "rate": "10",
+            "category": "standard",
+            "taxable": 9000,
+            "tax": 900,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 9000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 9000,
+          "tax": 900,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 9900
+        },
+        "home": {
+          "currency": "USD",
+          "rate": "1.0875",
+          "taxable": 9788,
+          "tax": 979,
+          "total": 10766
+        },
+        "notes": [],
+        "issues": []
+      }
+    },
+    {
+      "id": "generic-quote",
+      "reviewed": false,
+      "explain": "A generic quotation with sales tax. L1: 1 x 150000 = 150000, taxable 150000 (SALES 8.875% 13313); tax lines: SALES 8.875% on 150000 = 13313; total = taxable 150000 + tax 13313 + round-off 0 = 163313.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "quote",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Audit",
+              "quantity": "1",
+              "unitPrice": 150000,
+              "rateId": "sales"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "title": "Quotation",
+        "inclusive": false,
+        "reverseCharge": false,
+        "lines": [
+          {
+            "amount": 150000,
+            "discount": 0,
+            "taxable": 150000,
+            "taxes": [
+              {
+                "component": "SALES",
+                "rate": "8.875",
+                "amount": 13313
+              }
+            ]
+          }
+        ],
+        "taxLines": [
+          {
+            "component": "SALES",
+            "rate": "8.875",
+            "category": "standard",
+            "taxable": 150000,
+            "tax": 13313,
+            "charged": true
+          }
+        ],
+        "totals": {
+          "subtotal": 150000,
+          "discount": 0,
+          "shipping": 0,
+          "taxable": 150000,
+          "tax": 13313,
+          "taxNotCharged": 0,
+          "roundOff": 0,
+          "total": 163313
+        },
+        "home": null,
+        "notes": [],
+        "issues": []
+      }
+    }
+  ]
+}

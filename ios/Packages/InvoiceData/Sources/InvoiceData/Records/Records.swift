@@ -23,6 +23,13 @@ enum DBColumns {
     static let rateID = Column("rate_id")
     static let logoAssetID = Column("logo_asset_id")
     static let signatureAssetID = Column("signature_asset_id")
+    static let updatedAt = Column("updated_at")
+    static let documentID = Column("document_id")
+    static let position = Column("position")
+    static let docType = Column("doc_type")
+    static let lifecycle = Column("lifecycle")
+    static let quoteOutcome = Column("quote_outcome")
+    static let convertedFromID = Column("converted_from_id")
 }
 
 /// JSON text columns.

@@ -46,6 +46,9 @@ public struct MainShellView: View {
             Tab("Home", systemImage: "house", value: AppTab.home) {
                 HomeView(session: session)
             }
+            Tab("Invoices", systemImage: "doc.text", value: AppTab.documents) {
+                DocumentsSection(session: session)
+            }
             Tab("Clients", systemImage: "person.2", value: AppTab.clients) {
                 ClientsSection(session: session)
             }
@@ -58,6 +61,7 @@ public struct MainShellView: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .environment(session)
+        .focusedSceneValue(\.session, session)
         .task { await session.observeBusiness() }
     }
 }

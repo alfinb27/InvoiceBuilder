@@ -47,3 +47,14 @@
 8. Status of the 28% rate after 2025-09-22 (kept in config with a warning note) and whether any v1 users need compensation cess (out of scope).
 9. Place-of-supply code `97` (Other Territory): UTGST treatment correct?
 10. Mixed taxable + exempt supplies to unregistered buyers: we title it "Tax Invoice"; should it be an invoice-cum-bill of supply (Rule 46A)?
+
+Added in Phase 2 (`spec/documents.md`, fixtures `spec/fixtures/tax/in-combinations.json`, `errors.json`):
+
+11. Foreign-currency invoices start with the rupee round-off switched **off** (the user can switch it on); rounding a
+    USD total to a whole dollar seemed wrong. Acceptable, or should exports in foreign currency round too?
+12. A foreign client defaults to "Export under LUT" when the business has a LUT reference, otherwise "Export with IGST
+    paid" — for consumers as well as businesses. Right defaults?
+13. A catalogue price entered including GST is converted to a price before tax as `price × 100 / (100 + rate)`,
+    rounded to the paisa, when added to an invoice whose prices exclude GST (and the reverse). Acceptable?
+14. Issued invoices are numbered only at issue, from a series per device (e.g. `INV/26-27/0001` on the iPhone and
+    `INV/26-27/B0001` on an iPad), never renumbered or deleted. Does "one or multiple series" (Rule 46(b)) cover this?

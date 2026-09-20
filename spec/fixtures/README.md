@@ -22,6 +22,7 @@ Every file is validated by `make validate-spec` against `spec/schema/fixtures.sc
 | `upi` | UPI payment links | §9 |
 | `field` | setup field rules (IFSC, UPI ID, sort code, IBAN, BIC, PAN, postcodes, company number, HSN/SAC) | `spec/setup.md` §8 |
 | `input` | typed money amounts and decimals | `spec/setup.md` §11 |
+| `document` | a new draft's defaults (`op: defaults`) and catalogue prices on a document (`op: linePrice`) | `spec/documents.md` §2, §3.1 |
 
 ## How runners compare results
 
@@ -32,7 +33,9 @@ Every file is validated by `make validate-spec` against `spec/schema/fixtures.sc
 3. **Arrays** must have the same length and compare element by element, in order, recursively.
 4. `null` in `expected` means the actual value must be `null`/absent.
 5. Money is compared as integers (minor units); rates as canonical decimal strings (`"9"`, `"2.5"`, `"0"`).
-6. The test name is the case `id`, so a failure points straight at the fixture.
+6. A `tax` case whose computation must fail expects `{ "error": "<code>" }` (plus `"line"` when the error is about
+   one line), per `ENGINE.md` §3 "Errors vs issues".
+7. The test name is the case `id`, so a failure points straight at the fixture.
 
 ## Adding or changing cases
 

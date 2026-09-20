@@ -81,7 +81,8 @@ private struct CatalogItemForm: View {
                     HStack(spacing: Theme.Space.xs) {
                         Text(model.currencySymbol).foregroundStyle(Theme.textSecondary)
                             .accessibilityHidden(true)
-                        TextField("Price per unit", text: $model.state.draft.priceText, prompt: Text("0.00"))
+                        TextField("Price per unit", text: $model.state.draft.priceText.decimalPadInput(),
+                                  prompt: Text("0.00"))
                             .keyboardType(.decimalPad)
                             .monospacedDigit()
                             .accessibilityLabel("Price per unit in \(model.rules.currency.rawValue)")

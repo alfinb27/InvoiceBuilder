@@ -12,6 +12,8 @@ public struct AppDependencies: Sendable {
     public var assets: any AssetRepository
     public var deviceState: any DeviceStateRepository
     public var setup: any BusinessSetupService
+    public var documents: any DocumentRepository
+    public var documentService: any DocumentService
     public var taxConfigs: TaxConfigStore
     public var reference: ReferenceData
     public var time: TimeSource
@@ -19,7 +21,8 @@ public struct AppDependencies: Sendable {
 
     public init(businesses: any BusinessRepository, clients: any ClientRepository, catalog: any CatalogRepository,
                 numberingSeries: any NumberingSeriesRepository, assets: any AssetRepository,
-                deviceState: any DeviceStateRepository, setup: any BusinessSetupService, taxConfigs: TaxConfigStore,
+                deviceState: any DeviceStateRepository, setup: any BusinessSetupService,
+                documents: any DocumentRepository, documentService: any DocumentService, taxConfigs: TaxConfigStore,
                 reference: ReferenceData, time: TimeSource, ids: IDGenerator) {
         self.businesses = businesses
         self.clients = clients
@@ -28,6 +31,8 @@ public struct AppDependencies: Sendable {
         self.assets = assets
         self.deviceState = deviceState
         self.setup = setup
+        self.documents = documents
+        self.documentService = documentService
         self.taxConfigs = taxConfigs
         self.reference = reference
         self.time = time
@@ -37,7 +42,9 @@ public struct AppDependencies: Sendable {
     /// Repositories backed by `database`, plus the bundled spec.
     public static func make(database: AppDatabase, time: TimeSource = .system, ids: IDGenerator = .random) throws
         -> AppDependencies {
-        AppDependencies(
+        let taxConfigs = try TaxConfigStore.bundled()
+        let reference = try ReferenceData.bundled()
+        return AppDependencies(
             businesses: GRDBBusinessRepository(database: database, time: time),
             clients: GRDBClientRepository(database: database, time: time),
             catalog: GRDBCatalogRepository(database: database, time: time),
@@ -45,8 +52,11 @@ public struct AppDependencies: Sendable {
             assets: GRDBAssetRepository(database: database),
             deviceState: GRDBDeviceStateRepository(database: database, time: time, ids: ids),
             setup: GRDBBusinessSetupService(database: database, time: time, ids: ids),
-            taxConfigs: try TaxConfigStore.bundled(),
-            reference: try ReferenceData.bundled(),
+            documents: GRDBDocumentRepository(database: database, time: time),
+            documentService: GRDBDocumentService(database: database, time: time, ids: ids, configs: taxConfigs,
+                                                 currencies: reference.currencies),
+            taxConfigs: taxConfigs,
+            reference: reference,
             time: time,
             ids: ids
         )

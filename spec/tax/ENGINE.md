@@ -14,7 +14,7 @@ EngineInput {
   seller  : { registration, taxId?, region?, country, homeCurrency, lutReference?, address?,
               turnoverMinor?, customRates? }
   buyer   : { name?, address?, country?, region?, taxId?, isBusiness }
-  draft   : { docType: "invoice" | "quote", issueDate, supplyDate?, currency, exchangeRate?,
+  draft   : { docType: "invoice" | "quote", issueDate, supplyDate?, dueDate?, currency, exchangeRate?,
               supplyType, placeOfSupply?, reverseCharge = false, pricesIncludeTax = false,
               lines: [Line], discount?: Discount, shipping? (minor units), roundOff? }
 }
@@ -26,6 +26,8 @@ Discount { type: "percent", value: DecimalString } | { type: "amount", value: In
 - Money is `Int64` minor units of `draft.currency` (exponent from `spec/reference/currencies.json`).
 - `DecimalString` matches `^-?(0|[1-9][0-9]*)(\.[0-9]+)?$`. Parse strictly; reject anything else.
 - v0 does not support negative quantities, prices or totals (credit notes come later).
+- Input that breaks these rules (a quantity, percent or exchange rate that is not a decimal string; a negative
+  quantity, price, discount or shipping; an unknown seller registration) is the error `invalid_input`.
 
 ## 2. Primitives
 
@@ -78,6 +80,7 @@ Only when `chargesTax`. Take the **first** `componentRules` entry whose `when` m
 For each line `i`:
 - `gross_i = quantity_i × unitPrice_i` (exact).
 - Line discount: percent → `gross_i × value / 100`; amount → `value`.
+- A line discount larger than `gross_i` → error `line_discount_exceeds_amount`.
 - `amount_i = round(gross_i − lineDiscount_i, rounding.amountMode)`.
 - `rate_i` = `rateId` looked up in `config.rates` (or `seller.customRates` when `ratesFrom = business`).
   Unknown id → error `unknown_rate`. A rate not in force on `effectiveDate` (outside `[effectiveFrom, effectiveTo]`)
@@ -92,10 +95,12 @@ For each line `i`:
 
 ### Step 4: shipping
 `S = draft.shipping ?? 0` (same price basis as the lines: inclusive when `inclusive`). Shipping is never
-discounted. If `S > 0` it becomes pseudo-lines, according to `config.shipping.rule`:
+discounted. If `S > 0` it becomes pseudo-lines, according to `config.shipping.rule` (a document with shipping needs
+at least one line: `invalid_input` otherwise):
 - `principalSupplyRate`: one pseudo-line of `S` at the rate of the line with the largest `net_i` (ties → lowest index).
 - `apportion`: group lines by `rateId` (groups ordered by first appearance); split `S` with
-  `allocateProportional(S, Σ net per group)`; one pseudo-line per group at that group's rate.
+  `allocateProportional(S, Σ net per group)`; one pseudo-line per group at that group's rate (a pseudo-line of 0
+  is dropped).
 
 Shipping pseudo-lines are taxed exactly like lines (Steps 5–6) and reported under `shipping`.
 
@@ -103,12 +108,14 @@ Shipping pseudo-lines are taxed exactly like lines (Steps 5–6) and reported un
 When `chargesTax`, each line (and shipping pseudo-line) gets an ordered component list:
 - `components = "fromRate"`: the rate's own `components` (`code`, `percent`, `compound`).
 - Otherwise, for each rule component: `code` (`$localComponent` → the place-of-supply region's
-  `localComponent`), `percent = rateOverride ?? rate.percent × share`, `category = categoryOverride ?? rate.category`.
+  `localComponent`; error `unknown_region` when that region is unknown or has none),
+  `percent = rateOverride ?? rate.percent × share`, `category = categoryOverride ?? rate.category`.
 - After overrides, if a line's components have category `exempt`, `nil` or `outsideScope`, the line carries no tax:
   its components are replaced by a single non-tax group `{ component: null, category, rate: "0" }`. (Zero-rated
   supplies, category `zero`, keep their component at 0%, e.g. `IGST 0%` for exports under LUT, `VAT 0%`.)
 - `R_i` = sum of the line's component percents. Compound components are not allowed together with `inclusive`
-  (error `inclusive_compound_unsupported`).
+  (error `inclusive_compound_unsupported`), and they are compounded only when `taxLevel = line` (the only level any
+  config with compound rates uses).
 
 When `!chargesTax`, lines carry no components and `taxable_i = net_i`.
 
@@ -181,9 +188,10 @@ Evaluate `config.checks` in order; each produces at most one issue `{ code, seve
   Fixtures compare `issues` as an ordered array.
 - Issues with severity `error` block issuing the document; drafts and previews still compute.
 
-**Errors vs issues.** `no_component_rule`, `unknown_rate`, `discount_exceeds_subtotal` and
-`inclusive_compound_unsupported` are *errors*: computation stops and no `ComputedDocument` is returned (the builder
-shows the problem inline). Everything in `issues` is computed alongside a complete result.
+**Errors vs issues.** `no_component_rule`, `unknown_rate`, `unknown_region`, `discount_exceeds_subtotal`,
+`line_discount_exceeds_amount`, `inclusive_compound_unsupported` and `invalid_input` are *errors*: computation stops
+and no `ComputedDocument` is returned (the builder shows the problem inline). An error about one line also names
+that line (0-based). Everything in `issues` is computed alongside a complete result.
 
 ## 4. Output
 
@@ -199,8 +207,11 @@ ComputedDocument {
   issues:   [{ code, severity, lines? }]
 }
 ```
-`lines[i].discount` is the invoice-discount share allocated to the line. `taxes` appear only for
-`taxLevel = line`. Rates are output as canonical decimal strings (Section 7.2).
+`lines[i].discount` is the invoice-discount share allocated to the line. `lines[i].rate` is `R_i` (`"0"` when the
+line carries no tax or the seller does not charge tax); `lines[i].category` is the non-tax group's category, else the
+category of the line's first component, else (seller not charging tax) the rate's own category. `taxes` appear only
+for `taxLevel = line`; `shipping.parts` lists the pseudo-lines. Rates are output as canonical decimal strings
+(Section 7.2).
 
 ## 5. Numbering
 
