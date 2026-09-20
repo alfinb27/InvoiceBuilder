@@ -56,7 +56,7 @@ final class SetupSmokeTests: XCTestCase {
         app.launchArguments = ["-seed", "IN"]
         app.launch()
 
-        app.tabBars.buttons["Clients"].tap()
+        openTab("Clients", app)
         XCTAssertTrue(app.staticTexts["Rao Traders"].waitForExistence(timeout: 10))
         app.buttons["Add client"].tap()
         type("Kaveri Textiles", into: app.textFields["Name"], in: app)
@@ -67,7 +67,7 @@ final class SetupSmokeTests: XCTestCase {
         app.buttons["Save"].tap()
         XCTAssertTrue(app.staticTexts["Kaveri Textiles"].waitForExistence(timeout: 5))
 
-        app.tabBars.buttons["Items"].tap()
+        openTab("Items", app)
         XCTAssertTrue(app.staticTexts["Website development"].waitForExistence(timeout: 10))
         app.buttons["Add item"].tap()
         type("Logo design", into: app.textFields["Name"], in: app)
@@ -76,6 +76,13 @@ final class SetupSmokeTests: XCTestCase {
         app.buttons["GST 18%"].tap()
         app.buttons["Save"].tap()
         XCTAssertTrue(app.staticTexts["Logo design"].waitForExistence(timeout: 5))
+    }
+
+    /// A tab bar button on iPhone; the top tab bar (or sidebar) on iPad.
+    @MainActor
+    private func openTab(_ name: String, _ app: XCUIApplication) {
+        let tab = app.tabBars.buttons[name]
+        if tab.exists { tab.tap() } else { app.buttons[name].firstMatch.tap() }
     }
 
     /// Scrolls the form until `field` is on screen, then types into it.

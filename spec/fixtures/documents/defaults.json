@@ -1,0 +1,322 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "document",
+  "description": "A new draft's defaults (spec/documents.md §2): dates, currency, supply type and round-off.",
+  "cases": [
+    {
+      "id": "defaults-in-invoice-walk-in",
+      "explain": "A new invoice with no client: dated today, due after the business's 15 payment days, domestic, in rupees. issue 2026-09-19, due 2026-10-04 (+15 days); supply type domestic (buyerForeign=false, buyerIsBusiness=false, sellerHasLutReference=false); currency INR; roundOff null.",
+      "input": {
+        "op": "defaults",
+        "config": "IN@2025-09-22",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "IN",
+          "homeCurrency": "INR",
+          "paymentTermsDays": 15
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-10-04",
+        "validUntil": null,
+        "currency": "INR",
+        "supplyType": "domestic",
+        "roundOff": null
+      }
+    },
+    {
+      "id": "defaults-in-quote",
+      "explain": "A new quote: no due date, valid for 30 days. issue 2026-09-19, valid until 2026-10-19 (+30 days); supply type domestic (buyerForeign=false, buyerIsBusiness=true, sellerHasLutReference=false); currency INR; roundOff null.",
+      "input": {
+        "op": "defaults",
+        "config": "IN@2025-09-22",
+        "docType": "quote",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "IN",
+          "homeCurrency": "INR",
+          "paymentTermsDays": 15
+        },
+        "client": {
+          "countryCode": "IN",
+          "isBusiness": true
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": null,
+        "validUntil": "2026-10-19",
+        "currency": "INR",
+        "supplyType": "domestic",
+        "roundOff": null
+      }
+    },
+    {
+      "id": "defaults-in-foreign-client-with-lut",
+      "explain": "A foreign client billed in USD by a business with a LUT: export under LUT; round-off off for a foreign currency. issue 2026-09-19, due 2026-10-04 (+15 days); supply type exportWithoutTax (buyerForeign=true, buyerIsBusiness=true, sellerHasLutReference=true); currency USD; roundOff false.",
+      "input": {
+        "op": "defaults",
+        "config": "IN@2025-09-22",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "IN",
+          "homeCurrency": "INR",
+          "paymentTermsDays": 15,
+          "lutReference": "AD2903260123456"
+        },
+        "client": {
+          "countryCode": "US",
+          "isBusiness": true,
+          "defaultCurrency": "USD"
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-10-04",
+        "validUntil": null,
+        "currency": "USD",
+        "supplyType": "exportWithoutTax",
+        "roundOff": false
+      }
+    },
+    {
+      "id": "defaults-in-foreign-client-without-lut",
+      "explain": "A foreign client without a default currency, business without a LUT: export with IGST paid, billed in rupees. issue 2026-09-19, due 2026-10-04 (+15 days); supply type exportWithTax (buyerForeign=true, buyerIsBusiness=true, sellerHasLutReference=false); currency INR; roundOff null.",
+      "input": {
+        "op": "defaults",
+        "config": "IN@2025-09-22",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "IN",
+          "homeCurrency": "INR",
+          "paymentTermsDays": 15
+        },
+        "client": {
+          "countryCode": "AE",
+          "isBusiness": true
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-10-04",
+        "validUntil": null,
+        "currency": "INR",
+        "supplyType": "exportWithTax",
+        "roundOff": null
+      }
+    },
+    {
+      "id": "defaults-in-foreign-consumer",
+      "explain": "India's export defaults do not depend on the client being a business. issue 2026-09-19, due 2026-10-04 (+15 days); supply type exportWithoutTax (buyerForeign=true, buyerIsBusiness=false, sellerHasLutReference=true); currency GBP; roundOff false.",
+      "input": {
+        "op": "defaults",
+        "config": "IN@2025-09-22",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "IN",
+          "homeCurrency": "INR",
+          "paymentTermsDays": 15,
+          "lutReference": "AD2903260123456"
+        },
+        "client": {
+          "countryCode": "GB",
+          "isBusiness": false,
+          "defaultCurrency": "GBP"
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-10-04",
+        "validUntil": null,
+        "currency": "GBP",
+        "supplyType": "exportWithoutTax",
+        "roundOff": false
+      }
+    },
+    {
+      "id": "defaults-in-terms-zero",
+      "explain": "Payment terms of 0 days: due on the issue date. issue 2026-09-19, due 2026-09-19 (+0 days); supply type domestic (buyerForeign=false, buyerIsBusiness=false, sellerHasLutReference=false); currency INR; roundOff null.",
+      "input": {
+        "op": "defaults",
+        "config": "IN@2025-09-22",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "IN",
+          "homeCurrency": "INR",
+          "paymentTermsDays": 0
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-09-19",
+        "validUntil": null,
+        "currency": "INR",
+        "supplyType": "domestic",
+        "roundOff": null
+      }
+    },
+    {
+      "id": "defaults-gb-foreign-business",
+      "explain": "A UK business invoicing an overseas business: services to an overseas business, in the client's currency. issue 2026-09-19, due 2026-10-19 (+30 days); supply type exportServicesB2B (buyerForeign=true, buyerIsBusiness=true, sellerHasLutReference=false); currency USD; roundOff false.",
+      "input": {
+        "op": "defaults",
+        "config": "GB@2026-09-19",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "GB",
+          "homeCurrency": "GBP",
+          "paymentTermsDays": 30
+        },
+        "client": {
+          "countryCode": "US",
+          "isBusiness": true,
+          "defaultCurrency": "USD"
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-10-19",
+        "validUntil": null,
+        "currency": "USD",
+        "supplyType": "exportServicesB2B",
+        "roundOff": false
+      }
+    },
+    {
+      "id": "defaults-gb-foreign-consumer",
+      "explain": "An overseas consumer stays a UK supply (domestic). issue 2026-09-19, due 2026-10-19 (+30 days); supply type domestic (buyerForeign=true, buyerIsBusiness=false, sellerHasLutReference=false); currency GBP; roundOff null.",
+      "input": {
+        "op": "defaults",
+        "config": "GB@2026-09-19",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "GB",
+          "homeCurrency": "GBP",
+          "paymentTermsDays": 30
+        },
+        "client": {
+          "countryCode": "FR",
+          "isBusiness": false
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-10-19",
+        "validUntil": null,
+        "currency": "GBP",
+        "supplyType": "domestic",
+        "roundOff": null
+      }
+    },
+    {
+      "id": "defaults-gb-domestic-client-eur",
+      "explain": "A UK client billed in euros by default: domestic, EUR, round-off off. issue 2026-09-19, valid until 2026-10-19 (+30 days); supply type domestic (buyerForeign=false, buyerIsBusiness=true, sellerHasLutReference=false); currency EUR; roundOff false.",
+      "input": {
+        "op": "defaults",
+        "config": "GB@2026-09-19",
+        "docType": "quote",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "GB",
+          "homeCurrency": "GBP",
+          "paymentTermsDays": 30
+        },
+        "client": {
+          "countryCode": "GB",
+          "isBusiness": true,
+          "defaultCurrency": "EUR"
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": null,
+        "validUntil": "2026-10-19",
+        "currency": "EUR",
+        "supplyType": "domestic",
+        "roundOff": false
+      }
+    },
+    {
+      "id": "defaults-gb-year-end",
+      "explain": "30 payment days across the year end. issue 2026-12-20, due 2027-01-19 (+30 days); supply type domestic (buyerForeign=false, buyerIsBusiness=false, sellerHasLutReference=false); currency GBP; roundOff null.",
+      "input": {
+        "op": "defaults",
+        "config": "GB@2026-09-19",
+        "docType": "invoice",
+        "today": "2026-12-20",
+        "business": {
+          "countryCode": "GB",
+          "homeCurrency": "GBP",
+          "paymentTermsDays": 30
+        }
+      },
+      "expected": {
+        "issueDate": "2026-12-20",
+        "dueDate": "2027-01-19",
+        "validUntil": null,
+        "currency": "GBP",
+        "supplyType": "domestic",
+        "roundOff": null
+      }
+    },
+    {
+      "id": "defaults-generic-foreign-client",
+      "explain": "The generic config has no supply-type defaults: the first supply type. issue 2026-09-19, due 2026-10-03 (+14 days); supply type domestic (buyerForeign=true, buyerIsBusiness=true, sellerHasLutReference=false); currency EUR; roundOff false.",
+      "input": {
+        "op": "defaults",
+        "config": "GENERIC@2026-09-19",
+        "docType": "invoice",
+        "today": "2026-09-19",
+        "business": {
+          "countryCode": "US",
+          "homeCurrency": "USD",
+          "paymentTermsDays": 14
+        },
+        "client": {
+          "countryCode": "DE",
+          "isBusiness": true,
+          "defaultCurrency": "EUR"
+        }
+      },
+      "expected": {
+        "issueDate": "2026-09-19",
+        "dueDate": "2026-10-03",
+        "validUntil": null,
+        "currency": "EUR",
+        "supplyType": "domestic",
+        "roundOff": false
+      }
+    },
+    {
+      "id": "defaults-quote-leap-year",
+      "explain": "A quote valid for 30 days across 29 February 2028. issue 2028-02-10, valid until 2028-03-11 (+30 days); supply type domestic (buyerForeign=false, buyerIsBusiness=false, sellerHasLutReference=false); currency USD; roundOff null.",
+      "input": {
+        "op": "defaults",
+        "config": "GENERIC@2026-09-19",
+        "docType": "quote",
+        "today": "2028-02-10",
+        "business": {
+          "countryCode": "US",
+          "homeCurrency": "USD",
+          "paymentTermsDays": 14
+        }
+      },
+      "expected": {
+        "issueDate": "2028-02-10",
+        "dueDate": null,
+        "validUntil": "2028-03-11",
+        "currency": "USD",
+        "supplyType": "domestic",
+        "roundOff": null
+      }
+    }
+  ]
+}

@@ -81,6 +81,7 @@ for (const f of walk(join(SPEC, "tax"))) {
     ...(c.reverseCharge.notes ?? [])];
   for (const n of noteRefs) if (!notes.has(n)) fail(f, `note "${n}" is not in notesCatalog`);
   const conds = [...c.componentRules.map((r) => r.when), ...c.checks.map((k) => k.when ?? {})];
+  for (const d of c.supplyTypeDefaults ?? []) if (!supply.has(d.supplyType)) fail(f, `unknown supplyType "${d.supplyType}" in supplyTypeDefaults`);
   for (const w of conds) {
     for (const s of w.supplyType ?? []) if (!supply.has(s)) fail(f, `unknown supplyType "${s}" in condition`);
     for (const r of w.sellerRegistration ?? []) if (!regs.has(r)) fail(f, `unknown registration "${r}" in condition`);
@@ -142,7 +143,8 @@ for (const f of walk(join(SPEC, "fixtures"))) {
     if (seen.has(c.id)) fail(f, `duplicate case id ${c.id} (also in ${seen.get(c.id)})`);
     seen.set(c.id, relative(SPEC, f));
     if (doc.kind === "tax") checkTaxCase(f, c);
-    if (doc.kind === "validation" && !configs[c.input.config]) fail(f, `case ${c.id}: unknown config ${c.input.config}`);
+    if ((doc.kind === "validation" || doc.kind === "document") && !configs[c.input.config])
+      fail(f, `case ${c.id}: unknown config ${c.input.config}`);
     if (doc.kind === "input" && c.input.op === "money" && !currencyCodes.has(c.input.currency))
       fail(f, `case ${c.id}: money input needs a currency from reference/currencies.json`);
   }

@@ -51,7 +51,7 @@ struct MigrationTests {
         let migrator = try AppDatabase.migrator()
         try migrator.migrate(database.writer)
         let applied = try database.writer.read { db in try migrator.appliedIdentifiers(db) }
-        #expect(applied == ["0001_init"])
+        #expect(applied == ["0001_init", "0002_document_sequence"])
     }
 
     @Test func onDiskDatabaseUsesWALAndForeignKeys() throws {

@@ -152,7 +152,8 @@ CREATE TABLE document (
   computed              TEXT,                                     -- JSON ComputedDocument, stored at issue
   created_at            INTEGER NOT NULL,
   updated_at            INTEGER NOT NULL,
-  deleted_at            INTEGER
+  deleted_at            INTEGER,
+  sequence              INTEGER CHECK (sequence IS NULL OR sequence >= 1)  -- 0002: allocated at issue
 );
 
 CREATE TABLE line_item (

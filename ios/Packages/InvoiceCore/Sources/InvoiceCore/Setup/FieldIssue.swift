@@ -1,5 +1,5 @@
 /// Why a setup field cannot be saved as typed. Screens turn these into messages.
-public enum FieldIssue: Equatable, Sendable {
+public enum FieldIssue: Error, Equatable, Sendable {
     case required
     /// A `spec/setup.md` §8 field rule failed.
     case invalid(FieldRule, FieldError)
@@ -10,6 +10,10 @@ public enum FieldIssue: Equatable, Sendable {
     case outOfRange(ClosedRange<Int>)
     case invalidPattern([NumberingPatternIssue])
     case invalidNumbering(NumberingError)
+    /// A next number at or below the highest one already issued in the period (`spec/setup.md` §6).
+    case alreadyIssued(highest: Int)
+    /// A line discount larger than quantity × price.
+    case exceedsLineAmount
 }
 
 /// An address being edited: plain text fields, normalised when saved.

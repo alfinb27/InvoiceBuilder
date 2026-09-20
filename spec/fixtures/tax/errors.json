@@ -1,0 +1,658 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "tax",
+  "description": "Inputs the engine must reject (ENGINE.md §3, Errors vs issues): no ComputedDocument, only the error code and, when it concerns one line, its index.",
+  "cases": [
+    {
+      "id": "error-no-component-rule",
+      "reviewed": false,
+      "explain": "A supply type the generic config has no rule for: computation stops with no_component_rule. Expected: error no_component_rule.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "exportWithTax",
+          "lines": [
+            {
+              "description": "Consulting",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "sales"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "no_component_rule"
+      }
+    },
+    {
+      "id": "error-unknown-rate",
+      "reviewed": false,
+      "explain": "The second line names a rate the config does not have. Expected: error unknown_rate on line 1.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Consulting",
+              "productCode": "998311",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "gst_18"
+            },
+            {
+              "description": "Gadget",
+              "productCode": "8543",
+              "quantity": "1",
+              "unitPrice": 5000,
+              "rateId": "gst_99"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "unknown_rate",
+        "line": 1
+      }
+    },
+    {
+      "id": "error-discount-exceeds-subtotal",
+      "reviewed": false,
+      "explain": "An invoice discount of ₹100.01 on a ₹100 subtotal. Expected: error discount_exceeds_subtotal.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "discount": {
+            "type": "amount",
+            "value": 10001
+          },
+          "lines": [
+            {
+              "description": "Consulting",
+              "productCode": "998311",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "discount_exceeds_subtotal"
+      }
+    },
+    {
+      "id": "error-line-discount-percent-over-100",
+      "reviewed": false,
+      "explain": "A 120% discount on the second line. Expected: error line_discount_exceeds_amount on line 1.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Consulting",
+              "productCode": "998311",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "gst_18"
+            },
+            {
+              "description": "Gadget",
+              "productCode": "8543",
+              "quantity": "1",
+              "unitPrice": 5000,
+              "discount": {
+                "type": "percent",
+                "value": "120"
+              },
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "line_discount_exceeds_amount",
+        "line": 1
+      }
+    },
+    {
+      "id": "error-line-discount-amount-over-price",
+      "reviewed": false,
+      "explain": "A £60 discount on a £50 line. Expected: error line_discount_exceeds_amount on line 0.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Workshop seat",
+              "quantity": "1",
+              "unitPrice": 5000,
+              "discount": {
+                "type": "amount",
+                "value": 6000
+              },
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "line_discount_exceeds_amount",
+        "line": 0
+      }
+    },
+    {
+      "id": "error-inclusive-compound",
+      "reviewed": false,
+      "explain": "Tax-inclusive prices with a compound rate are not supported in v0. Expected: error inclusive_compound_unsupported on line 0.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Acme Inc.",
+          "address": "1 Market St, San Francisco, CA 94105",
+          "country": "US",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "domestic",
+          "pricesIncludeTax": true,
+          "lines": [
+            {
+              "description": "Consulting",
+              "quantity": "1",
+              "unitPrice": 11550,
+              "rateId": "compound"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "inclusive_compound_unsupported",
+        "line": 0
+      }
+    },
+    {
+      "id": "error-negative-quantity",
+      "reviewed": false,
+      "explain": "A negative quantity (credit notes come later): invalid input on line 0. Expected: error invalid_input on line 0.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Refund",
+              "quantity": "-1",
+              "unitPrice": 5000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "invalid_input",
+        "line": 0
+      }
+    },
+    {
+      "id": "error-unknown-registration",
+      "reviewed": false,
+      "explain": "The seller's registration id is not in the config: invalid input for the whole document. Expected: error invalid_input.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "flatRateScheme",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Workshop seat",
+              "quantity": "1",
+              "unitPrice": 5000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "invalid_input"
+      }
+    },
+    {
+      "id": "error-negative-price",
+      "reviewed": false,
+      "explain": "A negative unit price on the first line (credit notes come later). Expected: error invalid_input on line 0.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001"
+        },
+        "buyer": {
+          "name": "Rao Traders",
+          "address": "5 Residency Road, Bengaluru 560025",
+          "country": "IN",
+          "region": "29",
+          "taxId": "29AABCR1234C1ZU",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Refund",
+              "productCode": "998311",
+              "quantity": "1",
+              "unitPrice": -5000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "invalid_input",
+        "line": 0
+      }
+    },
+    {
+      "id": "error-negative-shipping",
+      "reviewed": false,
+      "explain": "Negative shipping is not a valid input. Expected: error invalid_input.",
+      "config": "GENERIC@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "registered",
+          "country": "US",
+          "homeCurrency": "USD",
+          "address": "200 Main St, Springfield",
+          "customRates": [
+            {
+              "id": "sales",
+              "category": "standard",
+              "label": "Sales tax 8.875%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "SALES",
+                  "label": "Sales tax",
+                  "percent": "8.875"
+                }
+              ]
+            },
+            {
+              "id": "tenpct",
+              "category": "standard",
+              "label": "Tax 10%",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "TAX",
+                  "label": "Tax",
+                  "percent": "10"
+                }
+              ]
+            },
+            {
+              "id": "compound",
+              "category": "standard",
+              "label": "5% + 10% compound",
+              "effectiveFrom": "2020-01-01",
+              "components": [
+                {
+                  "code": "A",
+                  "label": "Tax A",
+                  "percent": "5"
+                },
+                {
+                  "code": "B",
+                  "label": "Tax B",
+                  "percent": "10",
+                  "compound": true
+                }
+              ]
+            }
+          ]
+        },
+        "buyer": {
+          "name": "Jo Smith",
+          "address": "9 Elm St, Austin, TX",
+          "country": "US",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "domestic",
+          "shipping": -500,
+          "lines": [
+            {
+              "description": "Groceries",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "sales"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "invalid_input"
+      }
+    },
+    {
+      "id": "error-negative-invoice-discount",
+      "reviewed": false,
+      "explain": "A negative invoice discount would be a surcharge: invalid input. Expected: error invalid_input.",
+      "config": "GB@2026-09-19",
+      "input": {
+        "seller": {
+          "registration": "vatRegistered",
+          "taxId": "GB980780684",
+          "country": "GB",
+          "homeCurrency": "GBP",
+          "address": "10 High Street, Leeds LS1 1AA"
+        },
+        "buyer": {
+          "name": "Brick & Co Ltd",
+          "address": "2 Station Road, York YO1 7AA",
+          "country": "GB",
+          "taxId": "GB999999973",
+          "isBusiness": true
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "discount": {
+            "type": "amount",
+            "value": -100
+          },
+          "lines": [
+            {
+              "description": "Workshop seat",
+              "quantity": "1",
+              "unitPrice": 5000,
+              "rateId": "standard"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "invalid_input"
+      }
+    },
+    {
+      "id": "error-unknown-region",
+      "reviewed": false,
+      "explain": "Seller and buyer in region 99, which the config does not know, so the local component (SGST/UTGST) cannot be chosen. Expected: error unknown_region on line 0.",
+      "config": "IN@2025-09-22",
+      "input": {
+        "seller": {
+          "registration": "regular",
+          "taxId": "29AAGCB7383J1Z4",
+          "country": "IN",
+          "homeCurrency": "INR",
+          "address": "12 MG Road, Bengaluru 560001",
+          "region": "99"
+        },
+        "buyer": {
+          "name": "Test buyer",
+          "country": "IN",
+          "region": "99",
+          "isBusiness": false
+        },
+        "draft": {
+          "docType": "invoice",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "lines": [
+            {
+              "description": "Consulting",
+              "productCode": "998311",
+              "quantity": "1",
+              "unitPrice": 10000,
+              "rateId": "gst_18"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "error": "unknown_region",
+        "line": 0
+      }
+    }
+  ]
+}

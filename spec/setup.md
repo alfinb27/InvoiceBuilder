@@ -88,8 +88,8 @@ are fixed after onboarding in v1. Changing the registration or tax ID affects do
   another tool). A pattern must contain exactly one `{seq:N}` token (N = 1–9); `{`…`}` groups that are not
   `ENGINE.md` §5 tokens are rejected. The preview is the number for today with the next sequence, and a pattern whose
   preview fails the §5 result checks (`number_too_long`, `number_invalid_chars`) cannot be saved.
-- The next number is `counters[periodKey(today)] ?? 1`; setting it writes that counter. It must be ≥ 1 and, from Phase
-  2a on, greater than the highest sequence already issued in that period.
+- The next number is `counters[periodKey(today)] ?? 1`; setting it writes that counter. It must be ≥ 1 and greater
+  than the highest `sequence` already issued from that series in that period (`documents.md` §6).
 
 ## 7. Custom tax rates (GENERIC)
 
@@ -139,7 +139,8 @@ Each rule normalises the input, then validates it. The same rule is used live (i
   stored bytes, `data`. `business.logo_asset_id` / `signature_asset_id` point at it.
 - **Reuse:** storing bytes whose `sha256` matches a live asset of the same business and kind returns that asset.
 - **Replace/remove:** the business points at the new asset (or `NULL`); the old asset is tombstoned when no live
-  business references it.
+  business and no issued document's seller snapshot (`logoAssetId`, `signatureAssetId`) references it, so issued
+  documents keep the images they were issued with.
 
 ## 10. Catalogue items
 

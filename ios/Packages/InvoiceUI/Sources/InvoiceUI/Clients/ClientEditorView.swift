@@ -4,11 +4,14 @@ import SwiftUI
 /// New / edit client sheet (`spec/setup.md` §5).
 struct ClientEditorView: View {
     let session: Session
+    /// Quick add from the document builder: receives the saved client.
+    var onSaved: ((Client) -> Void)?
     @State private var model: ClientEditorViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(session: Session, route: EditorRoute) {
+    init(session: Session, route: EditorRoute, onSaved: ((Client) -> Void)? = nil) {
         self.session = session
+        self.onSaved = onSaved
         _model = State(initialValue: ClientEditorViewModel(session: session, route: route))
     }
 
@@ -30,7 +33,10 @@ struct ClientEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         Task {
-                            if await model.save() != nil { dismiss() }
+                            if let saved = await model.save() {
+                                onSaved?(saved)
+                                dismiss()
+                            }
                         }
                     }
                     .disabled(model.state.isSaving || !model.state.isLoaded)

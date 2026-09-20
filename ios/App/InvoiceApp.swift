@@ -10,5 +10,6 @@ struct InvoiceApp: App {
         WindowGroup {
             AppRootView(model: model)
         }
+        .commands { InvoiceCommands() }
     }
 }

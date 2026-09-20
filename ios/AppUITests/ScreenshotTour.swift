@@ -44,6 +44,67 @@ final class ScreenshotTour: XCTestCase {
     }
 
     @MainActor
+    func testTourOfTheBuilder() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seed", "IN"]
+        app.launch()
+        XCTAssertTrue(app.buttons["homeNewInvoice"].waitForExistence(timeout: 10))
+        app.buttons["homeNewInvoice"].tap()
+        XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
+        app.buttons["chooseClient"].tap()
+        snapshot("20-client-picker", app)
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Umesh Foods")).firstMatch.tap()
+        let addFromItems = app.buttons["addFromItems"]
+        if !addFromItems.isHittable { app.swipeUp(velocity: .slow) }
+        addFromItems.tap()
+        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
+        app.buttons["catalogItem-Website development"].tap()
+        app.buttons["catalogItem-Tea leaves"].tap()
+        snapshot("21-catalog-picker", app)
+        app.buttons["catalogDone"].tap()
+        snapshot("22-builder", app)
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Tea leaves")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["lineDone"].waitForExistence(timeout: 5))
+        snapshot("23-line-editor", app)
+        app.buttons["lineDone"].tap()
+        app.swipeUp(velocity: .slow)
+        snapshot("24-builder-totals", app)
+        app.buttons["issueButton"].tap()
+        if app.buttons["Issue invoice"].waitForExistence(timeout: 5) { app.buttons["Issue invoice"].tap() }
+        XCTAssertTrue(app.staticTexts.matching(identifier: "issuedTotal").firstMatch.waitForExistence(timeout: 10))
+        snapshot("25-issued-invoice", app)
+        openTab("Invoices", app)
+        snapshot("26-invoices-list", app)
+    }
+
+    /// The builder at an accessibility text size (Dynamic Type layout check).
+    @MainActor
+    func testBuilderAtLargeTextSize() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seed", "IN", "-UIPreferredContentSizeCategoryName",
+                               "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        XCTAssertTrue(app.buttons["homeNewInvoice"].waitForExistence(timeout: 10))
+        app.buttons["homeNewInvoice"].tap()
+        XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
+        app.buttons["chooseClient"].tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Rao Traders")).firstMatch.tap()
+        var attempts = 0
+        while !app.buttons["addFromItems"].isHittable && attempts < 8 {
+            app.swipeUp(velocity: .slow)
+            attempts += 1
+        }
+        app.buttons["addFromItems"].tap()
+        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
+        app.buttons["catalogItem-Website development"].tap()
+        app.buttons["catalogDone"].tap()
+        snapshot("30-builder-large-text", app)
+        app.swipeUp(velocity: .slow)
+        app.swipeUp(velocity: .slow)
+        snapshot("31-builder-large-text-totals", app)
+    }
+
+    @MainActor
     func testTourOfOnboarding() {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemory"]

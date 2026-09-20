@@ -24,24 +24,30 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 
 | Package | Rule |
 |---|---|
-| `InvoiceCore` | Pure Swift + Foundation. No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, validators, numbering, formatting, domain models, **setup rules** (`Setup/`: drafts, validation, derived fields per `spec/setup.md`) and the repository protocols. |
-| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations. |
+| `InvoiceCore` | Pure Swift + Foundation. No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`) and the repository/service protocols. |
+| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction). |
 | `InvoicePDF` | Renderer and bundled templates. Renders only `ComputedDocument` output. (Phase 3) |
 | `InvoiceBilling` | StoreKit 2 + `EntitlementService` implementing `spec/billing.md`. (Phase 5) |
 | `InvoiceSync` | SQLiteData sync engine behind a `SyncService` protocol. `DeviceState` is never synced. (Phase 4b) |
-| `InvoiceUI` | Design system (from `spec/design/tokens.json`) + feature screens + the adaptive shell, `AppModel`, `Session`, routers and `AppDependencies`. |
+| `InvoiceUI` | Design system (from `spec/design/tokens.json`) + feature screens (onboarding, invoices/quotes builder, clients, items, settings) + the adaptive shell, `AppModel`, `Session`, routers, `AppDependencies` and `InvoiceCommands` (menu bar + keyboard shortcuts). |
 
 ## Conventions
 
 - Core types are `Sendable` value types. Pass IDs, not records, across actors.
 - **Rules live in core, screens render them.** A view model holds a draft (`ClientDraft`, `BusinessDraft`, …) and asks
-  the core rules (`ClientRules`, `BusinessRules`, …) what to show, what is wrong and what to save. Android ports the
-  same types. New setup behaviour goes into `spec/setup.md` (+ fixtures when it is a pure function) first.
+  the core rules (`ClientRules`, `BusinessRules`, `DocumentRules`, `LineItemRules`, …) what to show, what is wrong
+  and what to save. Android ports the same types. New behaviour goes into `spec/setup.md` / `spec/documents.md`
+  (+ fixtures when it is a pure function) first.
 - Stored value lists (`DocumentType`, `ItemKind`, `TemplateID`, `TaxCategory`, …) are open `RawRepresentable`
   structs, not enums, so a value written by a newer app version (synced or restored) still decodes.
 - Every screen must work from compact to regular width; navigation state lives in routers (`AppRouter`,
-  `ListDetailRouter`), never in views, so it survives iPad window resizing and size-class changes.
-- Drafts autosave (500 ms debounce). Never keep unsaved invoice data only in memory. (Setup forms save explicitly.)
+  `ListDetailRouter`, `DocumentsRouter`), never in views, so it survives iPad window resizing and size-class changes.
+- Drafts autosave (500 ms debounce, plus on leaving the screen and going to the background; saves are chained so
+  `flush()` returns only when everything is written). Never keep unsaved invoice data only in memory. (Setup forms
+  save explicitly.)
+- **Totals only come from `TaxEngine.compute`.** Screens render `ComputedDocument`; drafts recompute on every edit,
+  issued documents show their stored result and are never recomputed.
+- InvoiceUI files that import SwiftUI must write `InvoiceCore.Document` (SwiftUI also declares a `Document`).
 - Money: `Money(minorUnits: Int64, currency: CurrencyCode)`. Typed amounts go through `MoneyInput.parse`, decimals
   through `DecimalInput.parse` / `DecimalString.parse`, never `Decimal(string:)` directly (it accepts `"1.5abc"`).
   Display text comes from `SpecFormatter` (deterministic), not `NumberFormatter`.

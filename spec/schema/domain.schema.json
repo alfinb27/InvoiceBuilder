@@ -671,6 +671,14 @@
         "periodKey": {
           "$ref": "#/$defs/text"
         },
+        "sequence": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "The sequence number allocated at issue (spec/documents.md §6); null for drafts."
+        },
         "lifecycle": {
           "enum": [
             "draft",
@@ -790,14 +798,14 @@
             "object",
             "null"
           ],
-          "description": "Frozen EngineInput.seller + display fields at issue."
+          "description": "Engine seller fields plus display fields (spec/documents.md §4); re-taken on every draft save, frozen at issue."
         },
         "buyerSnapshot": {
           "type": [
             "object",
             "null"
           ],
-          "description": "Frozen EngineInput.buyer + display fields at issue."
+          "description": "Engine buyer fields plus display fields (spec/documents.md §4); null when no client is chosen."
         },
         "discount": {
           "oneOf": [

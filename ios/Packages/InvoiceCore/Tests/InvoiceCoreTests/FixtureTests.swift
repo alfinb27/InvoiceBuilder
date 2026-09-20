@@ -6,12 +6,14 @@ import Testing
 /// `pendingKinds`, so the fixture count stays an explicit parity metric (`docs/parity.md`).
 @Suite("Spec fixtures")
 struct FixtureTests {
-    static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering"]
-    /// Tax engine, rounding, allocation, words, status and UPI arrive with Phase 2a.
-    static let pendingKinds: Set = ["tax", "rounding", "distribute", "words", "status", "upi"]
+    static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
+                                        "distribute", "words", "status", "upi", "document"]
+    /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
+    static let pendingKinds: Set<String> = []
 
     static let configs = try! TaxConfigStore.bundled()
-    static let formatter = SpecFormatter(currencies: try! ReferenceData.bundled().currencies)
+    static let currencies = try! ReferenceData.bundled().currencies
+    static let formatter = SpecFormatter(currencies: currencies)
 
     @Test func everyKindIsImplementedOrExplicitlyPending() {
         let kinds = Set(Fixtures.all.map(\.kind))
@@ -120,5 +122,186 @@ struct FixtureTests {
         case .failure(let error):
             expectFixture(fixture, .object(["error": .string(error.rawValue)]))
         }
+    }
+
+    // MARK: ENGINE.md §1–4
+
+    struct TaxCaseInput: Decodable {
+        let seller: EngineSeller
+        let buyer: EngineBuyer
+        let draft: EngineDraft
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "tax"))
+    func tax(_ fixture: FixtureCase) throws {
+        let ref = try #require(fixture.config, "\(fixture.id): no config")
+        let config = try #require(Self.configs.config(ref: ref), "\(fixture.id): unknown config \(ref)")
+        let input = try JSONDecoder().decode(TaxCaseInput.self, from: fixture.inputData)
+        let engineInput = EngineInput(config: config, seller: input.seller, buyer: input.buyer, draft: input.draft,
+                                      currencies: Self.currencies)
+        do {
+            expectFixture(fixture, try JSONValue.encoding(TaxEngine.compute(engineInput)))
+        } catch let error as TaxEngineError {
+            var fields: [String: JSONValue] = ["error": .string(error.code.rawValue)]
+            if let line = error.line { fields["line"] = .int(Int64(line)) }
+            expectFixture(fixture, .object(fields))
+        }
+    }
+
+    // MARK: ENGINE.md §2.2–2.4
+
+    @Test(arguments: Fixtures.cases(kind: "rounding"))
+    func rounding(_ fixture: FixtureCase) throws {
+        let value = try #require(DecimalString.parse(try fixture.string("value")))
+        let mode = try #require(RoundingMode(rawValue: try fixture.string("mode")))
+        expectFixture(fixture, .object(["result": .int(SpecMath.round(value, mode))]))
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "distribute"))
+    func distribute(_ fixture: FixtureCase) throws {
+        let total = try #require(fixture.input["total"]?.intValue)
+        let parts: [Int64]
+        if case .array(let exacts)? = fixture.input["exacts"] {
+            parts = SpecMath.distribute(total, try exacts.map { try #require($0.stringValue.flatMap(DecimalString.parse)) })
+        } else if case .array(let weights)? = fixture.input["weights"] {
+            parts = SpecMath.allocateProportional(total, try weights.map { try #require($0.intValue) })
+        } else {
+            Issue.record("\(fixture.id): needs exacts or weights")
+            return
+        }
+        expectFixture(fixture, .object(["parts": .array(parts.map(JSONValue.int))]))
+    }
+
+    // MARK: ENGINE.md §7.3
+
+    @Test(arguments: Fixtures.cases(kind: "words"))
+    func words(_ fixture: FixtureCase) throws {
+        let minor = try #require(fixture.input["minor"]?.intValue)
+        let text = AmountInWords.text(minor: minor, currency: CurrencyCode(rawValue: try fixture.string("currency")),
+                                      currencies: Self.currencies)
+        expectFixture(fixture, .object(["text": .string(text)]))
+    }
+
+    // MARK: ENGINE.md §6
+
+    @Test(arguments: Fixtures.cases(kind: "status"))
+    func status(_ fixture: FixtureCase) throws {
+        let input = DocumentStatus.Input(
+            docType: DocumentType(rawValue: try fixture.string("docType")),
+            lifecycle: DocumentLifecycle(rawValue: try fixture.string("lifecycle")),
+            total: try #require(fixture.input["total"]?.intValue), paid: try #require(fixture.input["paid"]?.intValue),
+            dueDate: fixture.input["dueDate"]?.stringValue.flatMap(LocalDate.init(iso:)),
+            validUntil: fixture.input["validUntil"]?.stringValue.flatMap(LocalDate.init(iso:)),
+            sentAt: fixture.input["sentAt"]?.intValue,
+            outcome: fixture.input["outcome"]?.stringValue.map(QuoteOutcome.init(rawValue:)),
+            today: try #require(LocalDate(iso: try fixture.string("today")))
+        )
+        var fields: [String: JSONValue] = ["status": .string(DocumentStatus.derive(input).rawValue)]
+        if let outstanding = DocumentStatus.outstanding(input) { fields["outstanding"] = .int(outstanding) }
+        expectFixture(fixture, .object(fields))
+    }
+
+    // MARK: documents.md §2, §3.1
+
+    struct DefaultsInput: Decodable {
+        struct BusinessFields: Decodable {
+            let countryCode: String
+            let homeCurrency: CurrencyCode
+            let paymentTermsDays: Int
+            let lutReference: String?
+        }
+
+        struct ClientFields: Decodable {
+            let countryCode: String
+            let isBusiness: Bool
+            let defaultCurrency: CurrencyCode?
+        }
+
+        let config: String
+        let docType: DocumentType
+        let today: LocalDate
+        let business: BusinessFields
+        let client: ClientFields?
+    }
+
+    struct LinePriceInput: Decodable {
+        struct ItemFields: Decodable {
+            let unitPriceMinor: Int64
+            let currency: CurrencyCode
+            let priceIncludesTax: Bool
+            let rateId: String
+        }
+
+        struct DocumentFields: Decodable {
+            let currency: CurrencyCode
+            let exchangeRate: String?
+            let pricesIncludeTax: Bool
+        }
+
+        let config: String
+        let registration: String
+        let homeCurrency: CurrencyCode
+        let customRates: [TaxRate]?
+        let item: ItemFields
+        let document: DocumentFields
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "document"))
+    func document(_ fixture: FixtureCase) throws {
+        switch try fixture.string("op") {
+        case "defaults":
+            let input = try JSONDecoder().decode(DefaultsInput.self, from: fixture.inputData)
+            let config = try #require(Self.configs.config(ref: input.config))
+            let business = Business(
+                id: "b", name: "Business", countryCode: input.business.countryCode, taxConfig: config.family,
+                taxRegistration: config.registrations[0].id,
+                extraIds: input.business.lutReference.map { ExtraIDs(lutReference: $0) },
+                homeCurrency: input.business.homeCurrency, paymentTermsDays: input.business.paymentTermsDays
+            )
+            let client = input.client.map { fields in
+                Client(id: "c", businessId: "b", name: "Client", countryCode: fields.countryCode,
+                       isBusiness: fields.isBusiness, defaultCurrency: fields.defaultCurrency)
+            }
+            let rules = try DocumentRules(configs: Self.configs, business: business, currencies: Self.currencies)
+            let document = rules.newDocument(docType: input.docType, id: "d", today: input.today, client: client,
+                                             now: 0)
+            expectFixture(fixture, .object([
+                "issueDate": .string(document.issueDate.iso),
+                "dueDate": .optional(document.dueDate?.iso),
+                "validUntil": .optional(document.validUntil?.iso),
+                "currency": .string(document.currency.rawValue),
+                "supplyType": .string(document.supplyType),
+                "roundOff": document.roundOff.map(JSONValue.bool) ?? .null,
+            ]))
+        case "linePrice":
+            let input = try JSONDecoder().decode(LinePriceInput.self, from: fixture.inputData)
+            let config = try #require(Self.configs.config(ref: input.config))
+            let item = CatalogItem(id: "i", businessId: "b", name: "Item", unit: "NOS",
+                                   unitPriceMinor: input.item.unitPriceMinor, currency: input.item.currency,
+                                   rateId: input.item.rateId, priceIncludesTax: input.item.priceIncludesTax)
+            let result = LinePricing.unitPrice(
+                item: item, rate: config.rate(input.item.rateId, customRates: input.customRates),
+                chargesTax: try #require(config.registration(input.registration)).chargesTax,
+                homeCurrency: input.homeCurrency, documentCurrency: input.document.currency,
+                exchangeRate: input.document.exchangeRate, documentInclusive: input.document.pricesIncludeTax,
+                currencies: Self.currencies, mode: config.rounding.amountMode
+            )
+            switch result {
+            case .success(let minor): expectFixture(fixture, .object(["unitPriceMinor": .int(minor)]))
+            case .failure(let error): expectFixture(fixture, .object(["error": .string(error.rawValue)]))
+            }
+        case let op:
+            Issue.record("\(fixture.id): unknown op \(op)")
+        }
+    }
+
+    // MARK: ENGINE.md §9
+
+    @Test(arguments: Fixtures.cases(kind: "upi"))
+    func upi(_ fixture: FixtureCase) throws {
+        let url = UPIPaymentLink.url(vpa: try fixture.string("vpa"), payeeName: try fixture.string("payeeName"),
+                                     amountMinor: try #require(fixture.input["amountMinor"]?.intValue),
+                                     invoiceNumber: try fixture.string("invoiceNumber"))
+        expectFixture(fixture, .object(["url": .string(url)]))
     }
 }

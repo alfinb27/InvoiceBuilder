@@ -55,13 +55,28 @@ public final class Session {
         NumberingSeriesRules(config: config, today: today, deviceID: deviceID)
     }
 
+    var documentRules: DocumentRules {
+        DocumentRules(configs: dependencies.taxConfigs, business: business,
+                      currencies: dependencies.reference.currencies, defaultConfig: config)
+    }
+
+    // MARK: Navigation
+
+    /// Opens a new invoice or quote in the Invoices tab (Home, the list, ⌘N / ⇧⌘N). Nothing is written until the
+    /// first change (`spec/documents.md` §2).
+    public func startNewDocument(_ docType: DocumentType) {
+        router.selectedTab = .documents
+        router.documents.docType = docType
+        router.documents.selection = .new(docType, id: dependencies.ids.make())
+    }
+
     var registration: TaxRegistration? { config.registration(business.taxRegistration) }
 
     var chargesTax: Bool { registration?.chargesTax ?? false }
 
     // MARK: Display helpers
 
-    /// An amount in the business home currency (`ENGINE.md` §7.1).
+    /// An amount: the symbol for the home currency, the ISO code for any other (`ENGINE.md` §7.1).
     func money(_ minor: Int64, currency: CurrencyCode? = nil) -> String {
         formatter.money(minor, currency: currency ?? business.homeCurrency, homeCurrency: business.homeCurrency)
     }

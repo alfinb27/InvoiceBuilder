@@ -86,12 +86,20 @@ enum AssetStore {
         return asset
     }
 
-    /// Tombstones the asset when no live business points at it any more.
+    /// Tombstones the asset when no live business and no issued document's seller snapshot points at it any more
+    /// (issued documents keep the images they were issued with).
     static func releaseIfUnused(_ assetID: String, now: Int64, db: Database) throws {
         let users = try BusinessRecord.live
             .filter(DBColumns.logoAssetID == assetID || DBColumns.signatureAssetID == assetID)
             .fetchCount(db)
-        guard users == 0 else { return }
+        let documents = try DocumentRecord.live
+            .filter(DBColumns.lifecycle != DocumentLifecycle.draft.rawValue)
+            .filter(sql: """
+                json_extract(seller_snapshot, '$.logoAssetId') = ?
+                OR json_extract(seller_snapshot, '$.signatureAssetId') = ?
+                """, arguments: [assetID, assetID])
+            .fetchCount(db)
+        guard users == 0, documents == 0 else { return }
         try AssetRecord.live.filter(key: assetID)
             .updateAll(db, DBColumns.deletedAt.set(to: now), Column("updated_at").set(to: now))
     }
