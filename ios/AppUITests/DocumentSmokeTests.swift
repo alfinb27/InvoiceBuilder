@@ -38,7 +38,9 @@ final class DocumentSmokeTests: XCTestCase {
         XCTAssertTrue(description.waitForExistence(timeout: 5))
         description.tap()
         description.typeText("Hosting setup\n")
+        // Submitting the description moves the focus, and a loaded runner needs a moment to lay the field out.
         let price = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Price")).firstMatch
+        XCTAssertTrue(price.waitForExistence(timeout: 10), "the price field never appeared")
         price.tap()
         price.typeText("1000")
         app.buttons["lineDone"].tap()
@@ -78,7 +80,9 @@ final class DocumentSmokeTests: XCTestCase {
         app.buttons["catalogDone"].tap()
 
         // The draft previews, watermarked.
-        app.buttons["previewButton"].firstMatch.tap()
+        let preview = app.buttons["previewButton"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 10))
+        preview.tap()
         XCTAssertTrue(app.buttons["template-classic"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["sharePDF"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["template-classic"].tap()
@@ -92,7 +96,8 @@ final class DocumentSmokeTests: XCTestCase {
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
         confirm.tap()
         XCTAssertTrue(app.staticTexts["INV/26-27/0001"].firstMatch.waitForExistence(timeout: 10))
-        app.buttons["previewButton"].firstMatch.tap()
+        XCTAssertTrue(preview.waitForExistence(timeout: 10))
+        preview.tap()
         XCTAssertTrue(app.buttons["sharePDF"].firstMatch.waitForExistence(timeout: 10))
     }
 
