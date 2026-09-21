@@ -12,9 +12,9 @@ case "$MODE" in
 esac
 # "<module root>|<bundled spec folder inside the module>|<spec folders to bundle>"
 TARGETS=(
-  "ios/Packages/InvoiceCore|Sources/InvoiceCore/Resources/spec|tax reference pdf/labels pdf/fonts design"
+  "ios/Packages/InvoiceCore|Sources/InvoiceCore/Resources/spec|tax reference pdf/labels pdf/layout pdf/fonts design"
   "ios/Packages/InvoiceData|Sources/InvoiceData/Resources/spec|schema/db/migrations"
-  "android/core/domain|src/main/resources/spec|tax reference pdf/labels pdf/fonts design"
+  "android/core/domain|src/main/resources/spec|tax reference pdf/labels pdf/layout pdf/fonts design"
 )
 status=0
 for target in "${TARGETS[@]}"; do

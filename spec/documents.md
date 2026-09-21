@@ -109,7 +109,7 @@ The builder saves 500 ms after the last change and when it closes. A save writes
 the document row (both snapshots re-taken from the live business and client; the totals columns from the engine
 result, or 0 when the engine returns an error; `computed = NULL`), every current line (update by id, insert new ones;
 `rate_snapshot` and the computed line columns `NULL`), and a tombstone for every stored line no longer in the draft.
-Closing the builder on a draft with no client and no lines deletes it (§8).
+Closing the builder on a draft with no client and no lines deletes it (§9).
 
 ## 6. Issuing (`IssueDocument`)
 
@@ -151,7 +151,15 @@ series and period.
   `validUntil = null`; in the same transaction the quote's `quoteOutcome` becomes `converted`. The quote's content
   never changes. Otherwise the error is `not_convertible`.
 
-## 8. Deleting a draft
+## 8. Sharing
+
+Sharing, printing or saving an issued document's PDF offers to mark it as **sent**: `sentAt` is set to the moment
+the user accepts, and the derived status becomes `sent` (`ENGINE.md` §6). The prompt appears whenever an issued
+document that is not marked sent leaves the app, and stops once it is; declining leaves the document unchanged, so
+the next share asks again. Marking it sent again is harmless — the timestamp is replaced. Nothing else about the
+document changes, and a draft is never marked sent.
+
+## 9. Deleting a draft
 
 Only drafts can be deleted: the document gets a tombstone (its lines are unreachable through it). Saving that
 draft again (its builder is still open, §5) revives it with the new content, so no edit is ever lost. If it was

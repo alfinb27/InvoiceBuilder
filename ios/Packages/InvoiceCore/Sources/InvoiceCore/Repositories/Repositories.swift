@@ -72,9 +72,11 @@ public protocol DocumentRepository: Sendable {
     @discardableResult func saveDraft(_ document: Document) async throws -> Document
     /// The highest `sequence` issued from `seriesID` in `periodKey`, or nil.
     func highestIssuedSequence(seriesID: String, periodKey: String) async throws -> Int?
+    /// Records that an issued document was sent (`spec/documents.md` §8); nil clears it again.
+    func markSent(documentID: String, at timestamp: Int64?) async throws
 }
 
-/// Document operations that write several rows in one transaction (`spec/documents.md` §6–8).
+/// Document operations that write several rows in one transaction (`spec/documents.md` §6–9).
 public protocol DocumentService: Sendable {
     /// `IssueDocument`: blocking problems, number, frozen snapshots, stored results and the free-tier counter.
     func issue(documentID: String, deviceID: String) async throws -> Document

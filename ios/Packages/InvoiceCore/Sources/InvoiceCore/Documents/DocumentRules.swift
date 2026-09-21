@@ -205,20 +205,8 @@ public struct DocumentRules: Sendable {
     // MARK: Engine
 
     public func engineInput(for document: Document, seller: SellerSnapshot, buyer: BuyerSnapshot?) -> EngineInput {
-        let draft = EngineDraft(
-            docType: document.docType, issueDate: document.issueDate, supplyDate: document.supplyDate,
-            dueDate: document.dueDate, currency: document.currency, exchangeRate: document.exchangeRate?.trimmedOrNil,
-            supplyType: document.supplyType, placeOfSupply: document.placeOfSupply?.trimmedOrNil,
-            reverseCharge: document.reverseCharge, pricesIncludeTax: document.pricesIncludeTax,
-            lines: document.lines.map { line in
-                EngineLine(description: line.description, productCode: line.productCode, quantity: line.quantity,
-                           unitPrice: line.unitPriceMinor, discount: line.discount, rateId: line.rateId)
-            },
-            discount: document.discount, shipping: document.shippingMinor > 0 ? document.shippingMinor : nil,
-            roundOff: document.roundOff
-        )
-        return EngineInput(config: config(for: document), seller: seller.engineSeller,
-                           buyer: buyer?.engineBuyer ?? EngineBuyer(), draft: draft, currencies: currencies)
+        EngineInput(document: document, seller: seller.engineSeller, buyer: buyer?.engineBuyer ?? EngineBuyer(),
+                    config: config(for: document), currencies: currencies)
     }
 
     public func compute(_ document: Document, seller: SellerSnapshot, buyer: BuyerSnapshot?)

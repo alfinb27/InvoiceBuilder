@@ -30,6 +30,7 @@ enum DBColumns {
     static let lifecycle = Column("lifecycle")
     static let quoteOutcome = Column("quote_outcome")
     static let convertedFromID = Column("converted_from_id")
+    static let sentAt = Column("sent_at")
 }
 
 /// JSON text columns.

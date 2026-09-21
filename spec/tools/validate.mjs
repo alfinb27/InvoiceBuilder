@@ -51,6 +51,7 @@ const DATA_SCHEMAS = [
   [/^reference\/countries\.json$/, "countries.schema.json"],
   [/^reference\/units\.json$/, "units.schema.json"],
   [/^pdf\/labels\/[a-z]{2,3}(-[A-Z]{2})?\.json$/, "pdf-labels.schema.json"],
+  [/^pdf\/layout\/[a-z]+\.json$/, "pdf-layout.schema.json"],
   [/^design\/tokens\.json$/, "design-tokens.schema.json"],
 ];
 const CHECKED_BELOW = [/^schema\//, /^tax\//, /^fixtures\//, /^samples\//, /^tools\//];
@@ -104,6 +105,20 @@ const currencyCodes = new Set(currencies.map((c) => c.code));
 if (currencyCodes.size !== currencies.length) fail(join(SPEC, "reference/currencies.json"), "duplicate currency code");
 for (const c of Object.values(configs)) if (c.currency && !currencyCodes.has(c.currency))
   fail(join(SPEC, "reference/currencies.json"), `config currency ${c.currency} missing`);
+// ---------- PDF templates ----------
+// One layout file per templateId the domain schema allows, each declaring that id (pdf/RENDERING.md §2).
+const templateIDs = readJSON(join(SPEC, "schema/domain.schema.json"))?.$defs?.Business?.properties?.templateId?.enum
+  ?? [];
+const layoutDir = join(SPEC, "pdf/layout");
+const layouts = walk(layoutDir).map((f) => [f, readJSON(f)]).filter(([, data]) => data);
+for (const [f, layout] of layouts) {
+  const name = relative(layoutDir, f).replace(/\.json$/, "");
+  if (layout.id !== name) fail(f, `id "${layout.id}" does not match the file name "${name}"`);
+}
+for (const id of templateIDs) {
+  if (!layouts.some(([, layout]) => layout.id === id)) fail(layoutDir, `no layout file for template "${id}"`);
+}
+
 const countries = readJSON(join(SPEC, "reference/countries.json"))?.countries ?? [];
 if (new Set(countries.map((c) => c.code)).size !== countries.length) fail(join(SPEC, "reference/countries.json"), "duplicate country");
 const units = readJSON(join(SPEC, "reference/units.json"))?.units ?? [];
@@ -145,6 +160,12 @@ for (const f of walk(join(SPEC, "fixtures"))) {
     if (doc.kind === "tax") checkTaxCase(f, c);
     if ((doc.kind === "validation" || doc.kind === "document") && !configs[c.input.config])
       fail(f, `case ${c.id}: unknown config ${c.input.config}`);
+    if (doc.kind === "pdf") {
+      const ref = c.input.document.taxConfigRef;
+      if (!configs[ref]) fail(f, `case ${c.id}: unknown config ${ref}`);
+      if (!layouts.some(([, layout]) => layout.id === c.input.template))
+        fail(f, `case ${c.id}: no layout for template "${c.input.template}"`);
+    }
     if (doc.kind === "input" && c.input.op === "money" && !currencyCodes.has(c.input.currency))
       fail(f, `case ${c.id}: money input needs a currency from reference/currencies.json`);
   }
@@ -250,6 +271,6 @@ if (errors.length) {
 }
 const total = Object.values(counts).reduce((a, b) => a + b, 0);
 const tableCount = fromSchema ? Object.keys(fromSchema).length : 0;
-console.log(`✓ spec valid: ${Object.keys(configs).length} tax configs, ${currencies.length} currencies, ${countries.length} countries, ${units.length} units`);
+console.log(`✓ spec valid: ${Object.keys(configs).length} tax configs, ${layouts.length} PDF templates, ${currencies.length} currencies, ${countries.length} countries, ${units.length} units`);
 console.log(`✓ database: ${tableCount} tables; schema.sql matches ${migrationFiles.length} migration(s) structurally; sync-safe rules hold; ${sampleCount} backup sample(s) valid`);
 console.log(`✓ fixtures: ${total} cases (${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ") || "none yet"})`);

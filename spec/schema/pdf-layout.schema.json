@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://invoicebuilder.local/spec/schema/pdf-layout.schema.json",
+  "title": "PDF template layout",
+  "description": "One invoice template as data (ADR-0006): the blocks to draw, in order, plus style tokens. Templates hold no text (that is the view model, pdf/RENDERING.md §1) and no rules (§3). Both platforms render the same file.",
+  "type": "object",
+  "required": ["id", "label", "page", "style", "blocks"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "enum": ["classic", "modern", "minimal", "compact"], "description": "Matches Document.templateId." },
+    "label": { "type": "string", "description": "Shown in the template switcher." },
+    "description": { "type": "string" },
+    "page": {
+      "type": "object",
+      "required": ["margins", "footerHeight"],
+      "additionalProperties": false,
+      "properties": {
+        "margins": {
+          "type": "object",
+          "required": ["top", "right", "bottom", "left"],
+          "additionalProperties": false,
+          "properties": {
+            "top": { "$ref": "#/$defs/points" },
+            "right": { "$ref": "#/$defs/points" },
+            "bottom": { "$ref": "#/$defs/points" },
+            "left": { "$ref": "#/$defs/points" }
+          }
+        },
+        "footerHeight": { "$ref": "#/$defs/points" }
+      }
+    },
+    "style": {
+      "type": "object",
+      "required": ["fontSizes", "lineHeight", "colors", "rule", "table", "blockSpacing", "logo"],
+      "additionalProperties": false,
+      "properties": {
+        "fontSizes": {
+          "type": "object",
+          "required": ["title", "heading", "body", "small"],
+          "additionalProperties": false,
+          "properties": {
+            "title": { "$ref": "#/$defs/points" },
+            "heading": { "$ref": "#/$defs/points" },
+            "body": { "$ref": "#/$defs/points" },
+            "small": { "$ref": "#/$defs/points" }
+          }
+        },
+        "lineHeight": { "type": "number", "minimum": 1, "maximum": 2 },
+        "colors": {
+          "type": "object",
+          "required": ["text", "muted", "rule", "onAccent"],
+          "additionalProperties": false,
+          "description": "Print colours; the app's light/dark theme never applies to a PDF.",
+          "properties": {
+            "text": { "$ref": "#/$defs/color" },
+            "muted": { "$ref": "#/$defs/color" },
+            "rule": { "$ref": "#/$defs/color" },
+            "onAccent": { "$ref": "#/$defs/color" },
+            "tableHeaderFill": { "$ref": "#/$defs/color" },
+            "zebraFill": { "$ref": "#/$defs/color" }
+          }
+        },
+        "accentUse": {
+          "type": "array",
+          "description": "Where the business accent colour (else the first design-token preset) is used.",
+          "items": { "enum": ["title", "headerBand", "tableHeaderFill", "tableHeaderText", "rules", "totalRow"] },
+          "uniqueItems": true
+        },
+        "rule": {
+          "type": "object",
+          "required": ["width"],
+          "additionalProperties": false,
+          "properties": { "width": { "type": "number", "minimum": 0.25, "maximum": 3 } }
+        },
+        "table": {
+          "type": "object",
+          "required": ["headerWeight", "headerUppercase", "rowPadding", "rowRule"],
+          "additionalProperties": false,
+          "properties": {
+            "headerWeight": { "enum": ["regular", "semibold", "bold"] },
+            "headerUppercase": { "type": "boolean" },
+            "rowPadding": {
+              "type": "object",
+              "required": ["vertical", "horizontal"],
+              "additionalProperties": false,
+              "properties": {
+                "vertical": { "$ref": "#/$defs/points" },
+                "horizontal": { "$ref": "#/$defs/points" }
+              }
+            },
+            "rowRule": { "enum": ["none", "below", "zebra"] }
+          }
+        },
+        "blockSpacing": { "$ref": "#/$defs/points" },
+        "logo": {
+          "type": "object",
+          "required": ["maxWidth", "maxHeight"],
+          "additionalProperties": false,
+          "properties": {
+            "maxWidth": { "$ref": "#/$defs/points" },
+            "maxHeight": { "$ref": "#/$defs/points" }
+          }
+        },
+        "qrSize": { "$ref": "#/$defs/points" },
+        "signatureHeight": { "$ref": "#/$defs/points" }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "minItems": 3,
+      "description": "Drawing order. Every template starts with header, parties and items.",
+      "items": {
+        "type": "object",
+        "required": ["id", "variant"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "enum": ["header", "parties", "items", "totals", "payment", "notes", "signature"] },
+          "variant": {
+            "enum": ["logoLeft", "logoRight", "band", "plain", "twoColumns", "stacked", "ruled", "zebra",
+                     "compact", "right", "left"],
+            "description": "header: logoLeft | logoRight | band | plain · parties: twoColumns | stacked · items: ruled | zebra | plain | compact · totals: right | stacked · payment: twoColumns | stacked · notes: stacked · signature: right | left"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "points": { "type": "number", "minimum": 0, "maximum": 400, "description": "PostScript points (1/72 inch)." },
+    "color": { "type": "string", "pattern": "^#[0-9A-F]{6}$" }
+  }
+}

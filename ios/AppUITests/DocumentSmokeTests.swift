@@ -58,6 +58,44 @@ final class DocumentSmokeTests: XCTestCase {
         XCTAssertTrue(issuedTotal.label.contains("₹7,080.00"), issuedTotal.label)
     }
 
+    /// Phase 3: the PDF preview of an issued invoice, the template switcher and the share button
+    /// (`spec/pdf/RENDERING.md`, `spec/documents.md` §8).
+    @MainActor
+    func testPreviewAnInvoiceAndSwitchTemplate() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seed", "IN"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["homeNewInvoice"].waitForExistence(timeout: 10))
+        app.buttons["homeNewInvoice"].tap()
+        XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
+        app.buttons["chooseClient"].tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Rao Traders")).firstMatch.tap()
+        scrollTo(app.buttons["addFromItems"], in: app)
+        app.buttons["addFromItems"].tap()
+        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
+        app.buttons["catalogItem-Website development"].tap()
+        app.buttons["catalogDone"].tap()
+
+        // The draft previews, watermarked.
+        app.buttons["previewButton"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["template-classic"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["sharePDF"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["template-classic"].tap()
+        XCTAssertTrue(app.buttons["template-minimal"].waitForExistence(timeout: 5))
+        app.buttons["Done"].firstMatch.tap()
+
+        // Issue it, then preview the numbered document.
+        XCTAssertTrue(app.buttons["issueButton"].waitForExistence(timeout: 5))
+        app.buttons["issueButton"].tap()
+        let confirm = app.buttons["Issue invoice"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+        XCTAssertTrue(app.staticTexts["INV/26-27/0001"].firstMatch.waitForExistence(timeout: 10))
+        app.buttons["previewButton"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["sharePDF"].firstMatch.waitForExistence(timeout: 10))
+    }
+
     @MainActor
     func testIssueShowsWhatIsMissing() {
         let app = XCUIApplication()

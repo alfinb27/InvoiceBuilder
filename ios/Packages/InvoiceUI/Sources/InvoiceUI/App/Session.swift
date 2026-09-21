@@ -1,3 +1,4 @@
+import Foundation
 import InvoiceCore
 import Observation
 
@@ -13,8 +14,11 @@ public final class Session {
     public let config: TaxConfig
     public let router = AppRouter()
     public let formatter: SpecFormatter
+    /// Renders and caches the PDFs the preview, sharing and printing use (`spec/pdf/RENDERING.md`).
+    let pdfLibrary: PDFLibrary
 
-    public init(dependencies: AppDependencies, business: Business, deviceID: String) throws {
+    public init(dependencies: AppDependencies, business: Business, deviceID: String,
+                pdfDirectory: URL? = nil) throws {
         let today = dependencies.time.today()
         guard let config = dependencies.taxConfigs.latest(family: business.taxConfig, on: today)
             ?? dependencies.taxConfigs.latest(family: "GENERIC", on: today) else {
@@ -25,6 +29,8 @@ public final class Session {
         self.deviceID = deviceID
         self.config = config
         formatter = SpecFormatter(currencies: dependencies.reference.currencies)
+        pdfLibrary = try PDFLibrary(configs: dependencies.taxConfigs, reference: dependencies.reference,
+                                    assets: dependencies.assets, directory: pdfDirectory)
     }
 
     /// Keeps `business` in step with the database (edits in Settings show everywhere at once).

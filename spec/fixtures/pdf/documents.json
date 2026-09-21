@@ -1,0 +1,2645 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "pdf",
+  "description": "PDF view models (spec/pdf/RENDERING.md §1): the strings each block shows for real documents, before any drawing.",
+  "cases": [
+    {
+      "id": "pdf-in-intra-b2b",
+      "explain": "A Karnataka-to-Karnataka tax invoice: CGST and SGST columns per line, HSN codes and units, the amount in words, bank details and a UPI QR payload.",
+      "input": {
+        "template": "classic",
+        "document": {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "reverseCharge": false,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "classic",
+          "taxConfigRef": "IN@2025-09-22",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "regular",
+            "taxId": "29AAGCB7383J1Z4",
+            "region": "29",
+            "country": "IN",
+            "homeCurrency": "INR",
+            "address": "12 MG Road, Bengaluru 560001",
+            "name": "Bharat Web Studio",
+            "legalName": "Bharat Web Studio LLP",
+            "postalAddress": {
+              "line1": "12 MG Road",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560001",
+              "countryCode": "IN"
+            },
+            "email": "hello@bharatweb.example",
+            "phone": "+91 80 5555 0100",
+            "extraIds": {
+              "pan": "AAGCB7383J"
+            },
+            "bank": {
+              "accountName": "Bharat Web Studio LLP",
+              "accountNumber": "000123456789",
+              "bankName": "Example Bank",
+              "ifsc": "EXMP0001234"
+            },
+            "upiVpa": "bharatweb@examplebank",
+            "logoAssetId": "fc8981c5-e8b9-51db-a6b8-dad61ea0f0dd",
+            "signatureAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+          },
+          "buyerSnapshot": {
+            "name": "Rao Traders",
+            "address": "5 Residency Road, Bengaluru 560025",
+            "country": "IN",
+            "region": "29",
+            "taxId": "29AABCR1234C1ZU",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "5 Residency Road",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560025",
+              "countryCode": "IN"
+            },
+            "email": "accounts@raotraders.example"
+          },
+          "number": "INV/26-27/0042",
+          "dueDate": "2026-10-04",
+          "notes": "Thank you for your business.",
+          "terms": "Payment within 15 days.",
+          "lines": [
+            {
+              "id": "11111111-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Website development",
+              "quantity": "2",
+              "unitPriceMinor": 500000,
+              "rateId": "gst_18",
+              "productCode": "998314",
+              "unit": "JOB"
+            },
+            {
+              "id": "11111111-0000-4000-8000-000000000001",
+              "position": 1,
+              "description": "Tea leaves",
+              "quantity": "5",
+              "unitPriceMinor": 24000,
+              "rateId": "gst_5",
+              "productCode": "0902",
+              "unit": "KGS"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 1120000,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 1120000,
+            "taxMinor": 186000,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 0,
+            "totalMinor": 1306000
+          }
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "isDraft": false,
+        "number": "INV/26-27/0042",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "4 Oct 2026"
+          },
+          {
+            "label": "Place of supply",
+            "value": "Karnataka"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Bharat Web Studio",
+          "lines": [
+            "Bharat Web Studio LLP",
+            "12 MG Road",
+            "Bengaluru 560001",
+            "Karnataka",
+            "hello@bharatweb.example",
+            "+91 80 5555 0100"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "29AAGCB7383J1Z4"
+            },
+            {
+              "label": "PAN",
+              "value": "AAGCB7383J"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Rao Traders",
+          "lines": [
+            "5 Residency Road",
+            "Bengaluru 560025",
+            "Karnataka"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "29AABCR1234C1ZU"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "productCode",
+            "label": "HSN/SAC",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unit",
+            "label": "Unit",
+            "align": "leading"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "tax:CGST",
+            "label": "CGST",
+            "align": "trailing"
+          },
+          {
+            "id": "tax:SGST",
+            "label": "SGST",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Website development",
+            "998314",
+            "2",
+            "JOB",
+            "₹5,000.00",
+            "₹10,000.00",
+            "₹900.00",
+            "₹900.00",
+            "₹11,800.00"
+          ],
+          [
+            "2",
+            "Tea leaves",
+            "0902",
+            "5",
+            "KGS",
+            "₹240.00",
+            "₹1,200.00",
+            "₹30.00",
+            "₹30.00",
+            "₹1,260.00"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "₹11,200.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "₹11,200.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "CGST",
+            "value": "₹930.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "SGST",
+            "value": "₹930.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "₹13,060.00",
+            "emphasis": "strong"
+          }
+        ],
+        "taxSummary": {
+          "columns": [
+            {
+              "id": "rate",
+              "label": "GST rate",
+              "align": "leading"
+            },
+            {
+              "id": "taxable",
+              "label": "Taxable value",
+              "align": "trailing"
+            },
+            {
+              "id": "tax",
+              "label": "GST",
+              "align": "trailing"
+            }
+          ],
+          "rows": [
+            [
+              "CGST 9%",
+              "₹10,000.00",
+              "₹900.00"
+            ],
+            [
+              "SGST 9%",
+              "₹10,000.00",
+              "₹900.00"
+            ],
+            [
+              "CGST 2.5%",
+              "₹1,200.00",
+              "₹30.00"
+            ],
+            [
+              "SGST 2.5%",
+              "₹1,200.00",
+              "₹30.00"
+            ],
+            [
+              "Total GST",
+              "₹11,200.00",
+              "₹1,860.00"
+            ]
+          ]
+        },
+        "amountInWords": "Indian Rupees Thirteen Thousand Sixty Only",
+        "notes": [
+          {
+            "label": "Notes",
+            "text": "Thank you for your business.",
+            "placement": "bottom"
+          },
+          {
+            "label": "Terms and conditions",
+            "text": "Payment within 15 days.",
+            "placement": "bottom"
+          }
+        ],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Bharat Web Studio LLP"
+            },
+            {
+              "label": "Account no.",
+              "value": "000123456789"
+            },
+            {
+              "label": "Bank",
+              "value": "Example Bank"
+            },
+            {
+              "label": "IFSC",
+              "value": "EXMP0001234"
+            }
+          ],
+          "upi": {
+            "id": "bharatweb@examplebank",
+            "caption": "Scan to pay with any UPI app",
+            "payload": "upi://pay?pa=bharatweb@examplebank&pn=Bharat%20Web%20Studio&am=13060.00&cu=INR&tn=INV%2F26-27%2F0042"
+          }
+        },
+        "signature": {
+          "forBusiness": "For Bharat Web Studio",
+          "authorisedSignatory": "Authorised signatory",
+          "imageAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-in-inter-inclusive-shipping",
+      "explain": "Inter-state, prices include GST, with a 5% invoice discount and freight: one IGST column, the rate column says the price includes tax, and the round-off row appears.",
+      "input": {
+        "template": "modern",
+        "document": {
+          "id": "22222222-2222-4222-8222-222222222222",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "reverseCharge": false,
+          "pricesIncludeTax": true,
+          "shippingMinor": 11800,
+          "templateId": "modern",
+          "taxConfigRef": "IN@2025-09-22",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "regular",
+            "taxId": "29AAGCB7383J1Z4",
+            "region": "29",
+            "country": "IN",
+            "homeCurrency": "INR",
+            "address": "12 MG Road, Bengaluru 560001",
+            "name": "Bharat Web Studio",
+            "legalName": "Bharat Web Studio LLP",
+            "postalAddress": {
+              "line1": "12 MG Road",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560001",
+              "countryCode": "IN"
+            },
+            "email": "hello@bharatweb.example",
+            "phone": "+91 80 5555 0100",
+            "extraIds": {
+              "pan": "AAGCB7383J"
+            },
+            "bank": {
+              "accountName": "Bharat Web Studio LLP",
+              "accountNumber": "000123456789",
+              "bankName": "Example Bank",
+              "ifsc": "EXMP0001234"
+            },
+            "upiVpa": "bharatweb@examplebank",
+            "logoAssetId": "fc8981c5-e8b9-51db-a6b8-dad61ea0f0dd",
+            "signatureAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+          },
+          "buyerSnapshot": {
+            "name": "Umesh Foods",
+            "address": "8 Link Road, Mumbai 400053",
+            "country": "IN",
+            "region": "27",
+            "taxId": "27AAPFU0939F1ZV",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "8 Link Road",
+              "city": "Mumbai",
+              "regionCode": "27",
+              "postalCode": "400053",
+              "countryCode": "IN"
+            },
+            "shippingAddress": {
+              "line1": "Warehouse 4, Bhiwandi",
+              "city": "Thane",
+              "regionCode": "27",
+              "postalCode": "421302",
+              "countryCode": "IN"
+            }
+          },
+          "number": "INV/26-27/0043",
+          "dueDate": "2026-10-04",
+          "discount": {
+            "type": "percent",
+            "value": "5"
+          },
+          "lines": [
+            {
+              "id": "22222222-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Handloom silk saree",
+              "quantity": "2",
+              "unitPriceMinor": 236000,
+              "rateId": "gst_5",
+              "productCode": "5007",
+              "unit": "NOS"
+            },
+            {
+              "id": "22222222-0000-4000-8000-000000000001",
+              "position": 1,
+              "description": "Tailoring",
+              "quantity": "1",
+              "unitPriceMinor": 59000,
+              "rateId": "gst_18",
+              "productCode": "998822"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 531000,
+            "discountMinor": 26550,
+            "shippingMinor": 11800,
+            "taxableMinor": 485786,
+            "taxMinor": 30464,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 50,
+            "totalMinor": 516300
+          }
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "isDraft": false,
+        "number": "INV/26-27/0043",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "4 Oct 2026"
+          },
+          {
+            "label": "Place of supply",
+            "value": "Maharashtra"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Bharat Web Studio",
+          "lines": [
+            "Bharat Web Studio LLP",
+            "12 MG Road",
+            "Bengaluru 560001",
+            "Karnataka",
+            "hello@bharatweb.example",
+            "+91 80 5555 0100"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "29AAGCB7383J1Z4"
+            },
+            {
+              "label": "PAN",
+              "value": "AAGCB7383J"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Umesh Foods",
+          "lines": [
+            "8 Link Road",
+            "Mumbai 400053",
+            "Maharashtra"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "27AAPFU0939F1ZV"
+            }
+          ]
+        },
+        "shipTo": {
+          "heading": "Ship to",
+          "name": "Umesh Foods",
+          "lines": [
+            "Warehouse 4, Bhiwandi",
+            "Thane 421302",
+            "Maharashtra"
+          ],
+          "fields": []
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "productCode",
+            "label": "HSN/SAC",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unit",
+            "label": "Unit",
+            "align": "leading"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate (incl. GST)",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "tax:IGST",
+            "label": "IGST",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Handloom silk saree",
+            "5007",
+            "2",
+            "NOS",
+            "₹2,360.00",
+            "₹4,270.48",
+            "₹213.52",
+            "₹4,484.00"
+          ],
+          [
+            "2",
+            "Tailoring",
+            "998822",
+            "1",
+            "",
+            "₹590.00",
+            "₹475.00",
+            "₹85.50",
+            "₹560.50"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "₹5,310.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Discount",
+            "value": "-₹265.50",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Shipping",
+            "value": "₹118.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "₹4,857.86",
+            "emphasis": "normal"
+          },
+          {
+            "label": "IGST",
+            "value": "₹304.64",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Round off",
+            "value": "₹0.50",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "₹5,163.00",
+            "emphasis": "strong"
+          }
+        ],
+        "taxSummary": {
+          "columns": [
+            {
+              "id": "rate",
+              "label": "GST rate",
+              "align": "leading"
+            },
+            {
+              "id": "taxable",
+              "label": "Taxable value",
+              "align": "trailing"
+            },
+            {
+              "id": "tax",
+              "label": "GST",
+              "align": "trailing"
+            }
+          ],
+          "rows": [
+            [
+              "IGST 5%",
+              "₹4,382.86",
+              "₹219.14"
+            ],
+            [
+              "IGST 18%",
+              "₹475.00",
+              "₹85.50"
+            ],
+            [
+              "Total GST",
+              "₹4,857.86",
+              "₹304.64"
+            ]
+          ]
+        },
+        "amountInWords": "Indian Rupees Five Thousand One Hundred Sixty Three Only",
+        "notes": [],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Bharat Web Studio LLP"
+            },
+            {
+              "label": "Account no.",
+              "value": "000123456789"
+            },
+            {
+              "label": "Bank",
+              "value": "Example Bank"
+            },
+            {
+              "label": "IFSC",
+              "value": "EXMP0001234"
+            }
+          ],
+          "upi": {
+            "id": "bharatweb@examplebank",
+            "caption": "Scan to pay with any UPI app",
+            "payload": "upi://pay?pa=bharatweb@examplebank&pn=Bharat%20Web%20Studio&am=5163.00&cu=INR&tn=INV%2F26-27%2F0043"
+          }
+        },
+        "signature": {
+          "forBusiness": "For Bharat Web Studio",
+          "authorisedSignatory": "Authorised signatory",
+          "imageAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-in-export-lut-usd",
+      "explain": "Export under LUT billed in USD: IGST 0%, the LUT endorsement note, rupee equivalent under the totals and no UPI block (not an INR document).",
+      "input": {
+        "template": "minimal",
+        "document": {
+          "id": "33333333-3333-4333-8333-333333333333",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "exportWithoutTax",
+          "reverseCharge": false,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "minimal",
+          "taxConfigRef": "IN@2025-09-22",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "regular",
+            "taxId": "29AAGCB7383J1Z4",
+            "region": "29",
+            "country": "IN",
+            "homeCurrency": "INR",
+            "address": "12 MG Road, Bengaluru 560001",
+            "name": "Bharat Web Studio",
+            "legalName": "Bharat Web Studio LLP",
+            "postalAddress": {
+              "line1": "12 MG Road",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560001",
+              "countryCode": "IN"
+            },
+            "email": "hello@bharatweb.example",
+            "phone": "+91 80 5555 0100",
+            "extraIds": {
+              "pan": "AAGCB7383J",
+              "lutReference": "AD2903260123456"
+            },
+            "bank": {
+              "accountName": "Bharat Web Studio LLP",
+              "accountNumber": "000123456789",
+              "bankName": "Example Bank",
+              "ifsc": "EXMP0001234"
+            },
+            "upiVpa": "bharatweb@examplebank",
+            "logoAssetId": "fc8981c5-e8b9-51db-a6b8-dad61ea0f0dd",
+            "signatureAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c",
+            "lutReference": "AD2903260123456"
+          },
+          "buyerSnapshot": {
+            "name": "Acme Inc.",
+            "address": "1 Market St, San Francisco, CA 94105",
+            "country": "US",
+            "taxId": "EIN 12-3456789",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "1 Market St",
+              "city": "San Francisco",
+              "postalCode": "CA 94105",
+              "countryCode": "US"
+            }
+          },
+          "number": "INV/26-27/0044",
+          "dueDate": "2026-10-19",
+          "exchangeRate": "83.25",
+          "roundOff": false,
+          "lines": [
+            {
+              "id": "33333333-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "App development (hours)",
+              "quantity": "40",
+              "unitPriceMinor": 5000,
+              "rateId": "gst_18",
+              "productCode": "998314",
+              "unit": "HUR"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 200000,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 200000,
+            "taxMinor": 0,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 0,
+            "totalMinor": 200000
+          }
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "isDraft": false,
+        "number": "INV/26-27/0044",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "19 Oct 2026"
+          },
+          {
+            "label": "Place of supply",
+            "value": "96"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Bharat Web Studio",
+          "lines": [
+            "Bharat Web Studio LLP",
+            "12 MG Road",
+            "Bengaluru 560001",
+            "Karnataka",
+            "hello@bharatweb.example",
+            "+91 80 5555 0100"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "29AAGCB7383J1Z4"
+            },
+            {
+              "label": "PAN",
+              "value": "AAGCB7383J"
+            },
+            {
+              "label": "LUT ARN",
+              "value": "AD2903260123456"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Acme Inc.",
+          "lines": [
+            "1 Market St",
+            "San Francisco CA 94105",
+            "United States"
+          ],
+          "fields": [
+            {
+              "label": "Tax ID",
+              "value": "EIN 12-3456789"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "productCode",
+            "label": "HSN/SAC",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unit",
+            "label": "Unit",
+            "align": "leading"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "tax:IGST",
+            "label": "IGST 0%",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "App development (hours)",
+            "998314",
+            "40",
+            "HUR",
+            "USD 50.00",
+            "USD 2,000.00",
+            "USD 0.00",
+            "USD 2,000.00"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "USD 2,000.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "USD 2,000.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "IGST 0%",
+            "value": "USD 0.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "USD 2,000.00",
+            "emphasis": "strong"
+          }
+        ],
+        "amountInWords": "US Dollars Two Thousand Only",
+        "homeTotals": "Equivalent in INR at 83.25: ₹1,66,500.00",
+        "notes": [
+          {
+            "text": "SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING WITHOUT PAYMENT OF INTEGRATED TAX",
+            "placement": "bottom"
+          }
+        ],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Bharat Web Studio LLP"
+            },
+            {
+              "label": "Account no.",
+              "value": "000123456789"
+            },
+            {
+              "label": "Bank",
+              "value": "Example Bank"
+            },
+            {
+              "label": "IFSC",
+              "value": "EXMP0001234"
+            }
+          ]
+        },
+        "signature": {
+          "forBusiness": "For Bharat Web Studio",
+          "authorisedSignatory": "Authorised signatory",
+          "imageAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-in-composition-bill-of-supply",
+      "explain": "A composition dealer's Bill of Supply: no tax columns at all and the composition declaration at the top.",
+      "input": {
+        "template": "compact",
+        "document": {
+          "id": "44444444-4444-4444-8444-444444444444",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "reverseCharge": false,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "compact",
+          "taxConfigRef": "IN@2025-09-22",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "composition",
+            "taxId": "29AAGCB7383J1Z4",
+            "region": "29",
+            "country": "IN",
+            "homeCurrency": "INR",
+            "address": "12 MG Road, Bengaluru 560001",
+            "name": "Bharat Web Studio",
+            "legalName": "Bharat Web Studio LLP",
+            "postalAddress": {
+              "line1": "12 MG Road",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560001",
+              "countryCode": "IN"
+            },
+            "email": "hello@bharatweb.example",
+            "phone": "+91 80 5555 0100",
+            "extraIds": {
+              "pan": "AAGCB7383J"
+            },
+            "bank": {
+              "accountName": "Bharat Web Studio LLP",
+              "accountNumber": "000123456789",
+              "bankName": "Example Bank",
+              "ifsc": "EXMP0001234"
+            },
+            "logoAssetId": "fc8981c5-e8b9-51db-a6b8-dad61ea0f0dd",
+            "signatureAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+          },
+          "buyerSnapshot": {
+            "name": "Anita Sharma",
+            "address": "44 Indiranagar, Bengaluru 560038",
+            "country": "IN",
+            "region": "29",
+            "isBusiness": false,
+            "billingAddress": {
+              "line1": "44 Indiranagar",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560038",
+              "countryCode": "IN"
+            }
+          },
+          "number": "BOS/26-27/0007",
+          "dueDate": "2026-09-19",
+          "lines": [
+            {
+              "id": "44444444-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Catering (per plate)",
+              "quantity": "50",
+              "unitPriceMinor": 24000,
+              "rateId": "gst_5",
+              "productCode": "996334",
+              "unit": "NOS"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 1200000,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 1200000,
+            "taxMinor": 0,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 0,
+            "totalMinor": 1200000
+          }
+        }
+      },
+      "expected": {
+        "title": "Bill of Supply",
+        "isDraft": false,
+        "number": "BOS/26-27/0007",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Place of supply",
+            "value": "Karnataka"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Bharat Web Studio",
+          "lines": [
+            "Bharat Web Studio LLP",
+            "12 MG Road",
+            "Bengaluru 560001",
+            "Karnataka",
+            "hello@bharatweb.example",
+            "+91 80 5555 0100"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "29AAGCB7383J1Z4"
+            },
+            {
+              "label": "PAN",
+              "value": "AAGCB7383J"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Anita Sharma",
+          "lines": [
+            "44 Indiranagar",
+            "Bengaluru 560038",
+            "Karnataka"
+          ],
+          "fields": []
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "productCode",
+            "label": "HSN/SAC",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unit",
+            "label": "Unit",
+            "align": "leading"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Catering (per plate)",
+            "996334",
+            "50",
+            "NOS",
+            "₹240.00",
+            "₹12,000.00"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "₹12,000.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "₹12,000.00",
+            "emphasis": "strong"
+          }
+        ],
+        "amountInWords": "Indian Rupees Twelve Thousand Only",
+        "notes": [
+          {
+            "text": "Composition taxable person, not eligible to collect tax on supplies",
+            "placement": "top"
+          }
+        ],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Bharat Web Studio LLP"
+            },
+            {
+              "label": "Account no.",
+              "value": "000123456789"
+            },
+            {
+              "label": "Bank",
+              "value": "Example Bank"
+            },
+            {
+              "label": "IFSC",
+              "value": "EXMP0001234"
+            }
+          ]
+        },
+        "signature": {
+          "forBusiness": "For Bharat Web Studio",
+          "authorisedSignatory": "Authorised signatory",
+          "imageAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-in-exempt-and-taxable",
+      "explain": "Exempt milk next to 5% paneer: the exempt line shows its category in the tax columns and the summary lists it with no tax amount.",
+      "input": {
+        "template": "classic",
+        "document": {
+          "id": "55555555-5555-4555-8555-555555555555",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "INR",
+          "supplyType": "domestic",
+          "reverseCharge": false,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "classic",
+          "taxConfigRef": "IN@2025-09-22",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "regular",
+            "taxId": "29AAGCB7383J1Z4",
+            "region": "29",
+            "country": "IN",
+            "homeCurrency": "INR",
+            "address": "12 MG Road, Bengaluru 560001",
+            "name": "Bharat Web Studio",
+            "legalName": "Bharat Web Studio LLP",
+            "postalAddress": {
+              "line1": "12 MG Road",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560001",
+              "countryCode": "IN"
+            },
+            "email": "hello@bharatweb.example",
+            "phone": "+91 80 5555 0100",
+            "extraIds": {
+              "pan": "AAGCB7383J"
+            },
+            "bank": {
+              "accountName": "Bharat Web Studio LLP",
+              "accountNumber": "000123456789",
+              "bankName": "Example Bank",
+              "ifsc": "EXMP0001234"
+            },
+            "upiVpa": "bharatweb@examplebank",
+            "logoAssetId": "fc8981c5-e8b9-51db-a6b8-dad61ea0f0dd",
+            "signatureAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+          },
+          "buyerSnapshot": {
+            "name": "Rao Traders",
+            "address": "5 Residency Road, Bengaluru 560025",
+            "country": "IN",
+            "region": "29",
+            "taxId": "29AABCR1234C1ZU",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "5 Residency Road",
+              "city": "Bengaluru",
+              "regionCode": "29",
+              "postalCode": "560025",
+              "countryCode": "IN"
+            },
+            "email": "accounts@raotraders.example"
+          },
+          "number": "INV/26-27/0045",
+          "dueDate": "2026-10-04",
+          "lines": [
+            {
+              "id": "55555555-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Fresh milk",
+              "quantity": "100",
+              "unitPriceMinor": 5600,
+              "rateId": "exempt",
+              "productCode": "0401",
+              "unit": "LTR"
+            },
+            {
+              "id": "55555555-0000-4000-8000-000000000001",
+              "position": 1,
+              "description": "Paneer",
+              "quantity": "2",
+              "unitPriceMinor": 9000,
+              "rateId": "gst_5",
+              "productCode": "0406",
+              "unit": "KGS"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 578000,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 578000,
+            "taxMinor": 900,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 0,
+            "totalMinor": 578900
+          }
+        }
+      },
+      "expected": {
+        "title": "Tax Invoice",
+        "isDraft": false,
+        "number": "INV/26-27/0045",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "4 Oct 2026"
+          },
+          {
+            "label": "Place of supply",
+            "value": "Karnataka"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Bharat Web Studio",
+          "lines": [
+            "Bharat Web Studio LLP",
+            "12 MG Road",
+            "Bengaluru 560001",
+            "Karnataka",
+            "hello@bharatweb.example",
+            "+91 80 5555 0100"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "29AAGCB7383J1Z4"
+            },
+            {
+              "label": "PAN",
+              "value": "AAGCB7383J"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Rao Traders",
+          "lines": [
+            "5 Residency Road",
+            "Bengaluru 560025",
+            "Karnataka"
+          ],
+          "fields": [
+            {
+              "label": "GSTIN",
+              "value": "29AABCR1234C1ZU"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "productCode",
+            "label": "HSN/SAC",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unit",
+            "label": "Unit",
+            "align": "leading"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "tax:CGST",
+            "label": "CGST 2.5%",
+            "align": "trailing"
+          },
+          {
+            "id": "tax:SGST",
+            "label": "SGST 2.5%",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Fresh milk",
+            "0401",
+            "100",
+            "LTR",
+            "₹56.00",
+            "₹5,600.00",
+            "Exempt",
+            "Exempt",
+            "₹5,600.00"
+          ],
+          [
+            "2",
+            "Paneer",
+            "0406",
+            "2",
+            "KGS",
+            "₹90.00",
+            "₹180.00",
+            "₹4.50",
+            "₹4.50",
+            "₹189.00"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "₹5,780.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "₹5,780.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "CGST 2.5%",
+            "value": "₹4.50",
+            "emphasis": "normal"
+          },
+          {
+            "label": "SGST 2.5%",
+            "value": "₹4.50",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "₹5,789.00",
+            "emphasis": "strong"
+          }
+        ],
+        "taxSummary": {
+          "columns": [
+            {
+              "id": "rate",
+              "label": "GST rate",
+              "align": "leading"
+            },
+            {
+              "id": "taxable",
+              "label": "Taxable value",
+              "align": "trailing"
+            },
+            {
+              "id": "tax",
+              "label": "GST",
+              "align": "trailing"
+            }
+          ],
+          "rows": [
+            [
+              "Exempt",
+              "₹5,600.00",
+              ""
+            ],
+            [
+              "CGST 2.5%",
+              "₹180.00",
+              "₹4.50"
+            ],
+            [
+              "SGST 2.5%",
+              "₹180.00",
+              "₹4.50"
+            ],
+            [
+              "Total GST",
+              "₹5,780.00",
+              "₹9.00"
+            ]
+          ]
+        },
+        "amountInWords": "Indian Rupees Five Thousand Seven Hundred Eighty Nine Only",
+        "notes": [],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Bharat Web Studio LLP"
+            },
+            {
+              "label": "Account no.",
+              "value": "000123456789"
+            },
+            {
+              "label": "Bank",
+              "value": "Example Bank"
+            },
+            {
+              "label": "IFSC",
+              "value": "EXMP0001234"
+            }
+          ],
+          "upi": {
+            "id": "bharatweb@examplebank",
+            "caption": "Scan to pay with any UPI app",
+            "payload": "upi://pay?pa=bharatweb@examplebank&pn=Bharat%20Web%20Studio&am=5789.00&cu=INR&tn=INV%2F26-27%2F0045"
+          }
+        },
+        "signature": {
+          "forBusiness": "For Bharat Web Studio",
+          "authorisedSignatory": "Authorised signatory",
+          "imageAssetId": "a1f2b3c4-d5e6-57a8-9b0c-1d2e3f4a5b6c"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-gb-vat-invoice",
+      "explain": "A UK VAT invoice with standard and zero-rated lines: VAT is rounded per invoice, so the lines carry no tax columns and the VAT summary does the work.",
+      "input": {
+        "template": "classic",
+        "document": {
+          "id": "66666666-6666-4666-8666-666666666666",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "reverseCharge": false,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "classic",
+          "taxConfigRef": "GB@2026-09-19",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "vatRegistered",
+            "taxId": "GB980780684",
+            "country": "GB",
+            "homeCurrency": "GBP",
+            "address": "1 Bridge Street, London SE1 9DA",
+            "name": "Thames Design Ltd",
+            "postalAddress": {
+              "line1": "1 Bridge Street",
+              "city": "London",
+              "postalCode": "SE1 9DA",
+              "countryCode": "GB"
+            },
+            "email": "studio@thamesdesign.example",
+            "extraIds": {
+              "companyNumber": "01234567"
+            },
+            "bank": {
+              "accountName": "Thames Design Ltd",
+              "accountNumber": "12345678",
+              "sortCode": "12-34-56"
+            }
+          },
+          "buyerSnapshot": {
+            "name": "Blackfriars Café",
+            "address": "3 Blackfriars Lane, London EC4V 6ER",
+            "country": "GB",
+            "taxId": "GB999999973",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "3 Blackfriars Lane",
+              "city": "London",
+              "postalCode": "EC4V 6ER",
+              "countryCode": "GB"
+            }
+          },
+          "number": "INV-0007",
+          "dueDate": "2026-10-19",
+          "lines": [
+            {
+              "id": "66666666-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Brand identity",
+              "quantity": "1",
+              "unitPriceMinor": 120000,
+              "rateId": "standard"
+            },
+            {
+              "id": "66666666-0000-4000-8000-000000000001",
+              "position": 1,
+              "description": "Printed brochures",
+              "quantity": "500",
+              "unitPriceMinor": 180,
+              "rateId": "zero",
+              "unit": "PCS"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 210000,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 210000,
+            "taxMinor": 24000,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 0,
+            "totalMinor": 234000
+          }
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "isDraft": false,
+        "number": "INV-0007",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "19 Oct 2026"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Thames Design Ltd",
+          "lines": [
+            "1 Bridge Street",
+            "London SE1 9DA",
+            "studio@thamesdesign.example"
+          ],
+          "fields": [
+            {
+              "label": "VAT registration number",
+              "value": "GB980780684"
+            },
+            {
+              "label": "Company no.",
+              "value": "01234567"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Blackfriars Café",
+          "lines": [
+            "3 Blackfriars Lane",
+            "London EC4V 6ER"
+          ],
+          "fields": [
+            {
+              "label": "VAT registration number",
+              "value": "GB999999973"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unit",
+            "label": "Unit",
+            "align": "leading"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Brand identity",
+            "1",
+            "",
+            "£1,200.00",
+            "£1,200.00",
+            "£1,200.00"
+          ],
+          [
+            "2",
+            "Printed brochures",
+            "500",
+            "PCS",
+            "£1.80",
+            "£900.00",
+            "£900.00"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "£2,100.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "£2,100.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "VAT",
+            "value": "£240.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "£2,340.00",
+            "emphasis": "strong"
+          }
+        ],
+        "taxSummary": {
+          "columns": [
+            {
+              "id": "rate",
+              "label": "VAT rate",
+              "align": "leading"
+            },
+            {
+              "id": "taxable",
+              "label": "Taxable value",
+              "align": "trailing"
+            },
+            {
+              "id": "tax",
+              "label": "VAT",
+              "align": "trailing"
+            }
+          ],
+          "rows": [
+            [
+              "VAT 20%",
+              "£1,200.00",
+              "£240.00"
+            ],
+            [
+              "VAT 0%",
+              "£900.00",
+              "£0.00"
+            ],
+            [
+              "Total VAT",
+              "£2,100.00",
+              "£240.00"
+            ]
+          ]
+        },
+        "notes": [],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Thames Design Ltd"
+            },
+            {
+              "label": "Account no.",
+              "value": "12345678"
+            },
+            {
+              "label": "Sort code",
+              "value": "12-34-56"
+            }
+          ]
+        },
+        "signature": {
+          "forBusiness": "For Thames Design Ltd",
+          "authorisedSignatory": "Authorised signatory"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-gb-reverse-charge",
+      "explain": "Domestic reverse charge: the VAT is shown but not charged, with the note that the customer accounts for it.",
+      "input": {
+        "template": "modern",
+        "document": {
+          "id": "77777777-7777-4777-8777-777777777777",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "GBP",
+          "supplyType": "domestic",
+          "reverseCharge": true,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "modern",
+          "taxConfigRef": "GB@2026-09-19",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "vatRegistered",
+            "taxId": "GB980780684",
+            "country": "GB",
+            "homeCurrency": "GBP",
+            "address": "1 Bridge Street, London SE1 9DA",
+            "name": "Thames Design Ltd",
+            "postalAddress": {
+              "line1": "1 Bridge Street",
+              "city": "London",
+              "postalCode": "SE1 9DA",
+              "countryCode": "GB"
+            },
+            "email": "studio@thamesdesign.example",
+            "extraIds": {
+              "companyNumber": "01234567"
+            },
+            "bank": {
+              "accountName": "Thames Design Ltd",
+              "accountNumber": "12345678",
+              "sortCode": "12-34-56"
+            }
+          },
+          "buyerSnapshot": {
+            "name": "Blackfriars Café",
+            "address": "3 Blackfriars Lane, London EC4V 6ER",
+            "country": "GB",
+            "taxId": "GB999999973",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "3 Blackfriars Lane",
+              "city": "London",
+              "postalCode": "EC4V 6ER",
+              "countryCode": "GB"
+            }
+          },
+          "number": "INV-0008",
+          "dueDate": "2026-10-19",
+          "lines": [
+            {
+              "id": "77777777-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Construction services",
+              "quantity": "1",
+              "unitPriceMinor": 450000,
+              "rateId": "standard"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 450000,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 450000,
+            "taxMinor": 0,
+            "taxNotChargedMinor": 90000,
+            "roundOffMinor": 0,
+            "totalMinor": 450000
+          }
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "isDraft": false,
+        "number": "INV-0008",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "19 Oct 2026"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Thames Design Ltd",
+          "lines": [
+            "1 Bridge Street",
+            "London SE1 9DA",
+            "studio@thamesdesign.example"
+          ],
+          "fields": [
+            {
+              "label": "VAT registration number",
+              "value": "GB980780684"
+            },
+            {
+              "label": "Company no.",
+              "value": "01234567"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Blackfriars Café",
+          "lines": [
+            "3 Blackfriars Lane",
+            "London EC4V 6ER"
+          ],
+          "fields": [
+            {
+              "label": "VAT registration number",
+              "value": "GB999999973"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Construction services",
+            "1",
+            "£4,500.00",
+            "£4,500.00",
+            "£4,500.00"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "£4,500.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "£4,500.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "£4,500.00",
+            "emphasis": "strong"
+          }
+        ],
+        "taxSummary": {
+          "columns": [
+            {
+              "id": "rate",
+              "label": "VAT rate",
+              "align": "leading"
+            },
+            {
+              "id": "taxable",
+              "label": "Taxable value",
+              "align": "trailing"
+            },
+            {
+              "id": "tax",
+              "label": "VAT",
+              "align": "trailing"
+            }
+          ],
+          "rows": [
+            [
+              "VAT 20%",
+              "£4,500.00",
+              "£900.00"
+            ],
+            [
+              "Total VAT",
+              "£4,500.00",
+              "£900.00"
+            ]
+          ]
+        },
+        "reverseChargeNote": "VAT payable by the recipient: £900.00",
+        "notes": [
+          {
+            "text": "Reverse charge: customer to account for the VAT to HMRC",
+            "placement": "bottom"
+          }
+        ],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Thames Design Ltd"
+            },
+            {
+              "label": "Account no.",
+              "value": "12345678"
+            },
+            {
+              "label": "Sort code",
+              "value": "12-34-56"
+            }
+          ]
+        },
+        "signature": {
+          "forBusiness": "For Thames Design Ltd",
+          "authorisedSignatory": "Authorised signatory"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-gb-eur-home-vat",
+      "explain": "Billed in euros: the VAT summary gains a sterling column and the totals show the sterling equivalent, as HMRC requires.",
+      "input": {
+        "template": "classic",
+        "document": {
+          "id": "88888888-8888-4888-8888-888888888888",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "invoice",
+          "lifecycle": "issued",
+          "issueDate": "2026-09-19",
+          "currency": "EUR",
+          "supplyType": "domestic",
+          "reverseCharge": false,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "classic",
+          "taxConfigRef": "GB@2026-09-19",
+          "revision": 1,
+          "sellerSnapshot": {
+            "registration": "vatRegistered",
+            "taxId": "GB980780684",
+            "country": "GB",
+            "homeCurrency": "GBP",
+            "address": "1 Bridge Street, London SE1 9DA",
+            "name": "Thames Design Ltd",
+            "postalAddress": {
+              "line1": "1 Bridge Street",
+              "city": "London",
+              "postalCode": "SE1 9DA",
+              "countryCode": "GB"
+            },
+            "email": "studio@thamesdesign.example",
+            "extraIds": {
+              "companyNumber": "01234567"
+            },
+            "bank": {
+              "accountName": "Thames Design Ltd",
+              "accountNumber": "12345678",
+              "sortCode": "12-34-56"
+            }
+          },
+          "buyerSnapshot": {
+            "name": "Weber Maschinenbau GmbH",
+            "address": "Hauptstrasse 5, 10115 Berlin",
+            "country": "DE",
+            "taxId": "DE123456789",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "Hauptstrasse 5",
+              "city": "Berlin",
+              "postalCode": "10115",
+              "countryCode": "DE"
+            }
+          },
+          "number": "INV-0009",
+          "dueDate": "2026-10-19",
+          "exchangeRate": "0.8543",
+          "lines": [
+            {
+              "id": "88888888-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Conference tickets",
+              "quantity": "3",
+              "unitPriceMinor": 24900,
+              "rateId": "standard",
+              "unit": "NOS"
+            },
+            {
+              "id": "88888888-0000-4000-8000-000000000001",
+              "position": 1,
+              "description": "Printed programmes",
+              "quantity": "3",
+              "unitPriceMinor": 1500,
+              "rateId": "zero",
+              "unit": "PCS"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 79200,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 79200,
+            "taxMinor": 14940,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 0,
+            "totalMinor": 94140
+          }
+        }
+      },
+      "expected": {
+        "title": "VAT Invoice",
+        "isDraft": false,
+        "number": "INV-0009",
+        "numberLabel": "Invoice no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Due date",
+            "value": "19 Oct 2026"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Thames Design Ltd",
+          "lines": [
+            "1 Bridge Street",
+            "London SE1 9DA",
+            "studio@thamesdesign.example"
+          ],
+          "fields": [
+            {
+              "label": "VAT registration number",
+              "value": "GB980780684"
+            },
+            {
+              "label": "Company no.",
+              "value": "01234567"
+            }
+          ]
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Weber Maschinenbau GmbH",
+          "lines": [
+            "Hauptstrasse 5",
+            "Berlin 10115",
+            "Germany"
+          ],
+          "fields": [
+            {
+              "label": "Tax ID",
+              "value": "DE123456789"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unit",
+            "label": "Unit",
+            "align": "leading"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Conference tickets",
+            "3",
+            "NOS",
+            "EUR 249.00",
+            "EUR 747.00",
+            "EUR 747.00"
+          ],
+          [
+            "2",
+            "Printed programmes",
+            "3",
+            "PCS",
+            "EUR 15.00",
+            "EUR 45.00",
+            "EUR 45.00"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "EUR 792.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "EUR 792.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "VAT",
+            "value": "EUR 149.40",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "EUR 941.40",
+            "emphasis": "strong"
+          }
+        ],
+        "taxSummary": {
+          "columns": [
+            {
+              "id": "rate",
+              "label": "VAT rate",
+              "align": "leading"
+            },
+            {
+              "id": "taxable",
+              "label": "Taxable value",
+              "align": "trailing"
+            },
+            {
+              "id": "tax",
+              "label": "VAT",
+              "align": "trailing"
+            },
+            {
+              "id": "homeTax",
+              "label": "VAT in GBP",
+              "align": "trailing"
+            }
+          ],
+          "rows": [
+            [
+              "VAT 20%",
+              "EUR 747.00",
+              "EUR 149.40",
+              "£127.63"
+            ],
+            [
+              "VAT 0%",
+              "EUR 45.00",
+              "EUR 0.00",
+              "£0.00"
+            ],
+            [
+              "Total VAT",
+              "EUR 792.00",
+              "EUR 149.40",
+              "£127.63"
+            ]
+          ]
+        },
+        "homeTotals": "Equivalent in GBP at 0.8543: £804.24",
+        "notes": [],
+        "payment": {
+          "bank": [
+            {
+              "label": "Account name",
+              "value": "Thames Design Ltd"
+            },
+            {
+              "label": "Account no.",
+              "value": "12345678"
+            },
+            {
+              "label": "Sort code",
+              "value": "12-34-56"
+            }
+          ]
+        },
+        "signature": {
+          "forBusiness": "For Thames Design Ltd",
+          "authorisedSignatory": "Authorised signatory"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    },
+    {
+      "id": "pdf-generic-quote-draft",
+      "explain": "An unsent quote from a generic (US) business: quotation labels, a valid-until date, the DRAFT mark because it has no number, and a sales-tax summary.",
+      "input": {
+        "template": "minimal",
+        "document": {
+          "id": "99999999-9999-4999-8999-999999999999",
+          "createdAt": 1789800000000,
+          "updatedAt": 1789800000000,
+          "businessId": "3d0dd937-b470-5c97-9798-45fb0cca9d46",
+          "docType": "quote",
+          "lifecycle": "draft",
+          "issueDate": "2026-09-19",
+          "currency": "USD",
+          "supplyType": "domestic",
+          "reverseCharge": false,
+          "pricesIncludeTax": false,
+          "shippingMinor": 0,
+          "templateId": "minimal",
+          "taxConfigRef": "GENERIC@2026-09-19",
+          "revision": 0,
+          "sellerSnapshot": {
+            "registration": "registered",
+            "country": "US",
+            "homeCurrency": "USD",
+            "address": "200 Main St, Springfield",
+            "name": "Main St Bakery",
+            "postalAddress": {
+              "line1": "200 Main St",
+              "city": "Springfield",
+              "countryCode": "US"
+            },
+            "customRates": [
+              {
+                "id": "sales",
+                "category": "standard",
+                "label": "Sales tax 8.875%",
+                "effectiveFrom": "2020-01-01",
+                "components": [
+                  {
+                    "code": "SALES",
+                    "label": "Sales tax",
+                    "percent": "8.875"
+                  }
+                ]
+              }
+            ]
+          },
+          "buyerSnapshot": {
+            "name": "Acme Inc.",
+            "address": "1 Market St, San Francisco, CA 94105",
+            "country": "US",
+            "taxId": "EIN 12-3456789",
+            "isBusiness": true,
+            "billingAddress": {
+              "line1": "1 Market St",
+              "city": "San Francisco",
+              "postalCode": "CA 94105",
+              "countryCode": "US"
+            }
+          },
+          "validUntil": "2026-10-19",
+          "notes": "Prices hold for 30 days.",
+          "lines": [
+            {
+              "id": "99999999-0000-4000-8000-000000000000",
+              "position": 0,
+              "description": "Cake tasting",
+              "quantity": "1",
+              "unitPriceMinor": 15000,
+              "rateId": "sales"
+            },
+            {
+              "id": "99999999-0000-4000-8000-000000000001",
+              "position": 1,
+              "description": "Wedding cake",
+              "quantity": "1",
+              "unitPriceMinor": 85000,
+              "rateId": "sales"
+            }
+          ],
+          "totals": {
+            "subtotalMinor": 100000,
+            "discountMinor": 0,
+            "shippingMinor": 0,
+            "taxableMinor": 100000,
+            "taxMinor": 8875,
+            "taxNotChargedMinor": 0,
+            "roundOffMinor": 0,
+            "totalMinor": 108875
+          }
+        }
+      },
+      "expected": {
+        "title": "Quotation",
+        "isDraft": true,
+        "draftLabel": "DRAFT",
+        "number": null,
+        "numberLabel": "Quotation no.",
+        "meta": [
+          {
+            "label": "Date",
+            "value": "19 Sep 2026"
+          },
+          {
+            "label": "Valid until",
+            "value": "19 Oct 2026"
+          }
+        ],
+        "seller": {
+          "heading": "From",
+          "name": "Main St Bakery",
+          "lines": [
+            "200 Main St",
+            "Springfield"
+          ],
+          "fields": []
+        },
+        "buyer": {
+          "heading": "Bill to",
+          "name": "Acme Inc.",
+          "lines": [
+            "1 Market St",
+            "San Francisco CA 94105"
+          ],
+          "fields": [
+            {
+              "label": "Tax ID",
+              "value": "EIN 12-3456789"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "id": "index",
+            "label": "#",
+            "align": "leading"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "align": "leading"
+          },
+          {
+            "id": "quantity",
+            "label": "Qty",
+            "align": "trailing"
+          },
+          {
+            "id": "unitPrice",
+            "label": "Rate",
+            "align": "trailing"
+          },
+          {
+            "id": "taxable",
+            "label": "Taxable value",
+            "align": "trailing"
+          },
+          {
+            "id": "tax:SALES",
+            "label": "SALES 8.875%",
+            "align": "trailing"
+          },
+          {
+            "id": "amount",
+            "label": "Amount",
+            "align": "trailing"
+          }
+        ],
+        "rows": [
+          [
+            "1",
+            "Cake tasting",
+            "1",
+            "$150.00",
+            "$150.00",
+            "$13.31",
+            "$163.31"
+          ],
+          [
+            "2",
+            "Wedding cake",
+            "1",
+            "$850.00",
+            "$850.00",
+            "$75.44",
+            "$925.44"
+          ]
+        ],
+        "totals": [
+          {
+            "label": "Subtotal",
+            "value": "$1,000.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Taxable value",
+            "value": "$1,000.00",
+            "emphasis": "normal"
+          },
+          {
+            "label": "SALES 8.875%",
+            "value": "$88.75",
+            "emphasis": "normal"
+          },
+          {
+            "label": "Total",
+            "value": "$1,088.75",
+            "emphasis": "strong"
+          }
+        ],
+        "notes": [
+          {
+            "label": "Notes",
+            "text": "Prices hold for 30 days.",
+            "placement": "bottom"
+          }
+        ],
+        "payment": {
+          "bank": []
+        },
+        "signature": {
+          "forBusiness": "For Main St Bakery",
+          "authorisedSignatory": "Authorised signatory"
+        },
+        "footer": {
+          "pageLabel": "Page {page} of {pages}",
+          "continued": "Continued on next page"
+        }
+      }
+    }
+  ]
+}

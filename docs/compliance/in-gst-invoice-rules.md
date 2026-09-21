@@ -58,3 +58,16 @@ Added in Phase 2 (`spec/documents.md`, fixtures `spec/fixtures/tax/in-combinatio
     rounded to the paisa, when added to an invoice whose prices exclude GST (and the reverse). Acceptable?
 14. Issued invoices are numbered only at issue, from a series per device (e.g. `INV/26-27/0001` on the iPhone and
     `INV/26-27/B0001` on an iPad), never renumbered or deleted. Does "one or multiple series" (Rule 46(b)) cover this?
+
+Added in Phase 3 (`spec/pdf/RENDERING.md`, samples from `make pdf-samples`):
+
+15. The number on a Bill of Supply is labelled "Invoice no." (the labels file has one `invoiceNumber` string).
+    Should a Bill of Supply, a credit note and a quote each carry their own wording?
+16. The composition declaration is printed once, above the items table ("Composition taxable person, not eligible
+    to collect tax on supplies"). Is that placement and wording acceptable?
+17. The UPI QR encodes `upi://pay` with the payee, the amount and the invoice number. It is **not** the GST
+    e-invoice IRN QR (out of scope below the e-invoicing threshold). Is a payment QR on the invoice acceptable,
+    and does anything need to say what it is?
+18. A digital signature is not applied: the invoice carries the uploaded signature image or a line to sign, under
+    "For &lt;business&gt; / Authorised signatory" (Rule 46(q)). Confirm that satisfies the signature requirement for
+    a printed or PDF invoice.
