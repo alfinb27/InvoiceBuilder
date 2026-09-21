@@ -9,7 +9,7 @@ extension FocusedValues {
 }
 
 /// Menu-bar commands and hardware-keyboard shortcuts (ADR-0014): ⌘N new invoice, ⇧⌘N new quote, ⌘D duplicate
-/// the selected line. ⌘↩ (issue) sits on the builder's Issue button.
+/// the selected line, ⌘P preview and share. ⌘↩ (issue) sits on the builder's Issue button.
 public struct InvoiceCommands: Commands {
     @FocusedValue(\.session) private var session
     @FocusedValue(\.documentEditor) private var editor
@@ -32,6 +32,10 @@ public struct InvoiceCommands: Commands {
             Button("Duplicate Line") { editor?.duplicateSelectedLine() }
                 .keyboardShortcut("d")
                 .disabled(editor?.canDuplicateSelectedLine != true)
+            Divider()
+            Button("Preview & Share…") { Task { await editor?.openPreview() } }
+                .keyboardShortcut("p")
+                .disabled(editor?.canPreview != true)
         }
     }
 }

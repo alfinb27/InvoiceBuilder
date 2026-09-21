@@ -37,6 +37,11 @@ struct IssuedDocumentView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button("Share", systemImage: "square.and.arrow.up") { Task { await model.openPreview() } }
+                    .disabled(!model.canPreview)
+                    .accessibilityIdentifier("previewButton")
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button("Duplicate", systemImage: "plus.square.on.square") { Task { await model.duplicate() } }
                     if model.canConvert {

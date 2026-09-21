@@ -36,7 +36,7 @@ public struct GRDBDocumentRepository: DocumentRepository {
                     throw DocumentServiceError.notADraft
                 }
                 stored.createdAt = existing.createdAt
-                // A draft deleted while its builder was open (§8) comes back when it is edited again, rather than
+                // A draft deleted while its builder was open (§9) comes back when it is edited again, rather than
                 // failing every save from then on.
                 stored.deletedAt = nil
                 try DocumentRecord(stored).update(db)
@@ -56,6 +56,16 @@ public struct GRDBDocumentRepository: DocumentRepository {
                 WHERE series_id = ? AND period_key = ? AND lifecycle <> 'draft' AND deleted_at IS NULL
                 """, arguments: [seriesID, periodKey])
         }
+    }
+
+    public func markSent(documentID: String, at timestamp: Int64?) async throws {
+        let now = time.now()
+        let changed = try await database.writer.write { db in
+            try DocumentRecord.live.filter(key: documentID)
+                .filter(DBColumns.lifecycle != DocumentLifecycle.draft.rawValue)
+                .updateAll(db, DBColumns.sentAt.set(to: timestamp), DBColumns.updatedAt.set(to: now))
+        }
+        if changed == 0 { throw DocumentServiceError.notFound }
     }
 
     /// The list rows: newest issue date first, then the most recently edited.
@@ -86,7 +96,7 @@ public struct GRDBDocumentRepository: DocumentRepository {
     }
 }
 
-/// `IssueDocument`, duplicate, convert and delete (`spec/documents.md` §6–8), each in one write transaction.
+/// `IssueDocument`, duplicate, convert and delete (`spec/documents.md` §6–9), each in one write transaction.
 public struct GRDBDocumentService: DocumentService {
     let database: AppDatabase
     let time: TimeSource

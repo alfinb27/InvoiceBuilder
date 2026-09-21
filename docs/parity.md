@@ -5,7 +5,7 @@ feature. Status legend: ☐ not started · ◐ in progress · ☑ done · — no
 
 | Area | Feature | Spec | iOS/iPadOS | Android |
 |---|---|---|---|---|
-| Core | All `spec/fixtures` pass (count = `make validate-spec` total, 337 at spec v0.2) | ☑ | ☑ 337/337 | ☐ |
+| Core | All `spec/fixtures` pass (count = `make validate-spec` total, 346 at spec v0.3) | ☑ | ☑ 346/346 | ☐ |
 | Core | Tax engine (IN, GB, GENERIC) | ☑ v0 (`ENGINE.md`, 105 `tax` fixtures, review pending) | ☑ (93.7% region coverage) | ☐ |
 | Core | Numbering, status, formatting, amount in words, tax ID validation, UPI links | ☑ v0 | ☑ | ☐ |
 | Core | Draft defaults and catalogue prices on documents (`document` fixtures) | ☑ `documents.md` §2–3 | ☑ | ☐ |
@@ -18,12 +18,12 @@ feature. Status legend: ☐ not started · ◐ in progress · ☑ done · — no
 | Documents | Invoice builder (lines, discounts, shipping, currency, supply type, reverse charge), autosaved drafts | ☑ `documents.md` §2–5 | ☑ | ☐ |
 | Documents | Quotes + convert to invoice; duplicate | ☑ `documents.md` §7 | ☑ | ☐ |
 | Documents | Issue (number allocation, snapshots, free counter) + void | ◐ issue ☑ `documents.md` §6; void in Phase 4 | ◐ issue ☑; void in Phase 4 | ☐ |
-| PDF | 4 templates, preview, share (WhatsApp), print, save | ☐ | ☐ | ☐ |
-| PDF | UPI QR, amount in words, signature | ☐ | ☐ | ☐ |
+| PDF | 4 templates, preview, share (WhatsApp), print, save | ☑ `pdf/RENDERING.md`, `pdf/layout/*.json`, 9 `pdf` fixtures | ☑ `InvoicePDF` + preview screen, share sheet, AirPrint, Save to Files | ☐ |
+| PDF | UPI QR, amount in words, signature | ☑ `RENDERING.md` §1.3 | ☑ CIQRCodeGenerator; words from the engine; signature image or a line to sign | ☐ |
 | Tracking | Payments, derived status, list + dashboard, search | ☐ | ☐ | ☐ |
 | Tracking | Overdue reminders (local notifications / WorkManager) | ☐ | ☐ | ☐ |
 | Data safety | Backup export + restore (cross-platform file) | ☑ v0 | ☐ | ☐ |
 | Sync | iCloud sync between Apple devices | ☐ | ☐ | — |
 | Billing | Free tier (15), paywall, purchase, restore/refresh, refunds | ☑ v0 | ☐ | ☐ |
-| Adaptive UI | iPad split view + two-pane builder / tablet + foldable panes | — | ◐ adaptive shell, split views, two-pane builder with totals panel, popover line editor, ⌘N/⇧⌘N/⌘↩/⌘D; PDF preview pane in Phase 3 | ☐ |
+| Adaptive UI | iPad split view + two-pane builder / tablet + foldable panes | — | ◐ adaptive shell, split views, two-pane builder (live PDF preview or totals, from 700 pt), popover line editor, drag the PDF out, ⌘N/⇧⌘N/⌘↩/⌘D/⌘P | ☐ |
 | Quality | Accessibility (Dynamic Type/font scale, VoiceOver/TalkBack) | — | ◐ labels on every setup control, system text styles; device audit in Phase 6 | ☐ |

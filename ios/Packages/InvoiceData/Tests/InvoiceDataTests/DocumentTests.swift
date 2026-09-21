@@ -183,7 +183,7 @@ struct DocumentTests {
 
     @Test func aDeletedDraftComesBackWhenItIsEditedAgain() async throws {
         // The builder deletes an emptied draft when it closes and keeps editing the same id; saving again must
-        // revive it rather than fail for ever (spec/documents.md §5, §8).
+        // revive it rather than fail for ever (spec/documents.md §5, §9).
         let store = try TestStore()
         let (business, _) = try await store.setUpInvoicing()
         var draft = try await store.saveDraft(business, lines: [TestStore.line("l1", "Website", price: 100_000)])

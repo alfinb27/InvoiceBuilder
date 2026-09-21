@@ -8,7 +8,7 @@
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
-    "kind": { "enum": ["tax", "numbering", "validation", "words", "format", "status", "rounding", "distribute", "upi", "field", "input", "document"] },
+    "kind": { "enum": ["tax", "numbering", "validation", "words", "format", "status", "rounding", "distribute", "upi", "field", "input", "document", "pdf"] },
     "description": { "type": "string" },
     "cases": { "type": "array", "minItems": 1 }
   },
@@ -24,7 +24,8 @@
     { "if": { "properties": { "kind": { "const": "upi" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/upiCase" } } } } },
     { "if": { "properties": { "kind": { "const": "field" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/fieldCase" } } } } },
     { "if": { "properties": { "kind": { "const": "input" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/inputCase" } } } } },
-    { "if": { "properties": { "kind": { "const": "document" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/documentCase" } } } } }
+    { "if": { "properties": { "kind": { "const": "document" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/documentCase" } } } } },
+    { "if": { "properties": { "kind": { "const": "pdf" } } }, "then": { "properties": { "cases": { "type": "array", "items": { "$ref": "#/$defs/pdfCase" } } } } }
   ],
   "$defs": {
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
@@ -121,6 +122,49 @@
                 "line": { "type": "integer", "minimum": 0 }
               } }
           ]
+        }
+      }
+    },
+    "pdfCase": {
+      "description": "A stored document rendered into the PDF view model (spec/pdf/RENDERING.md §1).",
+      "type": "object", "required": ["id", "explain", "input", "expected"], "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "explain": { "type": "string" },
+        "input": {
+          "type": "object", "required": ["template", "document"], "additionalProperties": false,
+          "properties": {
+            "template": { "enum": ["classic", "modern", "minimal", "compact"] },
+            "document": { "$ref": "domain.schema.json#/$defs/Document" }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "required": ["title", "isDraft", "numberLabel", "meta", "seller", "columns", "rows", "totals", "notes",
+                       "payment", "signature", "footer"],
+          "additionalProperties": false,
+          "properties": {
+            "title": { "type": "string" },
+            "isDraft": { "type": "boolean" },
+            "draftLabel": { "type": ["string", "null"] },
+            "number": { "type": ["string", "null"] },
+            "numberLabel": { "type": "string" },
+            "meta": { "type": "array" },
+            "seller": { "type": "object" },
+            "buyer": { "type": "object" },
+            "shipTo": { "type": "object" },
+            "columns": { "type": "array" },
+            "rows": { "type": "array" },
+            "totals": { "type": "array" },
+            "taxSummary": { "type": ["object", "null"] },
+            "amountInWords": { "type": "string" },
+            "homeTotals": { "type": "string" },
+            "reverseChargeNote": { "type": "string" },
+            "notes": { "type": "array" },
+            "payment": { "type": "object" },
+            "signature": { "type": "object" },
+            "footer": { "type": "object" }
+          }
         }
       }
     },

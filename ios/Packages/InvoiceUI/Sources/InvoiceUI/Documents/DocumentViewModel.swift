@@ -168,6 +168,29 @@ final class DocumentViewModel {
         state.isLoaded = true
     }
 
+    // MARK: PDF preview (`spec/pdf/RENDERING.md`, `spec/documents.md` §8)
+
+    /// The open preview sheet, or nil. It lives beside `State` because it is a view model, not a value.
+    var preview: DocumentPreviewViewModel?
+
+    var canPreview: Bool { computed != nil }
+
+    /// What the renderer draws. A draft is prepared exactly as it would be stored, so the seller and buyer
+    /// snapshots on the page are the ones that would be frozen at issue.
+    var documentToRender: Document {
+        isDraft ? rules.preparedDraft(state.document, client: state.client) : state.document
+    }
+
+    /// The Preview button and ⌘P. A draft is saved first, so the file matches what is on screen.
+    func openPreview() async {
+        guard let computed, preview == nil else { return }
+        if isDraft { await flush() }
+        preview = DocumentPreviewViewModel(session: session, document: documentToRender,
+                                           computed: computed) { [weak self] sentAt in
+            self?.state.document.sentAt = sentAt
+        }
+    }
+
     /// Saves now if anything changed (before issuing, leaving the screen or going to the background).
     func flush() async {
         saveTask?.cancel()
@@ -480,7 +503,7 @@ final class DocumentViewModel {
         for index in lines.indices { lines[index].position = index }
     }
 
-    // MARK: Actions (§6–8)
+    // MARK: Actions (§6–9)
 
     /// Issue tapped: shows what blocks issuing, or asks for confirmation with the number it will get.
     func requestIssue() async {
@@ -557,6 +580,7 @@ final class DocumentViewModel {
             state.isPersisted = false
             state.document.lines = []
             state.document.clientId = nil
+            await session.pdfLibrary.forget(documentID: state.document.id)
             session.router.documents.didRemove(state.document.id)
         } catch {
             state.errorMessage = "The draft couldn't be deleted."

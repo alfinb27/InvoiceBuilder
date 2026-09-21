@@ -30,6 +30,7 @@ struct DocumentScreen: View {
             if phase != .active { Task { await model.flush() } }
         }
         .focusedSceneValue(\.documentEditor, model)
+        .sheet(item: $model.preview) { DocumentPreviewView(model: $0) }
         .alert("Something went wrong", isPresented: errorBinding) {
             Button("OK", role: .cancel) { model.dismissError() }
         } message: {
@@ -48,32 +49,38 @@ private enum BuilderSheet: String, Identifiable {
     var id: String { rawValue }
 }
 
-/// The invoice / quote builder (wireframe 8): a form, and on wide screens a totals and tax panel beside it (the PDF
-/// preview takes that place in Phase 3).
+/// What the wide layout's right pane shows.
+private enum BuilderPane: String, CaseIterable {
+    case preview, totals
+
+    var label: String { rawValue.capitalized }
+}
+
+/// The invoice / quote builder (wireframe 8): a form, and on wide screens the live PDF preview beside it, with the
+/// totals and tax panel a tap away.
 struct DocumentBuilderView: View {
     @Bindable var model: DocumentViewModel
     let session: Session
     @State private var width: CGFloat = 0
     @State private var sheet: BuilderSheet?
     @State private var confirmingDelete = false
+    @State private var pane: BuilderPane = .preview
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
-    private var twoPane: Bool { width >= 760 }
+    /// iPad only, and only where the detail column is wide enough: it is the third of three columns, so that
+    /// means a large iPad in landscape, Stage Manager, or the list collapsed. An iPhone in landscape is wide
+    /// enough but stays compact, where the form needs the whole screen.
+    private var twoPane: Bool { width >= 700 && sizeClass == .regular }
+    private var paneWidth: CGFloat { width >= 900 ? 400 : 340 }
 
     var body: some View {
         HStack(spacing: 0) {
             BuilderForm(model: model, session: session, showsTotals: !twoPane, sheet: $sheet)
             if twoPane {
                 Divider()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Theme.Space.l) {
-                        Text("Totals").font(.headline)
-                        TotalsView(computed: model.computed, error: model.engineError,
-                                   currency: model.state.document.currency, config: model.config, session: session)
-                    }
-                    .padding(Theme.Space.l)
-                }
-                .frame(width: 340)
-                .background(Theme.surfaceMuted)
+                sidePane
+                    .frame(width: paneWidth)
+                    .background(Theme.surfaceMuted)
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
@@ -102,6 +109,31 @@ struct DocumentBuilderView: View {
         }
     }
 
+    /// The preview of the draft as it is edited, or the totals and tax panel.
+    private var sidePane: some View {
+        VStack(spacing: 0) {
+            Picker("Pane", selection: $pane) {
+                ForEach(BuilderPane.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(Theme.Space.m)
+            .accessibilityIdentifier("builderPane")
+            Divider()
+            switch pane {
+            case .preview:
+                DocumentPreviewPane(session: session, document: model.documentToRender, computed: model.computed)
+                    .accessibilityIdentifier("builderPreview")
+            case .totals:
+                ScrollView {
+                    TotalsView(computed: model.computed, error: model.engineError,
+                               currency: model.state.document.currency, config: model.config, session: session)
+                        .padding(Theme.Space.l)
+                }
+            }
+        }
+    }
+
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
@@ -114,6 +146,11 @@ struct DocumentBuilderView: View {
             .keyboardShortcut(.return, modifiers: .command)
             .disabled(!model.canRequestIssue)
             .accessibilityIdentifier("issueButton")
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button("Preview", systemImage: "doc.richtext") { Task { await model.openPreview() } }
+                .disabled(!model.canPreview)
+                .accessibilityIdentifier("previewButton")
         }
         ToolbarItem(placement: .secondaryAction) {
             Menu {

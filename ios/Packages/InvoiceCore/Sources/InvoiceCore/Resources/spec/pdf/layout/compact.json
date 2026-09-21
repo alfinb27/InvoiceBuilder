@@ -1,0 +1,39 @@
+{
+  "$schema": "../../schema/pdf-layout.schema.json",
+  "id": "compact",
+  "label": "Compact",
+  "description": "Small type and tight rows so a long bill fits on fewer pages; the parties sit side by side under a one-line header.",
+  "page": { "margins": { "top": 34, "right": 34, "bottom": 28, "left": 34 }, "footerHeight": 20 },
+  "style": {
+    "fontSizes": { "title": 15, "heading": 9, "body": 8, "small": 7 },
+    "lineHeight": 1.25,
+    "colors": {
+      "text": "#111827",
+      "muted": "#4B5563",
+      "rule": "#D2D8E0",
+      "onAccent": "#FFFFFF",
+      "tableHeaderFill": "#EEF1F5"
+    },
+    "accentUse": ["title", "tableHeaderFill"],
+    "rule": { "width": 0.5 },
+    "table": {
+      "headerWeight": "bold",
+      "headerUppercase": true,
+      "rowPadding": { "vertical": 3, "horizontal": 4 },
+      "rowRule": "below"
+    },
+    "blockSpacing": 11,
+    "logo": { "maxWidth": 100, "maxHeight": 32 },
+    "qrSize": 68,
+    "signatureHeight": 32
+  },
+  "blocks": [
+    { "id": "header", "variant": "logoLeft" },
+    { "id": "parties", "variant": "twoColumns" },
+    { "id": "items", "variant": "compact" },
+    { "id": "totals", "variant": "right" },
+    { "id": "payment", "variant": "stacked" },
+    { "id": "notes", "variant": "stacked" },
+    { "id": "signature", "variant": "right" }
+  ]
+}

@@ -18,6 +18,28 @@ public struct EngineInput: Sendable {
     }
 }
 
+public extension EngineInput {
+    /// The engine input of a document: its own fields plus the seller and buyer it is billed to — the stored
+    /// snapshots for an issued document, the live business and client for a draft (`spec/documents.md` §4).
+    init(document: Document, seller: EngineSeller, buyer: EngineBuyer, config: TaxConfig,
+         currencies: CurrencyCatalog) {
+        let draft = EngineDraft(
+            docType: document.docType, issueDate: document.issueDate, supplyDate: document.supplyDate,
+            dueDate: document.dueDate, currency: document.currency,
+            exchangeRate: document.exchangeRate?.trimmedOrNil, supplyType: document.supplyType,
+            placeOfSupply: document.placeOfSupply?.trimmedOrNil, reverseCharge: document.reverseCharge,
+            pricesIncludeTax: document.pricesIncludeTax,
+            lines: document.lines.map { line in
+                EngineLine(description: line.description, productCode: line.productCode, quantity: line.quantity,
+                           unitPrice: line.unitPriceMinor, discount: line.discount, rateId: line.rateId)
+            },
+            discount: document.discount, shipping: document.shippingMinor > 0 ? document.shippingMinor : nil,
+            roundOff: document.roundOff
+        )
+        self.init(config: config, seller: seller, buyer: buyer, draft: draft, currencies: currencies)
+    }
+}
+
 public struct EngineSeller: Codable, Hashable, Sendable {
     public var registration: String
     public var taxId: String?

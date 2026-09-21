@@ -26,7 +26,9 @@ make validate-spec   # validate configs + fixtures against the schemas and consi
 make test-ios        # iOS: core + data (swift test), InvoiceUI and UI tests (simulator; needs Xcode)
 ```
 
-Status: **Phase 2 built and tested on simulators** (tax engine and document core proven by 337 fixtures; the
-invoice and quote builder on iPhone and iPad) — see [`docs/phase-2-status.md`](docs/phase-2-status.md). The fixture
-review by a CA and a UK accountant is the open gate. Earlier phases: [`docs/phase-1-status.md`](docs/phase-1-status.md),
+Status: **Phase 3 built and tested on simulators** (documents render to PDF in four templates, with the preview,
+template switcher, share, print and the iPad live preview; 346 fixtures pass) — see
+[`docs/phase-3-status.md`](docs/phase-3-status.md). The fixture review by a CA and a UK accountant, and the
+friends-and-family TestFlight, are the open gates. Earlier phases:
+[`docs/phase-2-status.md`](docs/phase-2-status.md), [`docs/phase-1-status.md`](docs/phase-1-status.md),
 [`docs/phase-0-status.md`](docs/phase-0-status.md).

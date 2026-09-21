@@ -50,3 +50,12 @@ Added in Phase 2 (`spec/documents.md`, fixtures `spec/fixtures/tax/gb-combinatio
     Should the rate instead default to something (e.g. HMRC's monthly rate) with a warning?
 11. Invoice numbers come from a series per device (e.g. `INV-0001` on the iPhone, `INV-B0001` on an iPad), allocated
     only at issue and never reused. Does "a sequential number based on one or more series" cover this?
+
+Added in Phase 3 (`spec/pdf/RENDERING.md`, samples from `make pdf-samples`):
+
+12. On a foreign-currency invoice the VAT summary gains a sterling column and the totals show the sterling
+    equivalent with the rate used. Does that meet "VAT payable in sterling" for a euro invoice?
+13. With VAT rounded per invoice, the line rows carry no VAT column and the per-rate summary does the work. Is that
+    layout acceptable for a full VAT invoice?
+14. The domestic reverse charge note reads "Reverse charge: customer to account for VAT to HMRC" with the VAT
+    amount shown but not charged. Is the wording and the presentation right?

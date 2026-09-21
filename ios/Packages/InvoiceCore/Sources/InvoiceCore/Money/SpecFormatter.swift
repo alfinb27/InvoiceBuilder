@@ -39,6 +39,14 @@ public struct SpecFormatter: Sendable {
         DecimalString.canonical(value) ?? value
     }
 
+    /// `19 Sep 2026`: the day without a leading zero, the English month abbreviation and the year. Documents read
+    /// the same on every device and locale (`spec/pdf/RENDERING.md` §1.4).
+    public static func date(_ date: LocalDate) -> String {
+        let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        let month = (1...12).contains(date.month) ? months[date.month - 1] : String(date.month)
+        return "\(date.day) \(month) \(date.year)"
+    }
+
     /// Groups integer digits from the right: first group `sizes[0]`, then the last size repeatedly.
     static func group(_ integer: String, sizes: [Int]) -> String {
         guard let first = sizes.first, first > 0 else { return integer }

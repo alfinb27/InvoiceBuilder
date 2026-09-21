@@ -7,7 +7,7 @@ import Testing
 @Suite("Spec fixtures")
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
-                                        "distribute", "words", "status", "upi", "document"]
+                                        "distribute", "words", "status", "upi", "document", "pdf"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -293,6 +293,31 @@ struct FixtureTests {
         case let op:
             Issue.record("\(fixture.id): unknown op \(op)")
         }
+    }
+
+    // MARK: pdf/RENDERING.md §1
+
+    struct PDFCaseInput: Decodable {
+        let template: String
+        let document: Document
+    }
+
+    static let pdfLabels = try! PDFLabels.bundled()
+    static let reference = try! ReferenceData.bundled()
+
+    @Test(arguments: Fixtures.cases(kind: "pdf"))
+    func pdf(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(PDFCaseInput.self, from: fixture.inputData)
+        let document = input.document
+        let config = try #require(Self.configs.config(ref: document.taxConfigRef))
+        let seller = try #require(document.sellerSnapshot)
+        let engineInput = EngineInput(document: document, seller: seller.engineSeller,
+                                      buyer: document.buyerSnapshot?.engineBuyer ?? EngineBuyer(), config: config,
+                                      currencies: Self.currencies)
+        let computed = try TaxEngine.compute(engineInput)
+        let model = PDFModelBuilder.build(document: document, computed: computed, config: config,
+                                          labels: Self.pdfLabels, reference: Self.reference)
+        expectFixture(fixture, try JSONValue.encoding(model))
     }
 
     // MARK: ENGINE.md §9

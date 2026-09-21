@@ -9,6 +9,11 @@ import Testing
 enum TestEnvironment {
     static let today = LocalDate(iso: "2026-09-19")!
 
+    /// A cache of its own per session, so a test never reads a file another test wrote.
+    static func pdfDirectory() -> URL {
+        FileManager.default.temporaryDirectory.appending(path: "InvoicePDFTests-\(UUID().uuidString)")
+    }
+
     static func dependencies() throws -> AppDependencies {
         try AppDependencies.inMemory(time: .fixed(now: 1_789_800_000_000, today: today), ids: .sequential())
     }
@@ -18,7 +23,8 @@ enum TestEnvironment {
         let dependencies = try dependencies()
         let device = try await dependencies.deviceState.loadOrCreate(deviceName: "Test")
         let business = try await SampleData.seed(country, dependencies: dependencies, deviceID: device.id)
-        return try Session(dependencies: dependencies, business: business, deviceID: device.id)
+        return try Session(dependencies: dependencies, business: business, deviceID: device.id,
+                           pdfDirectory: pdfDirectory())
     }
 
     /// A GENERIC (United States) business that charges an 8.875% sales tax.
@@ -38,7 +44,8 @@ enum TestEnvironment {
             from: draft, id: dependencies.ids.make(), now: 1, today: today, newID: dependencies.ids.make)
         let created = try await dependencies.setup.createBusiness(business, series: [], logo: nil, signature: nil,
                                                                   deviceID: device.id)
-        return try Session(dependencies: dependencies, business: created, deviceID: device.id)
+        return try Session(dependencies: dependencies, business: created, deviceID: device.id,
+                           pdfDirectory: pdfDirectory())
     }
 }
 
