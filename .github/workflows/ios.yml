@@ -35,6 +35,8 @@ jobs:
           name=$(xcrun simctl list devices available | grep -m1 -oE 'iPhone [0-9]+( Pro)?' || true)
           echo "Using simulator: $name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
+      - name: PDF renderer tests
+        run: make test-pdf-ios SIM="${{ steps.sim.outputs.name }}"
       - name: InvoiceUI view-model tests
         run: make test-ui-ios SIM="${{ steps.sim.outputs.name }}"
       - name: App UI smoke tests

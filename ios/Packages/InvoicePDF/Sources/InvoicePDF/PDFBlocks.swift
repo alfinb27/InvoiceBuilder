@@ -504,8 +504,9 @@ extension PDFComposer {
         return UIImage(cgImage: cgImage)
     }
 
-    /// Building a `CIContext` costs more than drawing the code; it is immutable and safe to share.
-    private static let ciContext = CIContext()
+    /// Building a `CIContext` costs more than drawing the code, and Core Image documents the class as safe to use
+    /// from several threads at once. It is not marked `Sendable` in every SDK, hence `nonisolated(unsafe)`.
+    private nonisolated(unsafe) static let ciContext = CIContext()
 
     func labelText(_ key: String) -> String {
         PDFComposer.sharedLabels?.text(key) ?? key
