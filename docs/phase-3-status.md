@@ -34,7 +34,7 @@ intra/inter-state, composition, export, GB standard and reverse charge, a quote,
 |---|---|
 | Every PDF fixture's text expectations pass | ✅ 9/9 `pdf` cases (view model) + text extracted back out of the rendered file in `InvoicePDFTests` |
 | The 60-line invoice paginates correctly | ✅ repeated column headers, "Continued on next page", "Page n of m", every line once |
-| Generation takes ≤ 1 s on an XR-class device | ✅ 60 lines in ~0.2 s on the simulator (test asserts < 1 s); 🔲 to confirm on a real device |
+| Generation takes ≤ 1 s on an XR-class device | ✅ 60 lines in ~0.2 s on the simulator; the test asserts the cost stays within 12× a one-line invoice (machine-independent) plus a 3 s ceiling; 🔲 to confirm on a real device |
 | CA and accountant confirm a GST invoice, Bill of Supply, export invoice and VAT invoice | 🔲 samples ready to send (see "Your next actions") |
 
 ## Test counts
@@ -94,6 +94,17 @@ placeholder text), so the change was reviewed by hand, as in Phase 2. Five thing
    you want: declining leaves the document unchanged, so sharing again asks again. The spec now says that.
 
 A sixth, cosmetic: the preview's local `print(_ url:)` shadowed Swift's `print`; it is now `airPrint(_:)`.
+
+Two more came from CI, which builds with the runner's Xcode 16.4 rather than a local beta:
+
+7. **The shared `CIContext` did not compile there** — the class is not marked `Sendable` in that SDK, so Swift 6
+   rejected the `static let`. It is `nonisolated(unsafe)` now, with Core Image's thread-safety guarantee written
+   down beside it. `ios/CLAUDE.md` now says plainly that CI is the stricter compiler.
+8. **`make test-pdf-ios` was not in the workflow**, so nothing on CI compiled the renderer's own tests. It runs
+   before the InvoiceUI step now — which is how 7 was found.
+9. **The one-second render assertion measured the runner, not the code** (1.2 s there, 0.2 s locally). It now
+   asserts that 60 lines stay within 12× a one-line invoice — that catches a layout pass turning quadratic on any
+   machine — with a loose 3 s ceiling behind it.
 
 ## Your next actions
 
