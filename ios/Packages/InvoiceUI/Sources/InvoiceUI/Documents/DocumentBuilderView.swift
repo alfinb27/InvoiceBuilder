@@ -70,13 +70,37 @@ private enum BuilderPane: String, CaseIterable {
     var label: String { rawValue.capitalized }
 }
 
+/// Measured once per layout pass (ADR-0016). `hingeDivision` is only ever non-nil on iOS 27.1+, when the device
+/// reports a physical crease within this view's bounds.
+private struct BuilderGeometry: Equatable {
+    var width: CGFloat = 0
+    var hingeDivision: CGRect?
+}
+
+/// Isolates the iOS 27.1 hinge API behind `if #available` so the call site doesn't need to (ADR-0016). No-op,
+/// `isPartiallyOpen` stays `false`, on every earlier OS.
+private struct HingeObserver: ViewModifier {
+    @Binding var isPartiallyOpen: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 27.1, *) {
+            content.onHingeChange { _, new in
+                isPartiallyOpen = new.hinge?.status == .partiallyOpen
+            }
+        } else {
+            content
+        }
+    }
+}
+
 /// The guided builder (`docs/design/design.md` §6.4): who, what and when as three numbered cards, everything else
 /// under More options, and the totals with Review & send pinned at the bottom. On wide iPads the live PDF preview
-/// sits beside it.
+/// sits beside it; on a half-folded iPhone Duo it sits above the crease (ADR-0016).
 struct DocumentBuilderView: View {
     @Bindable var model: DocumentViewModel
     let session: Session
-    @State private var width: CGFloat = 0
+    @State private var geometry = BuilderGeometry()
+    @State private var hingeIsPartiallyOpen = false
     @State private var choosingClient = false
     @State private var confirmingDelete = false
     @State private var showsBreakdown = false
@@ -85,27 +109,42 @@ struct DocumentBuilderView: View {
 
     /// iPad only, and only where the detail column is wide enough: it is the third of three columns, so that
     /// means a large iPad in landscape, Stage Manager, or the list collapsed. An iPhone in landscape is wide
-    /// enough but stays compact, where the form needs the whole screen.
-    private var twoPane: Bool { width >= 700 && sizeClass == .regular }
-    private var paneWidth: CGFloat { width >= 900 ? 400 : 340 }
+    /// enough but stays compact, where the form needs the whole screen. Also covers the unfolded iPhone Duo
+    /// inner display in landscape, which reports the same width/size-class combination (ADR-0016).
+    private var twoPane: Bool { geometry.width >= 700 && sizeClass == .regular }
+    private var paneWidth: CGFloat { geometry.width >= 900 ? 400 : 340 }
+
+    /// ADR-0016: hinge `.partiallyOpen` (tabletop posture) with a known crease position. Side by side across a
+    /// physical fold is unusable, so this takes priority over `twoPane`.
+    private var foldSplit: Bool { hingeIsPartiallyOpen && geometry.hingeDivision != nil }
 
     var body: some View {
-        HStack(spacing: 0) {
-            GuidedBuilderForm(model: model, session: session, choosingClient: $choosingClient)
-                .safeAreaInset(edge: .bottom) {
-                    TotalsBar(model: model, session: session, showsBreakdown: $showsBreakdown)
+        Group {
+            if foldSplit, let divisionFrame = geometry.hingeDivision {
+                foldSplitPane(dividedAt: divisionFrame)
+            } else {
+                HStack(spacing: 0) {
+                    form
+                    if twoPane {
+                        Divider()
+                        sidePane
+                            .frame(width: paneWidth)
+                            .background(Theme.surfaceMuted)
+                    }
                 }
-            if twoPane {
-                Divider()
-                sidePane
-                    .frame(width: paneWidth)
-                    .background(Theme.surfaceMuted)
             }
         }
         .background(Theme.background)
         // iPhone: the builder has the screen to itself, as in the design; the tab bar returns when it closes.
         .toolbar(sizeClass == .compact ? .hidden : .automatic, for: .tabBar)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .modifier(HingeObserver(isPartiallyOpen: $hingeIsPartiallyOpen))
+        .onGeometryChange(for: BuilderGeometry.self) { proxy in
+            var next = BuilderGeometry(width: proxy.size.width)
+            if #available(iOS 27.1, *) {
+                next.hingeDivision = proxy.reservedRegions(kind: .division).first?.frame
+            }
+            return next
+        } action: { geometry = $0 }
         .navigationTitle(DocumentText.title(model.state.document, isPersisted: model.state.isPersisted))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
@@ -137,6 +176,26 @@ struct DocumentBuilderView: View {
     /// The "Add an item" sheet follows `state.lineEditor`; swiping it away cancels, as Cancel does.
     private var lineEditorBinding: Binding<DocumentViewModel.LineEditorState?> {
         Binding(get: { model.state.lineEditor }, set: { if $0 == nil { model.cancelLineEditor() } })
+    }
+
+    private var form: some View {
+        GuidedBuilderForm(model: model, session: session, choosingClient: $choosingClient)
+            .safeAreaInset(edge: .bottom) {
+                TotalsBar(model: model, session: session, showsBreakdown: $showsBreakdown)
+            }
+    }
+
+    /// The preview/totals pane above the physical crease, the form below it. `divisionFrame` is the hinge's
+    /// reserved region (`reservedRegions(kind: .division)`) in this view's own coordinate space, so its `minY`
+    /// and `height` mark exactly where nothing should be drawn.
+    private func foldSplitPane(dividedAt divisionFrame: CGRect) -> some View {
+        VStack(spacing: 0) {
+            sidePane
+                .frame(height: max(divisionFrame.minY, 0))
+                .background(Theme.surfaceMuted)
+            Color.clear.frame(height: divisionFrame.height)
+            form
+        }
     }
 
     /// The preview of the draft as it is edited, or the totals and tax panel.
