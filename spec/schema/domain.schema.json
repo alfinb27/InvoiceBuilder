@@ -709,6 +709,14 @@
             }
           ]
         },
+        "reminderDaysAfterDueOverride": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Per-invoice override of business.reminderDaysAfterDue (spec/reminders.md §1); null defers to the business default."
+        },
         "validUntil": {
           "oneOf": [
             {
