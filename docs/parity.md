@@ -5,23 +5,23 @@ feature. Status legend: ☐ not started · ◐ in progress · ☑ done · — no
 
 | Area | Feature | Spec | iOS/iPadOS | Android |
 |---|---|---|---|---|
-| Core | All `spec/fixtures` pass (count = `make validate-spec` total, 346 at spec v0.3) | ☑ | ☑ 346/346 | ☐ |
+| Core | All `spec/fixtures` pass (count = `make validate-spec` total, 355 at spec v0.4) | ☑ | ☑ 355/355 | ☐ |
 | Core | Tax engine (IN, GB, GENERIC) | ☑ v0 (`ENGINE.md`, 105 `tax` fixtures, review pending) | ☑ (93.7% region coverage) | ☐ |
 | Core | Numbering, status, formatting, amount in words, tax ID validation, UPI links | ☑ v0 | ☑ | ☐ |
 | Core | Draft defaults and catalogue prices on documents (`document` fixtures) | ☑ `documents.md` §2–3 | ☑ | ☐ |
-| Data | SQLite schema + migrations (GRDB / Room) | ☑ v0 (2 migrations) | ☑ migrations run the spec SQL; tested equal to `schema.sql` | ☐ |
+| Data | SQLite schema + migrations (GRDB / Room) | ☑ v0 (3 migrations) | ☑ migrations run the spec SQL; tested equal to `schema.sql` (incl. 0003, `MigrationTests`) | ☐ |
 | Setup | Onboarding (country, registration, business, tax ID, bank/UPI, logo, signature) | ☑ `setup.md` §3 | ☑ | ☐ |
 | Setup | Clients (B2B/B2C, addresses, tax ID) | ☑ `setup.md` §5 | ☑ | ☐ |
 | Setup | Settings: business profile, invoice defaults, numbering series, custom rates (GENERIC), logo and signature | ☑ `setup.md` §4, 6, 7, 9 | ☑ | ☐ |
 | Setup | Field rules and typed amounts (`field`, `input` fixtures) | ☑ `setup.md` §8, 11 | ☑ | ☐ |
 | Setup | Item catalogue (unit, price, rate, HSN/SAC, inclusive flag) | ☑ `setup.md` §10 | ☑ | ☐ |
 | Documents | Invoice builder (lines, discounts, shipping, currency, supply type, reverse charge), autosaved drafts | ☑ `documents.md` §2–5 | ☑ | ☐ |
-| Documents | Quotes + convert to invoice; duplicate | ☑ `documents.md` §7 | ☑ | ☐ |
-| Documents | Issue (number allocation, snapshots, free counter) + void | ◐ issue ☑ `documents.md` §6; void in Phase 4 | ◐ issue ☑; void in Phase 4 | ☐ |
+| Documents | Quotes + convert to invoice; duplicate; accept/decline | ☑ `documents.md` §7, §12 | ☑ convert/duplicate; accept/decline via the Actions menu ("Mark accepted"/"Mark declined") | ☐ |
+| Documents | Issue (number allocation, snapshots, free counter) + void | ☑ `documents.md` §6, §11 | ☑ issue; void via the Actions menu (reason alert), reason/voided-at shown on a voided document | ☐ |
 | PDF | 4 templates, preview, share (WhatsApp), print, save | ☑ `pdf/RENDERING.md`, `pdf/layout/*.json`, 9 `pdf` fixtures | ☑ `InvoicePDF` + preview screen, share sheet, AirPrint, Save to Files | ☐ |
 | PDF | UPI QR, amount in words, signature | ☑ `RENDERING.md` §1.3 | ☑ CIQRCodeGenerator; words from the engine; signature image or a line to sign | ☐ |
-| Tracking | Payments, derived status, list + dashboard, search | ☐ | ☐ | ☐ |
-| Tracking | Overdue reminders (local notifications / WorkManager) | ☐ | ☐ | ☐ |
+| Tracking | Payments, derived status, list + dashboard, search | ☑ `documents.md` §10; status already `ENGINE.md` §6 | ☑ data layer; Invoices list status segments (All/Unpaid/Overdue/Paid) + date-range filter + search; Home dashboard tiles (home currency only); client detail outstanding balance + document list; "Record payment" sheet + a read-only, swipe-to-delete Payments section on the issued document | ☐ |
+| Tracking | Overdue reminders (local notifications / WorkManager) | ☑ `reminders.md`, 9 `reminder` fixtures | ☑ `ReminderScheduler` (core, fixture-proven); `NotificationScheduling`-backed local notifications; reconciled on launch, after issuing an invoice, after a payment recorded/removed, after a void, after the business default changes; per-invoice override in the builder; "Send reminder" share action | ☐ |
 | Data safety | Backup export + restore (cross-platform file) | ☑ v0 | ☐ | ☐ |
 | Sync | iCloud sync between Apple devices | ☐ | ☐ | — |
 | Billing | Free tier (15), paywall, purchase, restore/refresh, refunds | ☑ v0 | ☐ | ☐ |

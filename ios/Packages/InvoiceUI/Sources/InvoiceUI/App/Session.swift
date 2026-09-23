@@ -33,6 +33,14 @@ public final class Session {
                                     assets: dependencies.assets, directory: pdfDirectory)
     }
 
+    /// Re-plans and replaces this business's local reminders (`spec/reminders.md` §3): at launch, after issuing an
+    /// invoice, after a payment is recorded or removed, after a void, and after the business default changes.
+    func reconcileReminders() async {
+        let reconciler = ReminderReconciler(dependencies: dependencies)
+        await reconciler.requestAuthorizationIfNeeded()
+        await reconciler.reconcile(businessID: business.id)
+    }
+
     /// Keeps `business` in step with the database (edits in Settings show everywhere at once).
     func observeBusiness() async {
         do {
@@ -74,6 +82,13 @@ public final class Session {
         router.selectedTab = .documents
         router.documents.docType = docType
         router.documents.selection = .new(docType, id: dependencies.ids.make())
+    }
+
+    /// Opens an existing invoice or quote in the Invoices tab (a client's document list, a search result).
+    public func openDocument(_ id: String, docType: DocumentType) {
+        router.selectedTab = .documents
+        router.documents.docType = docType
+        router.documents.open(id)
     }
 
     var registration: TaxRegistration? { config.registration(business.taxRegistration) }

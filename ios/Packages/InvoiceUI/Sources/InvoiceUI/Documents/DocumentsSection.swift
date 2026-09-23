@@ -30,15 +30,25 @@ final class DocumentListViewModel {
         }
     }
 
-    /// Drafts and issued documents of one type matching the search (client name or number).
-    func visible(docType: DocumentType, query: String) -> (drafts: [DocumentSummary], issued: [DocumentSummary]) {
+    /// Drafts and issued documents of one type matching the search (client name or number), the date range and,
+    /// for invoices, the status segment. Drafts ignore the status filter (they have their own section) but not the
+    /// search or date range.
+    func visible(docType: DocumentType, query: String, statusFilter: InvoiceStatusFilter,
+                dateFilter: DocumentDateFilter, today: LocalDate) -> (drafts: [DocumentSummary], issued: [DocumentSummary]) {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let from = dateFilter.from(today: today)
         let rows = state.documents.filter { summary in
-            summary.docType == docType && (needle.isEmpty
-                || summary.buyerName?.range(of: needle, options: .caseInsensitive) != nil
-                || summary.number?.range(of: needle, options: .caseInsensitive) != nil)
+            summary.docType == docType
+                && (needle.isEmpty
+                    || summary.buyerName?.range(of: needle, options: .caseInsensitive) != nil
+                    || summary.number?.range(of: needle, options: .caseInsensitive) != nil)
+                && (from == nil || summary.issueDate >= from!)
         }
-        return (rows.filter { $0.lifecycle == .draft }, rows.filter { $0.lifecycle != .draft })
+        let issued = rows.filter { $0.lifecycle != .draft }
+        let filteredIssued = docType == .invoice
+            ? issued.filter { statusFilter.matches($0.status(today: today)) }
+            : issued
+        return (rows.filter { $0.lifecycle == .draft }, filteredIssued)
     }
 
     func deleteDraft(_ summary: DocumentSummary) async {
@@ -98,7 +108,8 @@ private struct DocumentList: View {
     @State private var pendingDelete: DocumentSummary?
 
     var body: some View {
-        let rows = model.visible(docType: router.docType, query: router.searchText)
+        let rows = model.visible(docType: router.docType, query: router.searchText, statusFilter: router.statusFilter,
+                                 dateFilter: router.dateFilter, today: session.today)
         List(selection: selection) {
             if !rows.drafts.isEmpty {
                 Section("Drafts") {
@@ -112,15 +123,24 @@ private struct DocumentList: View {
             }
         }
         .safeAreaInset(edge: .top) {
-            Picker("Show", selection: $router.docType) {
-                Text("Invoices").tag(DocumentType.invoice)
-                Text("Quotes").tag(DocumentType.quote)
+            VStack(spacing: Theme.Space.s) {
+                Picker("Show", selection: $router.docType) {
+                    Text("Invoices").tag(DocumentType.invoice)
+                    Text("Quotes").tag(DocumentType.quote)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("documentTypePicker")
+                if router.docType == .invoice {
+                    Picker("Status", selection: $router.statusFilter) {
+                        ForEach(InvoiceStatusFilter.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("invoiceStatusFilter")
+                }
             }
-            .pickerStyle(.segmented)
             .padding(.horizontal, Theme.Space.l)
             .padding(.vertical, Theme.Space.s)
             .background(.bar)
-            .accessibilityIdentifier("documentTypePicker")
         }
         .overlay {
             if model.state.isLoading {
@@ -141,6 +161,16 @@ private struct DocumentList: View {
                     session.startNewDocument(router.docType)
                 }
                 .accessibilityIdentifier("newDocument")
+            }
+            ToolbarItem(placement: .secondaryAction) {
+                Menu {
+                    Picker("Date range", selection: $router.dateFilter) {
+                        ForEach(DocumentDateFilter.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                } label: {
+                    Label("Date range", systemImage: "calendar")
+                }
+                .accessibilityIdentifier("documentDateFilter")
             }
         }
         .confirmationDialog("Delete this draft?", isPresented: deleteBinding, titleVisibility: .visible,
@@ -180,6 +210,10 @@ private struct DocumentList: View {
         let noun = DocumentText.noun(router.docType)
         if !router.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
             ContentUnavailableView.search(text: router.searchText)
+        } else if router.statusFilter != .all || router.dateFilter != .allTime,
+                  model.state.documents.contains(where: { $0.docType == router.docType }) {
+            ContentUnavailableView("No matching \(noun)s", systemImage: "line.3.horizontal.decrease.circle",
+                                   description: Text("Try a different status or date range."))
         } else {
             ContentUnavailableView {
                 Label("No \(noun)s yet", systemImage: "doc.text")

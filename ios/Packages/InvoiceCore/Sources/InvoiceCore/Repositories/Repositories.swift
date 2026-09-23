@@ -74,9 +74,13 @@ public protocol DocumentRepository: Sendable {
     func highestIssuedSequence(seriesID: String, periodKey: String) async throws -> Int?
     /// Records that an issued document was sent (`spec/documents.md` §8); nil clears it again.
     func markSent(documentID: String, at timestamp: Int64?) async throws
+    /// Home dashboard totals (`docs/plan.md` Phase 4); home-currency invoices only, see `DashboardTotals`.
+    func observeDashboard(businessID: String, homeCurrency: CurrencyCode) -> AsyncThrowingStream<DashboardTotals, any Error>
+    /// Live, issued invoices as reminder candidates (`spec/reminders.md` §2), status already derived.
+    func fetchReminderCandidates(businessID: String) async throws -> [ReminderCandidate]
 }
 
-/// Document operations that write several rows in one transaction (`spec/documents.md` §6–9).
+/// Document operations that write several rows in one transaction (`spec/documents.md` §6–9, §11–12).
 public protocol DocumentService: Sendable {
     /// `IssueDocument`: blocking problems, number, frozen snapshots, stored results and the free-tier counter.
     func issue(documentID: String, deviceID: String) async throws -> Document
@@ -86,6 +90,12 @@ public protocol DocumentService: Sendable {
     func convertQuote(documentID: String) async throws -> Document
     /// Tombstones a draft (and releases the quote it was converted from).
     func deleteDraft(documentID: String) async throws
+    /// Terminal: a live issued document becomes `void` (`spec/documents.md` §11). `reason` is trimmed and required.
+    func voidDocument(documentID: String, reason: String) async throws -> Document
+    /// The buyer accepted an issued quote (`spec/documents.md` §12); valid even after `validUntil` has passed.
+    func acceptQuote(documentID: String) async throws -> Document
+    /// The buyer declined an issued quote (`spec/documents.md` §12); valid even after `validUntil` has passed.
+    func declineQuote(documentID: String) async throws -> Document
 }
 
 public enum DocumentServiceError: Error, Equatable, Sendable {
@@ -96,4 +106,33 @@ public enum DocumentServiceError: Error, Equatable, Sendable {
     case notConvertible
     /// Issuing is blocked; nothing was written.
     case blocked([IssueProblem])
+    /// `not_voidable`: only a live issued document.
+    case notVoidable
+    /// Void needs a non-empty reason.
+    case voidReasonRequired
+    /// `already_converted`: a converted quote cannot be reopened.
+    case alreadyConverted
+    /// `not_a_live_quote`: only an issued quote can be accepted or declined.
+    case notALiveQuote
+}
+
+public protocol PaymentRepository: Sendable {
+    /// Live payments of a document, most recent date first.
+    func observePayments(documentID: String) -> AsyncThrowingStream<[Payment], any Error>
+    func fetchPayments(documentID: String) async throws -> [Payment]
+    /// Writes a tombstone (correcting a payment is delete-and-re-add, `spec/documents.md` §10).
+    func softDelete(paymentID: String) async throws
+}
+
+/// Records a payment after checking the document (`spec/documents.md` §10), one write.
+public protocol PaymentService: Sendable {
+    @discardableResult
+    func recordPayment(documentID: String, amountMinor: Int64, date: LocalDate, method: PaymentMethod,
+                       reference: String?, note: String?) async throws -> Payment
+}
+
+public enum PaymentServiceError: Error, Equatable, Sendable {
+    case documentNotFound
+    /// `not_payable`: only a live, issued invoice.
+    case notPayable
 }

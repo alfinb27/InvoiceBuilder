@@ -56,6 +56,7 @@ final class BusinessProfileViewModel {
             try await session.dependencies.businesses.save(rules.updating(business, from: state.draft))
             state.attemptedSave = false
             state.didSave = true
+            await session.reconcileReminders() // the default may have changed (`spec/reminders.md` §3)
         } catch {
             state.errorMessage = "Your changes couldn't be saved."
         }

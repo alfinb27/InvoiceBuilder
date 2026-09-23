@@ -153,12 +153,13 @@ struct ClientDetailView: View {
     let session: Session
     let clientID: String
     @State private var client: Client?
+    @State private var documents: [DocumentSummary] = []
     @State private var loaded = false
 
     var body: some View {
         Group {
             if let client {
-                ClientDetailContent(client: client, session: session)
+                ClientDetailContent(client: client, documents: documents, session: session)
             } else if loaded {
                 ContentUnavailableView("Client not found", systemImage: "person.crop.circle.badge.questionmark")
             } else {
@@ -173,21 +174,41 @@ struct ClientDetailView: View {
             }
         }
         .task(id: clientID) {
-            do {
-                for try await latest in session.dependencies.clients.observeClient(id: clientID) {
-                    client = latest
-                    loaded = true
-                }
-            } catch {
+            async let clientTask: Void = loadClient()
+            async let documentsTask: Void = loadDocuments()
+            _ = await (clientTask, documentsTask)
+        }
+    }
+
+    private func loadClient() async {
+        do {
+            for try await latest in session.dependencies.clients.observeClient(id: clientID) {
+                client = latest
                 loaded = true
             }
+        } catch {
+            loaded = true
         }
+    }
+
+    /// Client-side filter, matching how the Invoices tab already loads the business's documents in one stream.
+    private func loadDocuments() async {
+        do {
+            for try await all in session.dependencies.documents.observeDocuments(businessID: session.business.id) {
+                documents = all.filter { $0.clientId == clientID }
+            }
+        } catch {}
     }
 }
 
 private struct ClientDetailContent: View {
     let client: Client
+    let documents: [DocumentSummary]
     let session: Session
+
+    private var outstandingByCurrency: [(currency: CurrencyCode, minor: Int64)] {
+        documents.outstandingByCurrency(today: session.today)
+    }
 
     var body: some View {
         Form {
@@ -229,13 +250,52 @@ private struct ClientDetailContent: View {
             if let notes = client.notes {
                 Section("Notes") { Text(notes) }
             }
+            if !outstandingByCurrency.isEmpty {
+                Section("Outstanding") {
+                    ForEach(outstandingByCurrency, id: \.currency) { entry in
+                        LabeledContent(entry.currency.rawValue, value: session.money(entry.minor, currency: entry.currency))
+                            .monospacedDigit()
+                    }
+                }
+            }
             Section {
-                Text("Invoices and quotes for this client will appear here.")
-                    .foregroundStyle(Theme.textSecondary)
+                if documents.isEmpty {
+                    Text("Invoices and quotes for this client will appear here.")
+                        .foregroundStyle(Theme.textSecondary)
+                } else {
+                    ForEach(documents) { document in
+                        Button { session.openDocument(document.id, docType: document.docType) } label: {
+                            ClientDocumentRow(summary: document, session: session)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             } header: {
                 Text("Documents")
             }
         }
+    }
+}
+
+private struct ClientDocumentRow: View {
+    let summary: DocumentSummary
+    let session: Session
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: Theme.Space.xxs) {
+                Text(summary.number ?? "Draft \(DocumentText.noun(summary.docType))")
+                    .foregroundStyle(summary.number == nil ? .secondary : .primary)
+                Text(summary.issueDate.displayText).font(.caption).foregroundStyle(.tertiary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: Theme.Space.xxs) {
+                Text(session.money(summary.totalMinor, currency: summary.currency)).monospacedDigit()
+                StatusTag(status: summary.status(today: session.today))
+            }
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 

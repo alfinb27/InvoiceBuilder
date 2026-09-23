@@ -68,12 +68,51 @@ public struct GRDBDocumentRepository: DocumentRepository {
         if changed == 0 { throw DocumentServiceError.notFound }
     }
 
+    public func observeDashboard(businessID: String, homeCurrency: CurrencyCode)
+        -> AsyncThrowingStream<DashboardTotals, any Error> {
+        let time = self.time
+        return database.observe { db in
+            try Self.dashboard(businessID: businessID, homeCurrency: homeCurrency, today: time.today(), db: db)
+        }
+    }
+
+    public func fetchReminderCandidates(businessID: String) async throws -> [ReminderCandidate] {
+        let today = time.today()
+        return try await database.writer.read { db in
+            try Self.reminderCandidates(businessID: businessID, today: today, db: db)
+        }
+    }
+
+    /// Live, issued invoices (`spec/reminders.md` §2); each candidate's status is derived here, once, so the
+    /// scheduler never has to.
+    static func reminderCandidates(businessID: String, today: LocalDate, db: Database) throws -> [ReminderCandidate] {
+        let rows = try Row.fetchAll(db, sql: """
+            SELECT d.id, d.due_date, d.total_minor, d.sent_at, d.reminder_days_after_due_override,
+                   (SELECT COALESCE(SUM(p.amount_minor), 0) FROM payment p
+                    WHERE p.document_id = d.id AND p.deleted_at IS NULL) AS paid_minor
+            FROM document d
+            WHERE d.business_id = ? AND d.deleted_at IS NULL AND d.doc_type = 'invoice' AND d.lifecycle = 'issued'
+            """, arguments: [businessID])
+        return try rows.map { row in
+            let dueDateText: String? = row["due_date"]
+            let dueDate = try dueDateText.map(DocumentRecord.date)
+            let input = DocumentStatus.Input(docType: .invoice, lifecycle: .issued, total: row["total_minor"],
+                                             paid: row["paid_minor"], dueDate: dueDate, sentAt: row["sent_at"],
+                                             today: today)
+            return ReminderCandidate(documentId: row["id"], dueDate: dueDate,
+                                     overrideDays: row["reminder_days_after_due_override"],
+                                     status: DocumentStatus.derive(input))
+        }
+    }
+
     /// The list rows: newest issue date first, then the most recently edited.
     static func summaries(businessID: String, db: Database) throws -> [DocumentSummary] {
         let rows = try Row.fetchAll(db, sql: """
             SELECT d.id, d.doc_type, d.number, d.lifecycle, d.issue_date, d.due_date, d.valid_until, d.sent_at,
                    d.quote_outcome, d.client_id, d.buyer_snapshot, d.currency, d.total_minor, d.updated_at,
-                   (SELECT COUNT(*) FROM line_item l WHERE l.document_id = d.id AND l.deleted_at IS NULL) AS line_count
+                   (SELECT COUNT(*) FROM line_item l WHERE l.document_id = d.id AND l.deleted_at IS NULL) AS line_count,
+                   (SELECT COALESCE(SUM(p.amount_minor), 0) FROM payment p
+                    WHERE p.document_id = d.id AND p.deleted_at IS NULL) AS paid_minor
             FROM document d
             WHERE d.business_id = ? AND d.deleted_at IS NULL
             ORDER BY d.issue_date DESC, d.updated_at DESC, d.id
@@ -90,9 +129,51 @@ public struct GRDBDocumentRepository: DocumentRepository {
                 dueDate: try dueDate.map(DocumentRecord.date), validUntil: try validUntil.map(DocumentRecord.date),
                 sentAt: row["sent_at"], quoteOutcome: quoteOutcome.map(QuoteOutcome.init(rawValue:)),
                 clientId: row["client_id"], buyerName: buyer?.name, currency: CurrencyCode(rawValue: row["currency"]),
-                totalMinor: row["total_minor"], lineCount: row["line_count"], updatedAt: row["updated_at"]
+                totalMinor: row["total_minor"], paidMinor: row["paid_minor"], lineCount: row["line_count"],
+                updatedAt: row["updated_at"]
             )
         }
+    }
+
+    /// Outstanding, overdue and paid-this-month, home-currency issued invoices only (`DashboardTotals`). Status is
+    /// derived in Swift via `DocumentStatus.derive`, the single source of truth for `ENGINE.md` §6, rather than
+    /// duplicating that precedence in SQL.
+    static func dashboard(businessID: String, homeCurrency: CurrencyCode, today: LocalDate, db: Database) throws
+        -> DashboardTotals {
+        let rows = try Row.fetchAll(db, sql: """
+            SELECT d.due_date, d.total_minor, d.sent_at,
+                   (SELECT COALESCE(SUM(p.amount_minor), 0) FROM payment p
+                    WHERE p.document_id = d.id AND p.deleted_at IS NULL) AS paid_minor
+            FROM document d
+            WHERE d.business_id = ? AND d.deleted_at IS NULL AND d.doc_type = 'invoice'
+                  AND d.lifecycle = 'issued' AND d.currency = ?
+            """, arguments: [businessID, homeCurrency.rawValue])
+        var outstanding: Int64 = 0
+        var overdue: Int64 = 0
+        for row in rows {
+            let dueDate: String? = row["due_date"]
+            let input = DocumentStatus.Input(
+                docType: .invoice, lifecycle: .issued, total: row["total_minor"], paid: row["paid_minor"],
+                dueDate: try dueDate.map(DocumentRecord.date), sentAt: row["sent_at"], today: today)
+            let status = DocumentStatus.derive(input)
+            let due = DocumentStatus.outstanding(input) ?? 0
+            if status != .paid { outstanding += due }
+            if status == .overdue { overdue += due }
+        }
+
+        let monthStart = LocalDate(year: today.year, month: today.month, day: 1) ?? today
+        let nextMonthStart = today.month == 12
+            ? (LocalDate(year: today.year + 1, month: 1, day: 1) ?? today)
+            : (LocalDate(year: today.year, month: today.month + 1, day: 1) ?? today)
+        let paidThisMonth = try Int64.fetchOne(db, sql: """
+            SELECT COALESCE(SUM(p.amount_minor), 0) FROM payment p
+            JOIN document d ON d.id = p.document_id
+            WHERE d.business_id = ? AND d.deleted_at IS NULL AND d.currency = ?
+                  AND p.deleted_at IS NULL AND p.date >= ? AND p.date < ?
+            """, arguments: [businessID, homeCurrency.rawValue, monthStart.iso, nextMonthStart.iso]) ?? 0
+
+        return DashboardTotals(outstandingMinor: outstanding, overdueMinor: overdue,
+                               paidThisMonthMinor: paidThisMonth)
     }
 }
 
@@ -202,6 +283,55 @@ public struct GRDBDocumentService: DocumentService {
                         .updateAll(db, DBColumns.quoteOutcome.set(to: nil), DBColumns.updatedAt.set(to: now))
                 }
             }
+        }
+    }
+
+    public func voidDocument(documentID: String, reason: String) async throws -> Document {
+        guard let trimmedReason = reason.trimmedOrNil else { throw DocumentServiceError.voidReasonRequired }
+        let now = time.now()
+        return try await database.writer.write { db in
+            guard let record = try DocumentRecord.live.filter(key: documentID).fetchOne(db) else {
+                throw DocumentServiceError.notFound
+            }
+            guard record.lifecycle == DocumentLifecycle.issued.rawValue else { throw DocumentServiceError.notVoidable }
+            try DocumentRecord.live.filter(key: documentID).updateAll(
+                db, DBColumns.lifecycle.set(to: DocumentLifecycle.void.rawValue),
+                DBColumns.voidedAt.set(to: now), DBColumns.voidReason.set(to: trimmedReason),
+                DBColumns.updatedAt.set(to: now))
+            guard let updated = try DocumentRecord.fetchDocument(id: documentID, db: db) else {
+                throw DocumentServiceError.notFound
+            }
+            return updated
+        }
+    }
+
+    public func acceptQuote(documentID: String) async throws -> Document {
+        try await setQuoteOutcome(.accepted, documentID: documentID)
+    }
+
+    public func declineQuote(documentID: String) async throws -> Document {
+        try await setQuoteOutcome(.declined, documentID: documentID)
+    }
+
+    /// §12: the buyer's response to an issued quote, outside of converting it. Valid from `null` or the other
+    /// outcome (the buyer can change their mind); never from `converted`, and expiry does not block it.
+    private func setQuoteOutcome(_ outcome: QuoteOutcome, documentID: String) async throws -> Document {
+        let now = time.now()
+        return try await database.writer.write { db in
+            guard let record = try DocumentRecord.live.filter(key: documentID).fetchOne(db) else {
+                throw DocumentServiceError.notFound
+            }
+            guard record.docType == DocumentType.quote.rawValue,
+                  record.lifecycle == DocumentLifecycle.issued.rawValue else {
+                throw DocumentServiceError.notALiveQuote
+            }
+            if record.quoteOutcome == QuoteOutcome.converted.rawValue { throw DocumentServiceError.alreadyConverted }
+            try DocumentRecord.live.filter(key: documentID).updateAll(
+                db, DBColumns.quoteOutcome.set(to: outcome.rawValue), DBColumns.updatedAt.set(to: now))
+            guard let updated = try DocumentRecord.fetchDocument(id: documentID, db: db) else {
+                throw DocumentServiceError.notFound
+            }
+            return updated
         }
     }
 

@@ -22,7 +22,7 @@ let package = Package(
         ),
         .testTarget(
             name: "InvoiceUITests",
-            dependencies: ["InvoiceUI"]
+            dependencies: ["InvoiceUI", "InvoiceData"]
         ),
     ],
     swiftLanguageModes: [.v6]

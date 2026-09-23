@@ -2,12 +2,12 @@ import Foundation
 import Testing
 @testable import InvoiceCore
 
-/// Runs the golden fixtures that InvoiceCore implements so far. Kinds still waiting for Phase 2a are listed in
+/// Runs the golden fixtures that InvoiceCore implements so far. Kinds still waiting for a runner are listed in
 /// `pendingKinds`, so the fixture count stays an explicit parity metric (`docs/parity.md`).
 @Suite("Spec fixtures")
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
-                                        "distribute", "words", "status", "upi", "document", "pdf"]
+                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -328,5 +328,38 @@ struct FixtureTests {
                                      amountMinor: try #require(fixture.input["amountMinor"]?.intValue),
                                      invoiceNumber: try fixture.string("invoiceNumber"))
         expectFixture(fixture, .object(["url": .string(url)]))
+    }
+
+    // MARK: reminders.md §3
+
+    struct ReminderCandidateInput: Decodable {
+        let documentId: String
+        let dueDate: String?
+        let overrideDays: Int?
+        let status: String
+    }
+
+    struct ReminderPlanInput: Decodable {
+        let businessDefaultDays: Int?
+        let cap: Int
+        let candidates: [ReminderCandidateInput]
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "reminder"))
+    func reminder(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(ReminderPlanInput.self, from: fixture.inputData)
+        var candidates: [ReminderCandidate] = []
+        for candidate in input.candidates {
+            let status = try #require(DocumentStatus(rawValue: candidate.status))
+            candidates.append(ReminderCandidate(documentId: candidate.documentId,
+                                                dueDate: candidate.dueDate.flatMap(LocalDate.init(iso:)),
+                                                overrideDays: candidate.overrideDays, status: status))
+        }
+        let scheduled = ReminderScheduler.plan(businessDefaultDays: input.businessDefaultDays, cap: input.cap,
+                                               candidates: candidates)
+        expectFixture(fixture, .object([
+            "scheduled": .array(scheduled.map { .object(["documentId": .string($0.documentId),
+                                                          "remindOn": .string($0.remindOn.iso)]) }),
+        ]))
     }
 }

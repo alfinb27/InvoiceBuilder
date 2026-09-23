@@ -25,12 +25,15 @@ final class DocumentPreviewViewModel: Identifiable {
     private let computed: ComputedDocument
     /// Tells the document screen the status changed.
     private let onSent: (Int64) -> Void
+    /// Set only when opened from "Send reminder" (`spec/reminders.md` §4): shared alongside the PDF.
+    let reminderMessage: String?
 
     init(session: Session, document: InvoiceCore.Document, computed: ComputedDocument,
-         onSent: @escaping (Int64) -> Void = { _ in }) {
+         reminderMessage: String? = nil, onSent: @escaping (Int64) -> Void = { _ in }) {
         self.session = session
         self.document = document
         self.computed = computed
+        self.reminderMessage = reminderMessage
         self.onSent = onSent
         id = document.id
         state = State(template: document.templateId, sentAt: document.sentAt)
@@ -168,7 +171,10 @@ struct DocumentPreviewView: View {
     /// prompt must not appear when the sheet was cancelled.
     private func share(_ url: URL) {
         guard let window = Self.keyWindow, let presenter = Self.topViewController else { return }
-        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        var items: [Any] = []
+        if let message = model.reminderMessage { items.append(message) }
+        items.append(url)
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
         controller.completionWithItemsHandler = { _, completed, _, _ in
             if completed { model.didShare() }
         }

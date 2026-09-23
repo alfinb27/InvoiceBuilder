@@ -62,6 +62,9 @@ public final class DocumentsRouter {
     /// The document in the detail column (pushed on iPhone).
     public var selection: DocumentRoute?
     public var searchText = ""
+    /// Meaningful for invoices only; quotes ignore it.
+    public var statusFilter: InvoiceStatusFilter = .all
+    public var dateFilter: DocumentDateFilter = .allTime
 
     public init() {}
 
@@ -70,6 +73,54 @@ public final class DocumentsRouter {
     /// After a draft was deleted: stop showing it.
     public func didRemove(_ id: String) {
         if selection?.id == id { selection = nil }
+    }
+}
+
+/// The Invoices list's status segments (`docs/plan.md` Phase 4: "All / Unpaid / Overdue / Paid").
+public enum InvoiceStatusFilter: String, CaseIterable, Hashable, Sendable {
+    case all, unpaid, overdue, paid
+
+    public var label: String {
+        switch self {
+        case .all: "All"
+        case .unpaid: "Unpaid"
+        case .overdue: "Overdue"
+        case .paid: "Paid"
+        }
+    }
+
+    /// True when an issued invoice's derived status belongs in this segment.
+    public func matches(_ status: DocumentStatus) -> Bool {
+        switch self {
+        case .all: true
+        case .unpaid: status == .issued || status == .sent || status == .partiallyPaid || status == .overdue
+        case .overdue: status == .overdue
+        case .paid: status == .paid
+        }
+    }
+}
+
+/// A quick date-range filter on `issueDate` for the Invoices/Quotes list.
+public enum DocumentDateFilter: String, CaseIterable, Hashable, Sendable {
+    case allTime, thisMonth, last30Days, last3Months
+
+    public var label: String {
+        switch self {
+        case .allTime: "All time"
+        case .thisMonth: "This month"
+        case .last30Days: "Last 30 days"
+        case .last3Months: "Last 3 months"
+        }
+    }
+
+    /// The inclusive lower bound for `issueDate`, or nil for no lower bound.
+    public func from(today: LocalDate) -> LocalDate? {
+        switch self {
+        case .allTime: nil
+        case .thisMonth: LocalDate(year: today.year, month: today.month, day: 1) ?? today
+        case .last30Days: today.adding(days: -30)
+        case .last3Months: today.adding(days: -90)
+        }
     }
 }
 

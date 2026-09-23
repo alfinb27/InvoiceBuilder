@@ -17,6 +17,8 @@ final class DocumentViewModel {
         var clientMissing = false
         /// The engine result: recomputed for drafts, the stored one for issued documents.
         var result: Result<ComputedDocument, TaxEngineError>?
+        /// This invoice's live payments (`documents.md` §10), newest first; empty for quotes and drafts.
+        var payments: [Payment] = []
 
         // Typed fields, kept as typed; the document holds their last valid value.
         var discountText = ""
@@ -160,6 +162,9 @@ final class DocumentViewModel {
                 state.client = try await dependencies.clients.fetchClient(id: clientID)
                 state.clientMissing = state.client == nil
             }
+            if state.document.docType == .invoice, state.document.lifecycle == .issued {
+                state.payments = try await dependencies.payments.fetchPayments(documentID: state.document.id)
+            }
         } catch {
             state.errorMessage = "This document couldn't be opened."
         }
@@ -181,14 +186,27 @@ final class DocumentViewModel {
         isDraft ? rules.preparedDraft(state.document, client: state.client) : state.document
     }
 
-    /// The Preview button and ⌘P. A draft is saved first, so the file matches what is on screen.
-    func openPreview() async {
+    /// The Preview button and ⌘P. A draft is saved first, so the file matches what is on screen. `reminderMessage`
+    /// is set only by "Send reminder" (`spec/reminders.md` §4), shared alongside the PDF.
+    func openPreview(reminderMessage: String? = nil) async {
         guard let computed, preview == nil else { return }
         if isDraft { await flush() }
-        preview = DocumentPreviewViewModel(session: session, document: documentToRender,
-                                           computed: computed) { [weak self] sentAt in
+        preview = DocumentPreviewViewModel(session: session, document: documentToRender, computed: computed,
+                                           reminderMessage: reminderMessage) { [weak self] sentAt in
             self?.state.document.sentAt = sentAt
         }
+    }
+
+    /// "Send reminder" (`spec/reminders.md` §4): available while the derived status is not paid and not void.
+    var canSendReminder: Bool {
+        state.document.docType == .invoice && state.document.status(today: session.today, paid: paidMinor) != .paid
+            && state.document.lifecycle != .void
+    }
+
+    func sendReminder() async {
+        guard canSendReminder else { return }
+        await openPreview(reminderMessage: ReminderMessage.text(document: state.document, paidMinor: paidMinor,
+                                                                 session: session))
     }
 
     /// Saves now if anything changed (before issuing, leaving the screen or going to the background).
@@ -302,6 +320,11 @@ final class DocumentViewModel {
     /// Payment-terms presets: due N days after the issue date.
     func setDue(daysAfterIssue days: Int) {
         mutate { $0.dueDate = $0.issueDate.adding(days: days) }
+    }
+
+    /// Nil defers to `business.reminderDaysAfterDue` (`spec/reminders.md` §1).
+    func setReminderOverride(_ days: Int?) {
+        mutate { $0.reminderDaysAfterDueOverride = days }
     }
 
     func setValidUntil(_ date: LocalDate) {
@@ -541,6 +564,7 @@ final class DocumentViewModel {
             state.issueProblems = []
             state.lineEditor = nil
             recompute()
+            if issued.docType == .invoice { await session.reconcileReminders() }
         } catch DocumentServiceError.blocked(let problems) {
             state.issueProblems = problems
         } catch {
@@ -566,6 +590,76 @@ final class DocumentViewModel {
         } catch {
             state.errorMessage = "The quote couldn't be converted."
         }
+    }
+
+    // MARK: Void, quote outcome and payments (§10–12)
+
+    var canVoid: Bool { state.document.lifecycle == .issued }
+    var canRespondToQuote: Bool {
+        state.document.docType == .quote && state.document.lifecycle == .issued
+            && state.document.quoteOutcome != .converted
+    }
+    var canRecordPayment: Bool { state.document.docType == .invoice && state.document.lifecycle == .issued }
+    var paidMinor: Int64 { state.payments.reduce(0) { $0 + $1.amountMinor } }
+
+    /// Terminal: turns a live issued document into `void` (`spec/documents.md` §11). `reason` is trimmed by the
+    /// service; an empty one is rejected there, not here, so the same message covers both.
+    func voidDocument(reason: String) async {
+        guard canVoid else { return }
+        state.isWorking = true
+        defer { state.isWorking = false }
+        do {
+            state.document = try await session.dependencies.documentService.voidDocument(
+                documentID: state.document.id, reason: reason)
+            reconcileReminders()
+        } catch DocumentServiceError.voidReasonRequired {
+            state.errorMessage = "Add a reason before voiding."
+        } catch {
+            state.errorMessage = "The \(DocumentText.noun(state.document.docType)) couldn't be voided."
+        }
+    }
+
+    func acceptQuote() async {
+        await respondToQuote { try await session.dependencies.documentService.acceptQuote(documentID: $0) }
+    }
+
+    func declineQuote() async {
+        await respondToQuote { try await session.dependencies.documentService.declineQuote(documentID: $0) }
+    }
+
+    private func respondToQuote(_ action: (String) async throws -> Document) async {
+        guard canRespondToQuote else { return }
+        state.isWorking = true
+        defer { state.isWorking = false }
+        do {
+            state.document = try await action(state.document.id)
+        } catch {
+            state.errorMessage = "The quote couldn't be updated."
+        }
+    }
+
+    /// The payment sheet already wrote it (`PaymentEditorViewModel.save()`); this just keeps the list and status
+    /// shown here in step, without a round trip back to the database.
+    func recordedPayment(_ payment: Payment) {
+        state.payments.insert(payment, at: 0)
+        reconcileReminders()
+    }
+
+    /// Correcting a payment is delete-and-re-add, never an in-place edit (`spec/documents.md` §10).
+    func deletePayment(_ payment: Payment) async {
+        do {
+            try await session.dependencies.payments.softDelete(paymentID: payment.id)
+            state.payments.removeAll { $0.id == payment.id }
+            reconcileReminders()
+        } catch {
+            state.errorMessage = "The payment couldn't be removed."
+        }
+    }
+
+    /// Fire-and-forget: a payment, a void or an issue can change reminder eligibility (`spec/reminders.md` §3).
+    private func reconcileReminders() {
+        let session = self.session
+        Task { await session.reconcileReminders() }
     }
 
     func deleteDraft() async {
