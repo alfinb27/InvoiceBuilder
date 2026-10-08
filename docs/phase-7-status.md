@@ -31,7 +31,7 @@
 | Reminders (daily WorkManager job, channel, permission at first issue) | ✅ | ADR-0013 / ADR-0018 |
 | Backup (SAF save/open, share, restore preview, open from other apps), Auto Backup rules | ✅ | iOS → Android restore covered by `DataTests`; 🔲 a manual round trip with a file from an iPhone |
 | Screenshot tests (Roborazzi) | ⏭ | not added; the device UI tests and the PDF samples cover the drawing. Add with the store screenshots |
-| Large screens (two-pane builder ≥ 700 dp, list/detail ≥ 600 dp, Ctrl+N) | ✅ / 🔲 | 🔲 foldable emulator (folded/unfolded) and freeform resizing pass |
+| Large screens (two-pane builder ≥ 700 dp, list/detail ≥ 600 dp, Ctrl+N) | ✅ / 🔲 | checked on the emulator resized to an unfolded foldable (2208×1840: rail + list + builder) and a 10" landscape tablet (rail + list + builder + live PDF preview); the open draft survived both resizes. 🔲 a real foldable fold/unfold and freeform windows |
 | Monkey test (no ANRs) | ✅ | 10,000 events (seeds 7, 99): no crash, no ANR. One earlier run flagged "no focused window" while the monkey had another app's screen open; the main thread was idle |
 | Generation ≤ 2 s on a low-end device | ◐ | 60 lines render in well under 1 s on the emulator (test bound 3 s); 🔲 a real low-end phone |
 
