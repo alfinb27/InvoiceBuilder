@@ -38,11 +38,25 @@ final class DocumentSmokeTests: XCTestCase {
         XCTAssertTrue(description.waitForExistence(timeout: 5))
         description.tap()
         description.typeText("Hosting setup\n")
-        // Submitting the description moves the focus, and a loaded runner needs a moment to lay the field out.
-        let price = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Price")).firstMatch
-        XCTAssertTrue(price.waitForExistence(timeout: 10), "the price field never appeared")
-        price.tap()
-        price.typeText("1000")
+        // Submitting the description moves the focus to the quantity; with the keyboard up, the price row can sit
+        // below the fold on a smaller simulator (CI's), where the Form has not created it yet. Scroll it into view.
+        let price = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label BEGINSWITH %@",
+                                                        "linePrice", "Price")).firstMatch
+        var attempts = 0
+        while !(price.waitForExistence(timeout: 2) && price.isHittable) && attempts < 6 {
+            app.swipeUp(velocity: .slow)
+            attempts += 1
+        }
+        XCTAssertTrue(price.exists, "the price field never appeared")
+        // Keystrokes sent while the field is still taking focus are dropped on a slow runner: type, check, retry.
+        for _ in 0..<3 where !((price.value as? String) ?? "").contains("1000") {
+            price.tap()
+            if let typed = price.value as? String, !typed.isEmpty, !typed.hasPrefix("0.00") {
+                price.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: typed.count))
+            }
+            price.typeText("1000")
+        }
+        XCTAssertTrue(((price.value as? String) ?? "").contains("1000"), "price typed: \(price.value ?? "nil")")
         app.buttons["lineDone"].tap()
 
         // Totals: (5000 + 1000) × 1.18 = ₹7,080.00, from the engine
