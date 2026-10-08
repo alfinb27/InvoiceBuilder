@@ -50,13 +50,20 @@ final class DocumentSmokeTests: XCTestCase {
         }
         if !price.exists { print("PRICE-FIELD-MISSING hierarchy:\n\(app.debugDescription)") }
         XCTAssertTrue(price.exists, "the price field never appeared")
-        // Keystrokes sent while the field is still taking focus are dropped on a slow runner: type, check, retry.
-        for _ in 0..<3 where !((price.value as? String) ?? "").contains("1000") {
-            price.tap()
-            if let typed = price.value as? String, !typed.isEmpty, !typed.hasPrefix("0.00") {
-                price.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: typed.count))
+        // On a slow runner the tap can land before the field accepts focus, and `price.typeText` then fails outright
+        // ("Neither element nor any descendant has keyboard focus"). Tap until it has focus (by coordinate the second
+        // time), then type through the app, which sends keys to whatever is focused. Check, and retry.
+        for attempt in 0..<4 where !((price.value as? String) ?? "").contains("1000") {
+            if attempt.isMultiple(of: 2) {
+                price.tap()
+            } else {
+                price.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             }
-            price.typeText("1000")
+            guard waitForFocus(price) else { continue }
+            if let typed = price.value as? String, !typed.isEmpty, !typed.hasPrefix("0.00") {
+                app.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: typed.count))
+            }
+            app.typeText("1000")
         }
         XCTAssertTrue(((price.value as? String) ?? "").contains("1000"), "price typed: \(price.value ?? "nil")")
         app.buttons["lineDone"].tap()
@@ -130,6 +137,14 @@ final class DocumentSmokeTests: XCTestCase {
         let problem = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Add at least one line"))
             .firstMatch
         XCTAssertTrue(problem.waitForExistence(timeout: 5))
+    }
+
+    /// Waits up to two seconds for `element` to take keyboard focus.
+    @MainActor
+    private func waitForFocus(_ element: XCUIElement) -> Bool {
+        let focused = NSPredicate(format: "hasKeyboardFocus == true")
+        let expectation = XCTNSPredicateExpectation(predicate: focused, object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: 2) == .completed
     }
 
     /// Swipes up until `element` is on screen.
