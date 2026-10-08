@@ -34,6 +34,8 @@ struct LineEditorView: View {
                         FormTextField(title: "Quantity", text: text(\.quantityText),
                                       issue: message(.quantity, "quantity"), keyboard: .decimalPad)
                             .focused($focus, equals: .quantity)
+                            .submitLabel(.next)
+                            .onSubmit { focus = .price }
                             .accessibilityIdentifier("lineQuantity")
                         Picker("Unit", selection: unitBinding) {
                             Text("No unit").tag(String?.none)
@@ -46,6 +48,8 @@ struct LineEditorView: View {
                     FormTextField(title: priceTitle, text: text(\.priceText), prompt: "0.00",
                                   issue: message(.price, "price"), keyboard: .decimalPad)
                         .focused($focus, equals: .price)
+                        .submitLabel(.next)
+                        .onSubmit { focus = .discount }
                         .accessibilityIdentifier("linePrice")
                     discountRow
                 }

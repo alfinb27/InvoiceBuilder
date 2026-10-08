@@ -37,34 +37,18 @@ final class DocumentSmokeTests: XCTestCase {
         let description = app.textFields["Description"]
         XCTAssertTrue(description.waitForExistence(timeout: 5))
         description.tap()
-        // No Return here: on the iOS 18.5 SDK CI links against, Return can dismiss the line editor's popover.
-        description.typeText("Hosting setup")
-        // With the keyboard up, the price row can sit below the fold on a smaller simulator (CI's), where the Form
-        // has not created it yet. Scroll it into view.
-        let price = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label BEGINSWITH %@",
-                                                        "linePrice", "Price")).firstMatch
-        var attempts = 0
-        while !(price.waitForExistence(timeout: 2) && price.isHittable) && attempts < 6 {
-            app.swipeUp(velocity: .slow)
-            attempts += 1
-        }
-        if !price.exists { print("PRICE-FIELD-MISSING hierarchy:\n\(app.debugDescription)") }
-        XCTAssertTrue(price.exists, "the price field never appeared")
-        // On a slow runner the tap can land before the field accepts focus, and `price.typeText` then fails outright
-        // ("Neither element nor any descendant has keyboard focus"). Tap until it has focus (by coordinate the second
-        // time), then type through the app, which sends keys to whatever is focused. Check, and retry.
-        for attempt in 0..<4 where !((price.value as? String) ?? "").contains("1000") {
-            if attempt.isMultiple(of: 2) {
-                price.tap()
-            } else {
-                price.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-            }
-            guard waitForFocus(price) else { continue }
-            if let typed = price.value as? String, !typed.isEmpty, !typed.hasPrefix("0.00") {
-                app.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: typed.count))
-            }
-            app.typeText("1000")
-        }
+        // Return moves Description → Quantity → Price (the editor's own field order), so the price is reached
+        // without tapping it: on CI's iOS 18.5 simulator a tap there can land under the keyboard or outside the sheet.
+        description.typeText("Hosting setup\n")
+        // By identifier or label: SwiftUI puts a modifier's identifier on the field on some iOS versions only.
+        let quantity = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label == %@", "lineQuantity",
+                                                           "Quantity")).firstMatch
+        XCTAssertTrue(waitForFocus(quantity), "Return didn't move to the quantity")
+        app.typeText("\n")
+        let price = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label BEGINSWITH %@", "linePrice",
+                                                        "Price")).firstMatch
+        XCTAssertTrue(waitForFocus(price), "Return didn't move to the price")
+        app.typeText("1000")
         XCTAssertTrue(((price.value as? String) ?? "").contains("1000"), "price typed: \(price.value ?? "nil")")
         app.buttons["lineDone"].tap()
 
