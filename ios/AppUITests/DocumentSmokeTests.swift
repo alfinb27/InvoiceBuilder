@@ -37,9 +37,10 @@ final class DocumentSmokeTests: XCTestCase {
         let description = app.textFields["Description"]
         XCTAssertTrue(description.waitForExistence(timeout: 5))
         description.tap()
-        description.typeText("Hosting setup\n")
-        // Submitting the description moves the focus to the quantity; with the keyboard up, the price row can sit
-        // below the fold on a smaller simulator (CI's), where the Form has not created it yet. Scroll it into view.
+        // No Return here: on the iOS 18.5 SDK CI links against, Return can dismiss the line editor's popover.
+        description.typeText("Hosting setup")
+        // With the keyboard up, the price row can sit below the fold on a smaller simulator (CI's), where the Form
+        // has not created it yet. Scroll it into view.
         let price = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label BEGINSWITH %@",
                                                         "linePrice", "Price")).firstMatch
         var attempts = 0
