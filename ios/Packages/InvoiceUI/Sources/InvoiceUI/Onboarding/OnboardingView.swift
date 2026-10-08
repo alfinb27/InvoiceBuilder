@@ -195,6 +195,16 @@ private struct CountryStep: View {
             }
         }
         Section {
+            Button("Try it with a sample Indian business") { Task { await model.tryDemo(.india) } }
+                .accessibilityIdentifier("onboarding.demoIN")
+            Button("Try it with a sample UK business") { Task { await model.tryDemo(.uk) } }
+                .accessibilityIdentifier("onboarding.demoGB")
+        } header: {
+            Text("Just looking?")
+        } footer: {
+            Text("See invoices, quotes and payments in a sample business. Nothing you do there is saved.")
+        }
+        Section {
             Button {
                 model.backup.state.showsImporter = true
             } label: {

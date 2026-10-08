@@ -73,6 +73,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
+                    if session.isDemo { DemoBanner(session: session) }
                     BusinessCard(session: session)
                     if !session.entitlement.isUnlocked, session.entitlement.state != .unknown,
                        session.entitlement.remaining <= 3 {
@@ -82,8 +83,8 @@ struct HomeView: View {
                         DuplicateNumberWarning(group: group, session: session)
                     }
                     if model.state.dashboard != DashboardTotals() { dashboard }
-                    checklist
-                    comingNext
+                    if !setupComplete { checklist }
+                    quickActions
                     if session.config.reviewStatus != "reviewed" {
                         Label("\(session.config.labels.taxName) rules in this build are awaiting review by a professional.",
                               systemImage: "info.circle")
@@ -138,23 +139,32 @@ struct HomeView: View {
         }
     }
 
-    private var comingNext: some View {
+    /// Every setup step is done: the checklist steps aside.
+    private var setupComplete: Bool {
+        model.state.clientCount > 0 && model.state.itemCount > 0 && session.business.logoAssetId != nil
+            && session.business.signatureAssetId != nil
+    }
+
+    private var quickActions: some View {
         Card {
             VStack(alignment: .leading, spacing: Theme.Space.m) {
                 Label("Invoices and quotes", systemImage: "doc.text")
                     .font(.headline)
-                HStack(spacing: Theme.Space.m) {
-                    Button("New invoice", systemImage: "doc.badge.plus") { session.startNewDocument(.invoice) }
-                        .buttonStyle(.borderedProminent)
-                        .accessibilityIdentifier("homeNewInvoice")
-                    Button("New quote") { session.startNewDocument(.quote) }
-                        .buttonStyle(.bordered)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Theme.Space.m) { newButtons }
+                    VStack(alignment: .leading, spacing: Theme.Space.s) { newButtons }
                 }
-                Text("PDFs and sharing arrive in the next test build.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.textSecondary)
             }
         }
+    }
+
+    @ViewBuilder private var newButtons: some View {
+        Button("New invoice", systemImage: "doc.badge.plus") { session.startNewDocument(.invoice) }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("homeNewInvoice")
+        Button("New quote", systemImage: "doc.text.magnifyingglass") { session.startNewDocument(.quote) }
+            .buttonStyle(.bordered)
+            .foregroundStyle(Theme.textPrimary)
     }
 }
 
@@ -223,6 +233,7 @@ private struct ChecklistRow: View {
             if let action, !done {
                 Button(action.0, action: action.1)
                     .buttonStyle(.bordered)
+                    .tint(Theme.textPrimary) // neutral: brand text on a brand tint is too faint
                     .controlSize(.small)
             }
         }
@@ -292,5 +303,26 @@ private struct FreeTierBanner: View {
         .background(Theme.brand.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
         .sheet(isPresented: $showsPaywall) { PaywallView(session: session) }
         .accessibilityIdentifier("home.freeTier")
+    }
+}
+
+/// The sample business is not saved; leaving it goes back to setting up the real one.
+private struct DemoBanner: View {
+    let session: Session
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Label("This is a sample business", systemImage: "sparkles")
+                .font(.subheadline.weight(.semibold))
+            Text("Look around and try anything: nothing here is saved.")
+                .font(.footnote)
+                .foregroundStyle(Theme.textSecondary)
+            Button("Set up my business") { Task { await session.reloadApp() } }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("demo.leave")
+        }
+        .padding(Theme.Space.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.brand.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
     }
 }

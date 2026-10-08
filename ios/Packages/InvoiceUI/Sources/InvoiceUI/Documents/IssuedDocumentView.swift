@@ -80,6 +80,7 @@ struct IssuedDocumentView: View {
             }
         }
         .task(id: session.router.documents.pendingAction) { runPendingAction() }
+        .sensoryFeedback(.success, trigger: model.state.paymentsRecorded)
         .alert("Void this \(DocumentText.noun(document.docType))?", isPresented: $showingVoidAlert) {
             TextField("Reason", text: $voidReasonText)
                 .accessibilityIdentifier("voidReasonField")

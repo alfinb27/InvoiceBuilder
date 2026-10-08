@@ -28,13 +28,17 @@ public final class OnboardingViewModel {
     private let onFinished: @MainActor (Business) -> Void
     /// "Restore from a backup" instead of setting up (`spec/backup.md` §4): a new device can start from a file.
     let backup: BackupViewModel
+    /// "Try it with a sample business": explore a seeded business that is never saved.
+    let tryDemo: @MainActor (SampleData.Country) async -> Void
 
     public init(dependencies: AppDependencies, deviceID: String,
                 onRestored: @escaping @MainActor () async -> Void = {},
+                onTryDemo: @escaping @MainActor (SampleData.Country) async -> Void = { _ in },
                 onFinished: @escaping @MainActor (Business) -> Void) {
         self.dependencies = dependencies
         self.deviceID = deviceID
         self.onFinished = onFinished
+        tryDemo = onTryDemo
         backup = BackupViewModel(dependencies: dependencies, deviceID: deviceID, onRestored: onRestored)
     }
 

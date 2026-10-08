@@ -560,6 +560,17 @@ private struct AboutPage: View {
                     Text(session.deviceID).font(.caption.monospaced()).textSelection(.enabled)
                 }
             }
+            Section {
+                let reports = Diagnostics.shared.reports()
+                LabeledContent("Reports", value: "\(reports.count)")
+                if !reports.isEmpty {
+                    Button("Share diagnostic reports…") { SystemSheets.share(reports) { _ in } }
+                }
+            } header: {
+                Text("Diagnostics")
+            } footer: {
+                Text("Crash and performance reports from iOS. They stay on this device unless you share them, for example with support.")
+            }
         }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)

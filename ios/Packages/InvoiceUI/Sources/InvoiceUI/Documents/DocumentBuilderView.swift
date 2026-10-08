@@ -25,6 +25,10 @@ struct DocumentScreen: View {
             }
         }
         .task { await model.load() }
+        // A success tap when a draft becomes an issued document.
+        .sensoryFeedback(.success, trigger: model.state.document.lifecycle) { old, new in
+            old == .draft && new == .issued
+        }
         .onDisappear { Task { await model.close() } }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { Task { await model.flush() } }
@@ -149,9 +153,8 @@ struct DocumentBuilderView: View {
             Button {
                 Task { await model.requestIssue() }
             } label: {
-                if model.state.isWorking { ProgressView() } else { Text("Issue") }
+                if model.state.isWorking { ProgressView() } else { Text("Issue").fontWeight(.semibold) }
             }
-            .buttonStyle(.borderedProminent)
             .keyboardShortcut(.return, modifiers: .command)
             .disabled(!model.canRequestIssue)
             .accessibilityIdentifier("issueButton")

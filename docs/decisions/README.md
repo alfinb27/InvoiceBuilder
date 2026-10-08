@@ -16,6 +16,7 @@
 | [0012](ADR-0012-testing-strategy.md) | Fixture-driven core tests on both platforms | Accepted |
 | [0013](ADR-0013-backup-restore-reminders.md) | Portable JSON backup; local reminders | Accepted |
 | [0014](ADR-0014-ipad-support.md) | Universal, adaptive iPad app | Accepted |
-| [0015](ADR-0015-icloud-sync.md) | SQLiteData sync on GRDB, device-owned series | Proposed (spike) |
+| [0015](ADR-0015-icloud-sync.md) | SQLiteData sync on GRDB, device-owned series | Accepted in code (device run pending) |
+| [0017](ADR-0017-ios-release-and-lessons-for-android.md) | iOS 1.0 scope; lessons the Android port inherits | Accepted |
 
 New decisions: copy [`TEMPLATE.md`](TEMPLATE.md) to the next number.

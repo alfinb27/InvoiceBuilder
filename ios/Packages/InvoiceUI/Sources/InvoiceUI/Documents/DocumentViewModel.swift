@@ -19,6 +19,8 @@ final class DocumentViewModel {
         var result: Result<ComputedDocument, TaxEngineError>?
         /// This invoice's live payments (`documents.md` §10), newest first; empty for quotes and drafts.
         var payments: [Payment] = []
+        /// Payments recorded while this document is open (drives the success haptic).
+        var paymentsRecorded = 0
 
         // Typed fields, kept as typed; the document holds their last valid value.
         var discountText = ""
@@ -710,6 +712,7 @@ final class DocumentViewModel {
     /// shown here in step, without a round trip back to the database.
     func recordedPayment(_ payment: Payment) {
         state.payments.insert(payment, at: 0)
+        state.paymentsRecorded += 1
         reconcileReminders()
     }
 

@@ -118,3 +118,33 @@ struct HomeDashboardTests {
         #expect(home.state.dashboard.overdueMinor == 0) // due in the future (payment terms), not overdue
     }
 }
+
+@MainActor
+@Suite("List performance")
+struct ListPerformanceTests {
+    /// Phase 6: searching 1,000 invoices returns in under 100 ms (the list filters in memory).
+    @Test func searchingAThousandInvoicesIsFast() async throws {
+        let session = try await TestEnvironment.session(.india)
+        let model = DocumentListViewModel(session: session)
+        let today = TestEnvironment.today
+        let rows = (1...1_000).map { index in
+            DocumentSummary(id: "d\(index)", docType: .invoice, number: String(format: "INV/26-27/%04d", index),
+                            lifecycle: .issued, issueDate: today.adding(days: -(index % 300)),
+                            dueDate: today.adding(days: 30 - index % 300), validUntil: nil, sentAt: nil,
+                            quoteOutcome: nil, clientId: "c\(index % 40)", buyerName: "Client \(index % 40)",
+                            currency: .inr, totalMinor: Int64(index) * 1_000, paidMinor: index % 3 == 0 ? 1_000 : 0,
+                            lineCount: 3, updatedAt: Int64(index))
+        }
+        model.replaceForTesting(rows)
+        let clock = ContinuousClock()
+        var found = 0
+        let elapsed = clock.measure {
+            for query in ["Client 7", "0420", "inv/26", "zzz"] {
+                found += model.visible(docType: .invoice, query: query, statusFilter: .unpaid,
+                                       dateFilter: .last3Months, today: today).issued.count
+            }
+        }
+        #expect(found > 0)
+        #expect(elapsed < .milliseconds(100), "four searches took \(elapsed)")
+    }
+}

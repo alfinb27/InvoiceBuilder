@@ -38,6 +38,7 @@ public final class AppModel {
     public static func launch(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppModel {
         do {
             let (dependencies, seed) = try AppDependencies.forLaunch(arguments: arguments)
+            if seed == nil, !arguments.contains("-inMemory") { Diagnostics.shared.start() }
             return AppModel(dependencies: dependencies, seed: seed)
         } catch {
             return AppModel(failure: error)
@@ -67,8 +68,27 @@ public final class AppModel {
                 phase = .onboarding(OnboardingViewModel(
                     dependencies: dependencies, deviceID: deviceID,
                     onRestored: { [weak self] in await self?.reload() },
+                    onTryDemo: { [weak self] country in await self?.startDemo(country) },
                     onFinished: { [weak self] in self?.finishOnboarding(with: $0, deviceID: deviceID) }))
             }
+        } catch {
+            phase = .failed(String(describing: error))
+        }
+    }
+
+    /// Onboarding's "Try it with a sample business": a seeded business in an in-memory database, so nothing touches
+    /// the real one. Its session's `reloadApp` leaves the demo for the real start.
+    public func startDemo(_ country: SampleData.Country) async {
+        do {
+            let demo = try AppDependencies.inMemory()
+            let device = try await demo.deviceState.loadOrCreate(deviceName: UIDevice.current.name)
+            let business = try await SampleData.seed(country, dependencies: demo, deviceID: device.id)
+            try await SampleData.addDemoDocuments(business: business, dependencies: demo, deviceID: device.id)
+            await demo.entitlements.start()
+            let session = try Session(dependencies: demo, business: business, deviceID: device.id)
+            session.isDemo = true
+            session.reloadApp = { [weak self] in await self?.reload() }
+            phase = .ready(session)
         } catch {
             phase = .failed(String(describing: error))
         }

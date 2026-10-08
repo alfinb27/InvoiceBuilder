@@ -90,10 +90,10 @@ struct DesignTokens: Decodable, Sendable {
 
     /// Used only if the bundled tokens cannot be read (a packaging bug caught by tests).
     static let fallback: DesignTokens = {
-        let palette = Palette(brand: "#1F6FEB", brandOn: "#FFFFFF", background: "#F7F8FA", surface: "#FFFFFF",
+        let palette = Palette(brand: "#1A5FD6", brandOn: "#FFFFFF", background: "#F7F8FA", surface: "#FFFFFF",
                               surfaceMuted: "#EEF1F5", border: "#D8DEE6", textPrimary: "#111827",
-                              textSecondary: "#4B5563", textTertiary: "#6B7280", success: "#15803D",
-                              warning: "#B45309", danger: "#B91C1C", info: "#1D4ED8")
+                              textSecondary: "#4B5563", textTertiary: "#5B6371", success: "#126B33",
+                              warning: "#9A4A0B", danger: "#B91C1C", info: "#1D4ED8")
         return DesignTokens(color: Colors(light: palette, dark: palette), space: [:], radius: [:], layout: [:],
                             pdf: PDF(accentPresets: ["#1F6FEB"]))
     }()

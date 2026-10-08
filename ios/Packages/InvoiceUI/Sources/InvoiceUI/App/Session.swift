@@ -18,6 +18,8 @@ public final class Session {
     let pdfLibrary: PDFLibrary
     /// The unlock and the free-tier count, kept current by `observeEntitlements()` (`spec/billing.md`).
     public internal(set) var entitlement = EntitlementStatus(state: .unknown, count: 0)
+    /// A sample business in an in-memory database (onboarding's "Try it with a sample business"); nothing is saved.
+    public internal(set) var isDemo = false
     /// Rebuilds the app from the database (set by `AppModel`); a restore calls it.
     var reloadApp: @MainActor () async -> Void = {}
 
