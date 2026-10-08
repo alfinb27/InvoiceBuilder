@@ -21,7 +21,9 @@ on:
 
 jobs:
   test:
-    runs-on: macos-15
+    # macos-26 (Xcode 26.6, iOS 26 simulators), closer to the local Xcode than macos-15's default Xcode 16.4; the
+    # SQLiteData dependencies that phase-4b adds need Swift tools >= 6.2 anyway.
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
