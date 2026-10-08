@@ -202,6 +202,15 @@ struct RouterTests {
         router.didRemove("c1")
         #expect(router.selection == nil)
     }
+
+    @Test func aRowActionWaitsForItsDocument() {
+        let router = DocumentsRouter()
+        router.open("d1", then: .recordPayment)
+        #expect(router.selection == .existing("d1"))
+        #expect(router.takeAction(for: "d2") == nil)
+        #expect(router.takeAction(for: "d1") == .recordPayment)
+        #expect(router.takeAction(for: "d1") == nil) // consumed
+    }
 }
 
 @MainActor

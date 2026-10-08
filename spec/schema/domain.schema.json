@@ -802,18 +802,54 @@
           ]
         },
         "sellerSnapshot": {
-          "type": [
-            "object",
-            "null"
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "name",
+                "registration",
+                "country",
+                "homeCurrency"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "registration": {
+                  "type": "string"
+                },
+                "country": {
+                  "$ref": "#/$defs/country"
+                },
+                "homeCurrency": {
+                  "$ref": "#/$defs/currency"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
           ],
-          "description": "Engine seller fields plus display fields (spec/documents.md §4); re-taken on every draft save, frozen at issue."
+          "description": "Engine seller fields plus display fields (spec/documents.md §4); re-taken on every draft save, frozen at issue. Further keys are open (newer apps may add display fields)."
         },
         "buyerSnapshot": {
-          "type": [
-            "object",
-            "null"
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "isBusiness"
+              ],
+              "properties": {
+                "isBusiness": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
           ],
-          "description": "Engine buyer fields plus display fields (spec/documents.md §4); null when no client is chosen."
+          "description": "Engine buyer fields plus display fields (spec/documents.md §4); null when no client is chosen. Further keys are open."
         },
         "discount": {
           "oneOf": [
@@ -899,9 +935,13 @@
           }
         },
         "computed": {
-          "type": [
-            "object",
-            "null"
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ComputedDocument"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "Full ComputedDocument stored at issue (ENGINE.md §4)."
         }
@@ -1002,6 +1042,317 @@
           "contentEncoding": "base64"
         }
       }
+    },
+    "ComputedDocument": {
+      "type": "object",
+      "required": [
+        "title",
+        "chargesTax",
+        "reverseCharge",
+        "inclusive",
+        "lines",
+        "taxLines",
+        "totals",
+        "notes",
+        "issues"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "chargesTax": {
+          "type": "boolean"
+        },
+        "placeOfSupply": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sameRegion": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reverseCharge": {
+          "type": "boolean"
+        },
+        "inclusive": {
+          "type": "boolean"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "amount",
+              "discount",
+              "taxable",
+              "rateId",
+              "rate",
+              "category"
+            ],
+            "properties": {
+              "amount": {
+                "type": "integer"
+              },
+              "discount": {
+                "type": "integer"
+              },
+              "taxable": {
+                "type": "integer"
+              },
+              "rateId": {
+                "type": "string"
+              },
+              "rate": {
+                "$ref": "#/$defs/decimal"
+              },
+              "category": {
+                "type": "string"
+              },
+              "taxes": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rate",
+                    "amount"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rate": {
+                      "$ref": "#/$defs/decimal"
+                    },
+                    "amount": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "shipping": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "amount",
+                "taxable",
+                "parts"
+              ],
+              "properties": {
+                "amount": {
+                  "type": "integer"
+                },
+                "taxable": {
+                  "type": "integer"
+                },
+                "parts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rateId",
+                      "amount",
+                      "taxable"
+                    ],
+                    "properties": {
+                      "rateId": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "integer"
+                      },
+                      "taxable": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "taxLines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rate",
+              "category",
+              "taxable",
+              "tax",
+              "charged"
+            ],
+            "properties": {
+              "component": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "rate": {
+                "$ref": "#/$defs/decimal"
+              },
+              "category": {
+                "type": "string"
+              },
+              "taxable": {
+                "type": "integer"
+              },
+              "tax": {
+                "type": "integer"
+              },
+              "charged": {
+                "type": "boolean"
+              },
+              "homeTax": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "totals": {
+          "type": "object",
+          "required": [
+            "subtotal",
+            "discount",
+            "shipping",
+            "taxable",
+            "tax",
+            "taxNotCharged",
+            "roundOff",
+            "total"
+          ],
+          "properties": {
+            "subtotal": {
+              "type": "integer"
+            },
+            "discount": {
+              "type": "integer"
+            },
+            "shipping": {
+              "type": "integer"
+            },
+            "taxable": {
+              "type": "integer"
+            },
+            "tax": {
+              "type": "integer"
+            },
+            "taxNotCharged": {
+              "type": "integer"
+            },
+            "roundOff": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            }
+          }
+        },
+        "home": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "currency",
+                "rate",
+                "taxable",
+                "tax",
+                "total"
+              ],
+              "properties": {
+                "currency": {
+                  "$ref": "#/$defs/currency"
+                },
+                "rate": {
+                  "$ref": "#/$defs/decimal"
+                },
+                "taxable": {
+                  "type": "integer"
+                },
+                "tax": {
+                  "type": "integer"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "text",
+              "placement"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "placement": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code",
+              "severity"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string"
+              },
+              "lines": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "The engine result (ENGINE.md §4) as stored at issue. Objects stay open to keys a newer engine adds."
     }
   }
 }

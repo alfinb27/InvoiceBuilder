@@ -5,7 +5,7 @@ feature. Status legend: ☐ not started · ◐ in progress · ☑ done · — no
 
 | Area | Feature | Spec | iOS/iPadOS | Android |
 |---|---|---|---|---|
-| Core | All `spec/fixtures` pass (count = `make validate-spec` total, 355 at spec v0.4) | ☑ | ☑ 355/355 | ☐ |
+| Core | All `spec/fixtures` pass (count = `make validate-spec` total, 374 at spec v0.5) | ☑ | ☑ 374/374 | ☐ |
 | Core | Tax engine (IN, GB, GENERIC) | ☑ v0 (`ENGINE.md`, 105 `tax` fixtures, review pending) | ☑ (93.7% region coverage) | ☐ |
 | Core | Numbering, status, formatting, amount in words, tax ID validation, UPI links | ☑ v0 | ☑ | ☐ |
 | Core | Draft defaults and catalogue prices on documents (`document` fixtures) | ☑ `documents.md` §2–3 | ☑ | ☐ |
@@ -22,8 +22,8 @@ feature. Status legend: ☐ not started · ◐ in progress · ☑ done · — no
 | PDF | UPI QR, amount in words, signature | ☑ `RENDERING.md` §1.3 | ☑ CIQRCodeGenerator; words from the engine; signature image or a line to sign | ☐ |
 | Tracking | Payments, derived status, list + dashboard, search | ☑ `documents.md` §10; status already `ENGINE.md` §6 | ☑ data layer; Invoices list status segments (All/Unpaid/Overdue/Paid) + date-range filter + search; Home dashboard tiles (home currency only); client detail outstanding balance + document list; "Record payment" sheet + a read-only, swipe-to-delete Payments section on the issued document | ☐ |
 | Tracking | Overdue reminders (local notifications / WorkManager) | ☑ `reminders.md`, 9 `reminder` fixtures | ☑ `ReminderScheduler` (core, fixture-proven); `NotificationScheduling`-backed local notifications; reconciled on launch, after issuing an invoice, after a payment recorded/removed, after a void, after the business default changes; per-invoice override in the builder; "Send reminder" share action | ☐ |
-| Data safety | Backup export + restore (cross-platform file) | ☑ v0 | ☐ | ☐ |
+| Data safety | Backup export + restore (cross-platform file) | ☑ `backup.md`, 19 `backup` fixtures, `samples/` | ☑ `BackupCodec` (fixture-proven), `GRDBBackupService` (lossless round trip, one-transaction restore with tombstones, safety snapshots, series takeover); Settings → Backup (Save to Files, Share, restore with a count preview, "Last backup" + due badge); restore from onboarding; open `.invoicebackup` from Files/Mail; drop onto Settings on iPad | ☐ |
 | Sync | iCloud sync between Apple devices | ☐ | ☐ | — |
 | Billing | Free tier (15), paywall, purchase, restore/refresh, refunds | ☑ v0 | ☐ | ☐ |
-| Adaptive UI | iPad split view + two-pane builder / tablet + foldable panes | — | ◐ adaptive shell, split views, two-pane builder (live PDF preview or totals, from 700 pt), popover line editor, drag the PDF out, ⌘N/⇧⌘N/⌘↩/⌘D/⌘P | ☐ |
+| Adaptive UI | iPad split view + two-pane builder / tablet + foldable panes | — | ◐ adaptive shell, split views, two-pane builder (live PDF preview or totals, from 700 pt), popover line editor, drag the PDF out, row context menus (duplicate, share, record payment, void, delete), ⌘N/⇧⌘N/⌘↩/⌘D/⌘P/⌘F | ☐ |
 | Quality | Accessibility (Dynamic Type/font scale, VoiceOver/TalkBack) | — | ◐ labels on every setup control, system text styles; device audit in Phase 6 | ☐ |

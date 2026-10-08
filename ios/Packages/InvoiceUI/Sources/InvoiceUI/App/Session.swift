@@ -16,6 +16,8 @@ public final class Session {
     public let formatter: SpecFormatter
     /// Renders and caches the PDFs the preview, sharing and printing use (`spec/pdf/RENDERING.md`).
     let pdfLibrary: PDFLibrary
+    /// Rebuilds the app from the database (set by `AppModel`); a restore calls it.
+    var reloadApp: @MainActor () async -> Void = {}
 
     public init(dependencies: AppDependencies, business: Business, deviceID: String,
                 pdfDirectory: URL? = nil) throws {

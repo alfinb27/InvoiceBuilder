@@ -79,6 +79,7 @@ struct IssuedDocumentView: View {
                 .accessibilityIdentifier("documentActions")
             }
         }
+        .task(id: session.router.documents.pendingAction) { runPendingAction() }
         .alert("Void this \(DocumentText.noun(document.docType))?", isPresented: $showingVoidAlert) {
             TextField("Reason", text: $voidReasonText)
                 .accessibilityIdentifier("voidReasonField")
@@ -96,6 +97,21 @@ struct IssuedDocumentView: View {
             Button("OK", role: .cancel) { model.dismissError() }
         } message: {
             Text(model.state.errorMessage ?? "")
+        }
+    }
+
+    /// A row context-menu action chosen in the list (iPad), once this document is on screen.
+    private func runPendingAction() {
+        switch session.router.documents.takeAction(for: document.id) {
+        case .share?:
+            Task { await model.openPreview() }
+        case .recordPayment? where model.canRecordPayment:
+            showingPaymentSheet = true
+        case .void? where model.canVoid:
+            voidReasonText = ""
+            showingVoidAlert = true
+        default:
+            break
         }
     }
 

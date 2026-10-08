@@ -106,6 +106,7 @@ private struct DocumentList: View {
     @Bindable var router: DocumentsRouter
     let session: Session
     @State private var pendingDelete: DocumentSummary?
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         let rows = model.visible(docType: router.docType, query: router.searchText, statusFilter: router.statusFilter,
@@ -150,6 +151,13 @@ private struct DocumentList: View {
             }
         }
         .searchable(text: $router.searchText, prompt: "Client or number")
+        .searchFocused($searchFocused)
+        .onChange(of: router.isSearchFocused, initial: true) { _, wanted in
+            // ⌘F asks through the router (the command has no view to focus); the field takes it from there.
+            guard wanted else { return }
+            searchFocused = true
+            router.isSearchFocused = false
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -195,6 +203,16 @@ private struct DocumentList: View {
         }
         .contextMenu {
             Button("Duplicate", systemImage: "plus.square.on.square") { Task { await model.duplicate(summary) } }
+            if summary.lifecycle != .draft {
+                Button("Share", systemImage: "square.and.arrow.up") { router.open(summary.id, then: .share) }
+            }
+            if summary.docType == .invoice, summary.lifecycle == .issued,
+               summary.status(today: session.today) != .paid {
+                Button("Record payment", systemImage: "banknote") { router.open(summary.id, then: .recordPayment) }
+            }
+            if summary.lifecycle == .issued {
+                Button("Void", systemImage: "nosign", role: .destructive) { router.open(summary.id, then: .void) }
+            }
             if summary.lifecycle == .draft {
                 Button("Delete", systemImage: "trash", role: .destructive) { pendingDelete = summary }
             }

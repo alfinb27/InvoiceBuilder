@@ -7,7 +7,7 @@ import Testing
 @Suite("Spec fixtures")
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
-                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder"]
+                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -361,5 +361,80 @@ struct FixtureTests {
             "scheduled": .array(scheduled.map { .object(["documentId": .string($0.documentId),
                                                           "remindOn": .string($0.remindOn.iso)]) }),
         ]))
+    }
+
+    // MARK: backup.md §3
+
+    struct BackupInput: Decodable {
+        let appSchemaVersion: Int
+        let base: String?
+        let raw: String?
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "backup"))
+    func backup(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(BackupInput.self, from: fixture.inputData)
+        let bytes: Data
+        if let raw = input.raw {
+            bytes = Data(raw.utf8)
+        } else {
+            let base = try #require(input.base)
+            let object = try JSONSerialization.jsonObject(with: Data(contentsOf: Spec.root.appending(path: base)))
+            let raw = try JSONSerialization.jsonObject(with: fixture.inputData) as? [String: Any] ?? [:]
+            var patched: Any = object
+            for pointer in raw["remove"] as? [String] ?? [] { patched = JSONPointer.remove(pointer, in: patched) }
+            for (pointer, value) in raw["set"] as? [String: Any] ?? [:] {
+                patched = JSONPointer.set(pointer, to: value, in: patched)
+            }
+            bytes = try JSONSerialization.data(withJSONObject: patched)
+        }
+        switch BackupCodec.validate(bytes, appSchemaVersion: input.appSchemaVersion) {
+        case .success(let preview):
+            let live = preview.live
+            expectFixture(fixture, .object(["live": .object([
+                "businesses": .int(Int64(live.businesses)), "clients": .int(Int64(live.clients)),
+                "catalogItems": .int(Int64(live.catalogItems)), "numberingSeries": .int(Int64(live.numberingSeries)),
+                "documents": .int(Int64(live.documents)), "payments": .int(Int64(live.payments)),
+                "assets": .int(Int64(live.assets)),
+            ])]))
+        case .failure(let error):
+            expectFixture(fixture, .object(["error": .string(error.code.rawValue)]))
+        }
+    }
+}
+
+/// RFC 6901 pointers over `JSONSerialization` values, for patching backup fixtures.
+enum JSONPointer {
+    static func set(_ pointer: String, to value: Any, in root: Any) -> Any {
+        update(parts(pointer)[...], in: root) { _ in value }
+    }
+
+    static func remove(_ pointer: String, in root: Any) -> Any {
+        update(parts(pointer)[...], in: root) { _ in nil }
+    }
+
+    private static func parts(_ pointer: String) -> [String] {
+        pointer.split(separator: "/", omittingEmptySubsequences: false).dropFirst()
+            .map { $0.replacingOccurrences(of: "~1", with: "/").replacingOccurrences(of: "~0", with: "~") }
+    }
+
+    private static func update(_ path: ArraySlice<String>, in node: Any, _ change: (Any?) -> Any?) -> Any {
+        guard let key = path.first else { return change(node) ?? NSNull() }
+        let rest = path.dropFirst()
+        if var array = node as? [Any], let index = Int(key), array.indices.contains(index) {
+            if rest.isEmpty {
+                if let value = change(array[index]) { array[index] = value } else { array.remove(at: index) }
+            } else {
+                array[index] = update(rest, in: array[index], change)
+            }
+            return array
+        }
+        var object = node as? [String: Any] ?? [:]
+        if rest.isEmpty {
+            object[key] = change(object[key])
+        } else {
+            object[key] = update(rest, in: object[key] ?? [String: Any](), change)
+        }
+        return object
     }
 }

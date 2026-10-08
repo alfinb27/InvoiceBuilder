@@ -16,6 +16,8 @@ public struct AppDependencies: Sendable {
     public var documentService: any DocumentService
     public var payments: any PaymentRepository
     public var paymentService: any PaymentService
+    /// Export and restore (`spec/backup.md`).
+    public var backup: any BackupService
     public var taxConfigs: TaxConfigStore
     public var reference: ReferenceData
     public var time: TimeSource
@@ -28,7 +30,8 @@ public struct AppDependencies: Sendable {
                 numberingSeries: any NumberingSeriesRepository, assets: any AssetRepository,
                 deviceState: any DeviceStateRepository, setup: any BusinessSetupService,
                 documents: any DocumentRepository, documentService: any DocumentService,
-                payments: any PaymentRepository, paymentService: any PaymentService, taxConfigs: TaxConfigStore,
+                payments: any PaymentRepository, paymentService: any PaymentService, backup: any BackupService,
+                taxConfigs: TaxConfigStore,
                 reference: ReferenceData, time: TimeSource, ids: IDGenerator,
                 notifications: any NotificationScheduling = NoOpNotificationScheduler()) {
         self.businesses = businesses
@@ -42,6 +45,7 @@ public struct AppDependencies: Sendable {
         self.documentService = documentService
         self.payments = payments
         self.paymentService = paymentService
+        self.backup = backup
         self.taxConfigs = taxConfigs
         self.reference = reference
         self.time = time
@@ -49,11 +53,11 @@ public struct AppDependencies: Sendable {
         self.notifications = notifications
     }
 
-    /// Repositories backed by `database`, plus the bundled spec. `notifications` defaults to a no-op; only
-    /// `live()` passes the real one.
+    /// Repositories backed by `database`, plus the bundled spec. `notifications` defaults to a no-op and safety
+    /// snapshots to a temporary folder; only `live()` passes the real ones.
     public static func make(database: AppDatabase, time: TimeSource = .system, ids: IDGenerator = .random,
-                            notifications: any NotificationScheduling = NoOpNotificationScheduler()) throws
-        -> AppDependencies {
+                            notifications: any NotificationScheduling = NoOpNotificationScheduler(),
+                            snapshots: BackupSnapshotStore = .temporary()) throws -> AppDependencies {
         let taxConfigs = try TaxConfigStore.bundled()
         let reference = try ReferenceData.bundled()
         return AppDependencies(
@@ -69,6 +73,7 @@ public struct AppDependencies: Sendable {
                                                  currencies: reference.currencies),
             payments: GRDBPaymentRepository(database: database, time: time),
             paymentService: GRDBPaymentService(database: database, time: time, ids: ids),
+            backup: try GRDBBackupService(database: database, time: time, ids: ids, snapshots: snapshots),
             taxConfigs: taxConfigs,
             reference: reference,
             time: time,
@@ -79,7 +84,8 @@ public struct AppDependencies: Sendable {
 
     /// The app's on-disk database in Application Support.
     public static func live() throws -> AppDependencies {
-        try make(database: AppDatabase.openOnDisk(at: AppDatabase.defaultURL()), notifications: SystemNotificationScheduler())
+        try make(database: AppDatabase.openOnDisk(at: AppDatabase.defaultURL()),
+                 notifications: SystemNotificationScheduler(), snapshots: .defaultStore())
     }
 
     /// An empty in-memory database (previews, tests, UI tests).

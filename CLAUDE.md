@@ -34,7 +34,9 @@ second. Both apps implement the shared `spec/`. The approved plan is `docs/plan.
 | Database DDL and migrations | `spec/schema/db/` |
 | Country tax configs | `spec/tax/IN.json`, `GB.json`, `GENERIC.json` |
 | Tax engine behaviour (normative) | `spec/tax/ENGINE.md` |
-| Documents: drafts, issuing, duplicate, convert (normative) | `spec/documents.md` |
+| Documents: drafts, issuing, duplicate, convert, payments, void (normative) | `spec/documents.md` |
+| Reminders (normative) | `spec/reminders.md` |
+| Backup and restore (normative) | `spec/backup.md` |
 | Setup: onboarding, clients, catalogue, numbering (normative) | `spec/setup.md` |
 | Entitlements and free tier | `spec/billing.md` |
 | Golden fixtures | `spec/fixtures/**` (format: `spec/fixtures/README.md`) |

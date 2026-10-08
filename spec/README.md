@@ -13,6 +13,9 @@ redefines it. Start here before changing anything about money, tax, numbering, s
 | `tax/IN.json`, `GB.json`, `GENERIC.json` | Country tax configs (data-driven rules) |
 | `tax/ENGINE.md` | Normative tax engine, numbering, status, formatting and validation rules |
 | `billing.md` | Entitlements, free tier, purchase state machine |
+| `backup.md` | Exporting, validating and restoring `.invoicebackup` files ("replace all"), safety snapshots |
+| `documents.md` | Drafts, issuing, duplicate/convert, payments, void, quote outcomes |
+| `reminders.md` | Overdue reminders: default and override, eligibility, scheduling |
 | `setup.md` | Onboarding, business profile, clients, catalogue, numbering-series settings, images, field rules |
 | `reference/` | Countries (ISO 3166-1), currencies (ISO 4217 subset), units (GST UQC + service units) |
 | `pdf/labels/en.json` | PDF label strings |

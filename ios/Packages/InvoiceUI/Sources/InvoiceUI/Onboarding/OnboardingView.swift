@@ -30,6 +30,12 @@ public struct OnboardingView: View {
         } message: {
             Text(model.state.errorMessage ?? "")
         }
+        .backupFlows(model: model.backup)
+        .dropDestination(for: DroppedBackup.self) { files, _ in
+            guard let file = files.first else { return false }
+            Task { await model.backup.open(file.url) }
+            return true
+        }
     }
 
     private var stepScreen: some View {
@@ -187,6 +193,18 @@ private struct CountryStep: View {
                     model.selectCountry(country.code)
                 }
             }
+        }
+        Section {
+            Button {
+                model.backup.state.showsImporter = true
+            } label: {
+                Label("Restore from a backup…", systemImage: "clock.arrow.circlepath")
+            }
+            .accessibilityIdentifier("onboarding.restore")
+        } header: {
+            Text("Moving from another device?")
+        } footer: {
+            Text("Start from an InvoiceBuilder backup file instead of setting up again.")
         }
         Section {
             TextField("Search countries", text: $model.state.countrySearch)

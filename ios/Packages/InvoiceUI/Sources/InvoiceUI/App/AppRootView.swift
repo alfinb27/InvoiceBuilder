@@ -28,6 +28,10 @@ public struct AppRootView: View {
         }
         .tint(Theme.brand)
         .task { await model.start() }
+        .onOpenURL { url in
+            guard url.isFileURL else { return }
+            Task { await model.open(url) }
+        }
     }
 }
 

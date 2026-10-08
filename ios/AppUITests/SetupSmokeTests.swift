@@ -78,6 +78,36 @@ final class SetupSmokeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Logo design"].waitForExistence(timeout: 5))
     }
 
+    @MainActor
+    func testBackupPageShowsLastBackupAndRestoreOption() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seed", "GB"]
+        app.launch()
+
+        openTab("Settings", app)
+        let backup = app.buttons["Backup"].firstMatch
+        XCTAssertTrue(backup.waitForExistence(timeout: 10))
+        backup.tap()
+        XCTAssertTrue(text("Never backed up", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["backup.saveToFiles"].exists)
+        XCTAssertTrue(app.buttons["backup.restore"].exists)
+    }
+
+    @MainActor
+    func testOnboardingOffersRestore() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemory"]
+        app.launch()
+
+        let restore = app.buttons["onboarding.restore"]
+        var attempts = 0
+        while !(restore.exists && restore.isHittable) && attempts < 12 {
+            app.swipeUp()
+            attempts += 1
+        }
+        XCTAssertTrue(restore.exists)
+    }
+
     /// A tab bar button on iPhone; the top tab bar (or sidebar) on iPad.
     @MainActor
     private func openTab(_ name: String, _ app: XCUIApplication) {

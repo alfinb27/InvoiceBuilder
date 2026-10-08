@@ -24,8 +24,8 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 
 | Package | Rule |
 |---|---|
-| `InvoiceCore` | Pure Swift + Foundation. No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`) and the repository/service protocols. |
-| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction). |
+| `InvoiceCore` | Pure Swift + Foundation (+ CryptoKit for hashes). No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`), the backup codec (`Backup/`: `BackupFile`, `BackupCodec.validate`, per `spec/backup.md`) and the repository/service protocols. |
+| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction; `GRDBBackupService` = export and the one-transaction "replace all" restore, plus `BackupSnapshotStore`). |
 | `InvoicePDF` | The renderer: Core Text + `UIGraphicsPDFRenderer` drawing the `PDFDocumentModel` that `InvoiceCore/PDF` builds, laid out by `spec/pdf/layout/*.json`. No database, no view models — a request in, `Data` out. |
 | `InvoiceBilling` | StoreKit 2 + `EntitlementService` implementing `spec/billing.md`. (Phase 5) |
 | `InvoiceSync` | SQLiteData sync engine behind a `SyncService` protocol. `DeviceState` is never synced. (Phase 4b) |

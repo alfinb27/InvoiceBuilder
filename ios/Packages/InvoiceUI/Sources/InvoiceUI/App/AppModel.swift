@@ -50,24 +50,51 @@ public final class AppModel {
             }
             let businesses = try await dependencies.businesses.fetchBusinesses()
             if let business = BusinessSetup.activeBusiness(preferences: device.preferences, businesses: businesses) {
-                phase = .ready(try Session(dependencies: dependencies, business: business, deviceID: device.id))
+                phase = .ready(try makeSession(business: business, deviceID: device.id))
             } else {
                 let deviceID = device.id
-                phase = .onboarding(OnboardingViewModel(dependencies: dependencies, deviceID: deviceID) { [weak self] in
-                    self?.finishOnboarding(with: $0, deviceID: deviceID)
-                })
+                phase = .onboarding(OnboardingViewModel(
+                    dependencies: dependencies, deviceID: deviceID,
+                    onRestored: { [weak self] in await self?.reload() },
+                    onFinished: { [weak self] in self?.finishOnboarding(with: $0, deviceID: deviceID) }))
             }
         } catch {
             phase = .failed(String(describing: error))
         }
     }
 
+    /// A `.invoicebackup` opened from another app (Files, Mail, AirDrop; `spec/backup.md` §6).
+    public func open(_ url: URL) async {
+        switch phase {
+        case .onboarding(let onboarding):
+            await onboarding.backup.open(url)
+        case .ready(let session):
+            session.router.selectedTab = .settings
+            session.router.settings.restore(from: url)
+        case .loading, .failed:
+            break
+        }
+    }
+
+    /// Starts again from the database, as at launch: after a restore replaced the data (`spec/backup.md` §4
+    /// step 5), the active business is chosen afresh and every screen is rebuilt.
+    public func reload() async {
+        phase = .loading
+        await start()
+    }
+
     private func finishOnboarding(with business: Business, deviceID: String) {
-        guard let dependencies else { return }
         do {
-            phase = .ready(try Session(dependencies: dependencies, business: business, deviceID: deviceID))
+            phase = .ready(try makeSession(business: business, deviceID: deviceID))
         } catch {
             phase = .failed(String(describing: error))
         }
+    }
+
+    private func makeSession(business: Business, deviceID: String) throws -> Session {
+        guard let dependencies else { throw SpecLoadingError(path: "-", reason: "no dependencies") }
+        let session = try Session(dependencies: dependencies, business: business, deviceID: deviceID)
+        session.reloadApp = { [weak self] in await self?.reload() }
+        return session
     }
 }

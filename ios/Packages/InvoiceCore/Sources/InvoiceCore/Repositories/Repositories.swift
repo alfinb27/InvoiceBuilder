@@ -136,3 +136,17 @@ public enum PaymentServiceError: Error, Equatable, Sendable {
     /// `not_payable`: only a live, issued invoice.
     case notPayable
 }
+
+/// Portable backups (`spec/backup.md`): export, restore ("replace all") and the "last backup" state.
+public protocol BackupService: Sendable {
+    /// The highest migration this app applies (`BackupCodec.validate`'s `appSchemaVersion`).
+    var schemaVersion: Int { get }
+    /// §1–2: every synced row, tombstones included, from one consistent read, sorted.
+    func makeBackup(app: BackupFile.AppInfo) async throws -> BackupFile
+    /// §4 steps 3–4: writes the safety snapshot, then replaces all data in one transaction (taking over series for
+    /// `deviceID` where needed). Validate first; a thrown error means nothing changed.
+    func restore(_ file: BackupFile, deviceID: String) async throws
+    /// §2: the user saved or shared an export.
+    func recordBackup(at timestamp: Int64) async throws
+    func observeStatus() -> AsyncThrowingStream<BackupStatus, any Error>
+}

@@ -4,6 +4,7 @@ import SwiftUI
 /// The Settings tab: a list of pages beside the selected page on iPad, a stack on iPhone.
 struct SettingsSection: View {
     let session: Session
+    @State private var backupDue = false
 
     var body: some View {
         @Bindable var router = session.router.settings
@@ -11,6 +12,7 @@ struct SettingsSection: View {
             List(pages, id: \.self, selection: $router.selection) { page in
                 NavigationLink(value: page) {
                     Label(page.title, systemImage: page.symbol)
+                        .badge(page == .backup && backupDue ? Text("Due") : nil)
                 }
             }
             .navigationTitle("Settings")
@@ -23,6 +25,21 @@ struct SettingsSection: View {
                                        description: Text("Choose what to change."))
             }
         }
+        // iPad: drop a backup file onto Settings to restore it (`spec/backup.md` §6).
+        .dropDestination(for: DroppedBackup.self) { files, _ in
+            guard let file = files.first else { return false }
+            router.restore(from: file.url)
+            return true
+        }
+        .task { await observeBackupDue() }
+    }
+
+    private func observeBackupDue() async {
+        do {
+            for try await status in session.dependencies.backup.observeStatus() {
+                backupDue = status.isDue(today: session.today)
+            }
+        } catch {}
     }
 
     /// Tax rates appear only for businesses that define their own (GENERIC).
@@ -42,6 +59,7 @@ private struct SettingsPageView: View {
         case .numbering: NumberingPage(session: session)
         case .defaults: DefaultsPage(session: session)
         case .taxRates: TaxRatesPage(session: session)
+        case .backup: BackupPage(session: session)
         case .about: AboutPage(session: session)
         }
     }
@@ -55,6 +73,7 @@ extension SettingsPage {
         case .numbering: "Invoice numbering"
         case .defaults: "Invoice defaults"
         case .taxRates: "Tax rates"
+        case .backup: "Backup"
         case .about: "About"
         }
     }
@@ -66,6 +85,7 @@ extension SettingsPage {
         case .numbering: "number"
         case .defaults: "doc.text"
         case .taxRates: "percent"
+        case .backup: "externaldrive"
         case .about: "info.circle"
         }
     }
