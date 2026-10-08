@@ -7,7 +7,10 @@ plugins {
 android {
     namespace = "app.invoicebuilder.core.pdf"
     compileSdk = 37
-    defaultConfig { minSdk = 26 }
+    defaultConfig {
+        minSdk = 26
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -26,4 +29,9 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    // The renderer needs the real Android graphics stack: its tests run on a device or emulator. PDFBox reads the
+    // text back out (≈ PDFKit's `page.string` in the iOS tests); it is a test-only dependency.
+    androidTestImplementation(libs.pdfbox.android)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }
