@@ -177,7 +177,7 @@ public enum EditorRoute: Identifiable, Hashable, Sendable {
 }
 
 public enum SettingsPage: String, Hashable, CaseIterable, Sendable {
-    case profile, images, numbering, defaults, taxRates, sync, backup, about
+    case profile, images, numbering, defaults, taxRates, unlock, sync, backup, about
 }
 
 @MainActor @Observable

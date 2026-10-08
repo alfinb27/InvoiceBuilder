@@ -16,6 +16,8 @@ public final class Session {
     public let formatter: SpecFormatter
     /// Renders and caches the PDFs the preview, sharing and printing use (`spec/pdf/RENDERING.md`).
     let pdfLibrary: PDFLibrary
+    /// The unlock and the free-tier count, kept current by `observeEntitlements()` (`spec/billing.md`).
+    public internal(set) var entitlement = EntitlementStatus(state: .unknown, count: 0)
     /// Rebuilds the app from the database (set by `AppModel`); a restore calls it.
     var reloadApp: @MainActor () async -> Void = {}
 
@@ -52,6 +54,10 @@ public final class Session {
         } catch {
             // The stream only ends with an error if the database fails; the last known business stays on screen.
         }
+    }
+
+    func observeEntitlements() async {
+        for await status in dependencies.entitlements.observeStatus() { entitlement = status }
     }
 
     // MARK: Rules for the active business

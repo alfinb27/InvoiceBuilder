@@ -1,0 +1,40 @@
+{
+  "identifier" : "9F3A2C10",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : true,
+      "internalID" : "6740000001",
+      "localizations" : [
+        {
+          "description" : "Issue as many invoices as you need, on every device with your Apple ID.",
+          "displayName" : "Unlimited invoices",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "app.invoicebuilder.invoices.unlimited_invoices",
+      "referenceName" : "Unlimited invoices",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_locale" : "en_GB",
+    "_storefront" : "GBR",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

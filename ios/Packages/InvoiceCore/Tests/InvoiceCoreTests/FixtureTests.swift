@@ -7,7 +7,7 @@ import Testing
 @Suite("Spec fixtures")
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
-                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup", "series"]
+                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup", "series", "billing"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -453,6 +453,29 @@ extension FixtureTests {
         default:
             Issue.record("\(fixture.id): unknown op \(input.op)")
         }
+    }
+}
+
+extension FixtureTests {
+    // MARK: billing.md, Transitions
+
+    struct BillingInput: Decodable {
+        let state: String
+        let event: String
+        let count: Int
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "billing"))
+    func billing(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(BillingInput.self, from: fixture.inputData)
+        let state = try #require(EntitlementState(rawValue: input.state))
+        let event = try #require(EntitlementEvent(rawValue: input.event))
+        let next = EntitlementMachine.next(state, event, count: input.count)
+        expectFixture(fixture, .object([
+            "state": .string(next.rawValue),
+            "canIssueInvoice": .bool(EntitlementMachine.canIssueInvoice(next, count: input.count)),
+            "remaining": .int(Int64(FreeTier.remaining(count: input.count))),
+        ]))
     }
 }
 

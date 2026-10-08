@@ -74,6 +74,10 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
                     BusinessCard(session: session)
+                    if !session.entitlement.isUnlocked, session.entitlement.state != .unknown,
+                       session.entitlement.remaining <= 3 {
+                        FreeTierBanner(session: session)
+                    }
                     ForEach(model.state.duplicateNumbers, id: \.self) { group in
                         DuplicateNumberWarning(group: group, session: session)
                     }
@@ -265,5 +269,28 @@ private struct DuplicateNumberWarning: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.warning.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// Three or fewer free invoices left (`spec/billing.md`): say so, once, without blocking anything.
+private struct FreeTierBanner: View {
+    let session: Session
+    @State private var showsPaywall = false
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Label(session.entitlement.remaining == 0
+                  ? "You've used your \(FreeTier.limit) free invoices"
+                  : "\(session.entitlement.remaining) free invoice\(session.entitlement.remaining == 1 ? "" : "s") left",
+                  systemImage: "infinity")
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            Button("Unlock") { showsPaywall = true }
+                .buttonStyle(.bordered)
+        }
+        .padding(Theme.Space.m)
+        .background(Theme.brand.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .sheet(isPresented: $showsPaywall) { PaywallView(session: session) }
+        .accessibilityIdentifier("home.freeTier")
     }
 }

@@ -18,3 +18,10 @@
 
 ## Revisit when
 A subscription tier (e.g. cross-platform sync) needs server notifications → small backend.
+
+## Phase 5 (2026-10-08)
+- The state machine is a pure function in core (`EntitlementMachine.next`), proven by `billing` fixtures that
+  Android will run too. StoreKit sits behind `StoreClient`, so every purchase flow is unit-tested with a fake store.
+- Issuing an invoice is allowed whenever the state is `unlocked` or the count is below 15, in every state: an
+  unresolved store (offline first launch) or a pending Ask to Buy never blocks someone who is below the limit.
+- Product ID = `<bundle id>.unlimited_invoices` (today `app.invoicebuilder.invoices.unlimited_invoices`).

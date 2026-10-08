@@ -55,6 +55,7 @@ public final class AppModel {
                 device = try await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name)
             }
             await dependencies.sync.setEnabled(device.preferences.isSyncEnabled)
+            await dependencies.entitlements.start()
             var businesses = try await dependencies.businesses.fetchBusinesses()
             if businesses.isEmpty, await syncIsOn(dependencies.sync) {
                 businesses = try await waitForICloud(dependencies)

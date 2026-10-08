@@ -25,6 +25,9 @@ the app never hard-codes a price.
 - Effective count = `max(local counter, device_state.free_counter_mirror, issued invoices visible in the database)`.
   The last term makes iCloud-synced devices share the limit.
 - Mirrors: iOS Keychain item (`invoicebuilder.freeCounter`, not synchronizable); Android Block Store (best effort).
+  After each issue the mirror is raised to the effective count (never lowered); at launch it is one of the inputs.
+- "Issued invoices visible in the database" counts every invoice that was ever issued: `doc_type = 'invoice'` and
+  `lifecycle <> 'draft'`, voided and tombstoned ones included.
 - At the limit only **Issue invoice** is locked. Viewing, editing, sharing, exporting, backups, quotes and drafts
   keep working. The paywall opens from the Issue action and from Settings.
 
@@ -46,6 +49,26 @@ stateDiagram-v2
 ```
 
 `Free` re-evaluates the count on entry, so a cancelled purchase at the limit lands on `LimitReached`.
+
+### Transitions — `EntitlementMachine.next(state, event, count)`
+
+`count` is the effective count (above). "By count" means `limitReached` when `count ≥ FREE_LIMIT`, else `free`.
+Events that a state does not list leave it unchanged. Proven by `fixtures/billing/*.json` (kind `billing`).
+
+| Event | From | To |
+|---|---|---|
+| `resolved(owned: true)` | any | `unlocked` |
+| `resolved(owned: false)` | `unknown`, `unlocked` (a refund seen at launch) | by count |
+| `resolved(owned: false)` | `free`, `limitReached` | by count (re-evaluated) |
+| `counted` (an invoice was issued, or synced devices raised the count) | `free`, `limitReached`, `unknown` | `unknown` stays; others by count |
+| `purchaseStarted` | `free`, `limitReached` | `purchasing` |
+| `purchasePending` (Ask to Buy, Android pending) | `purchasing` | `pending` |
+| `purchased` (verified transaction, from the purchase or the updates listener) | any | `unlocked` |
+| `purchaseCancelled`, `purchaseFailed` | `purchasing`, `pending` | by count |
+| `revoked` (refund, revocation, Family Sharing removed) | `unlocked` | by count |
+
+**Issuing an invoice is allowed** when the state is `unlocked` or `count < FREE_LIMIT` — in every state, so an
+unresolved or pending store never blocks someone below the limit. `remaining = max(FREE_LIMIT − count, 0)`.
 `Unknown` resolves on launch from the platform's cached entitlements (works offline); the last known state is cached
 in `app_state` (`entitlement`) only to avoid UI flicker, never as the source of truth.
 

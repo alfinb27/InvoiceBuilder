@@ -104,6 +104,9 @@ struct DocumentBuilderView: View {
         } message: {
             Text(issueMessage)
         }
+        .sheet(isPresented: $model.state.showsPaywall) {
+            PaywallView(session: session)
+        }
         .sheet(item: $model.state.seriesChoice) { choice in
             SeriesChoiceSheet(choice: choice, docType: model.state.document.docType,
                               startOwn: { Task { await model.startOwnSeries() } },

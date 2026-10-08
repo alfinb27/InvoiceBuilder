@@ -25,6 +25,7 @@ Every file is validated by `make validate-spec` against `spec/schema/fixtures.sc
 | `document` | a new draft's defaults (`op: defaults`) and catalogue prices on a document (`op: linePrice`) | `spec/documents.md` §2, §3.1 |
 | `reminder` | `ReminderScheduler.plan` — eligibility, override precedence, cap truncation | `spec/reminders.md` §3 |
 | `series` | `SeriesOwnership.deviceSeries` / `takeOver` and `DuplicateNumbers.find` — numbering on several devices | `spec/sync.md` §3–4 |
+| `billing` | `EntitlementMachine.next`, `canIssueInvoice` and `remaining` — every state transition | `spec/billing.md` |
 | `backup` | `BackupCodec.validate` — the checks in order and the live counts a valid file previews; inputs are `spec/samples` files patched with JSON Pointers | `spec/backup.md` §3 |
 
 ## How runners compare results

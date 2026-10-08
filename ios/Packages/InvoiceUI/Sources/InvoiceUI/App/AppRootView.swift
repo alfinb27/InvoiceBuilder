@@ -78,7 +78,11 @@ public struct MainShellView: View {
         .task { await session.reconcileReminders() }
         .task {
             // Changes from another device (`spec/sync.md` §5): reminders follow invoices issued or paid there.
-            for await _ in session.dependencies.sync.observeRemoteChanges() { await session.reconcileReminders() }
+            for await _ in session.dependencies.sync.observeRemoteChanges() {
+                await session.reconcileReminders()
+                await session.dependencies.entitlements.refreshCount() // synced devices share the limit
+            }
         }
+        .task { await session.observeEntitlements() }
     }
 }

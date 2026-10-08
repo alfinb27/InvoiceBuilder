@@ -1,4 +1,5 @@
 import Foundation
+import InvoiceBilling
 import InvoiceCore
 import InvoiceData
 import InvoiceSync
@@ -23,6 +24,8 @@ public struct AppDependencies: Sendable {
     public var numbering: any NumberingService
     /// iCloud sync (`spec/sync.md`); `UnavailableSyncService` unless the build names an iCloud container.
     public var sync: any SyncService
+    /// The unlock and the free-tier count (`spec/billing.md`).
+    public var entitlements: any EntitlementService
     public var taxConfigs: TaxConfigStore
     public var reference: ReferenceData
     public var time: TimeSource
@@ -37,7 +40,7 @@ public struct AppDependencies: Sendable {
                 documents: any DocumentRepository, documentService: any DocumentService,
                 payments: any PaymentRepository, paymentService: any PaymentService, backup: any BackupService,
                 numbering: any NumberingService, sync: any SyncService = UnavailableSyncService(),
-                taxConfigs: TaxConfigStore,
+                entitlements: any EntitlementService, taxConfigs: TaxConfigStore,
                 reference: ReferenceData, time: TimeSource, ids: IDGenerator,
                 notifications: any NotificationScheduling = NoOpNotificationScheduler()) {
         self.businesses = businesses
@@ -54,6 +57,7 @@ public struct AppDependencies: Sendable {
         self.backup = backup
         self.numbering = numbering
         self.sync = sync
+        self.entitlements = entitlements
         self.taxConfigs = taxConfigs
         self.reference = reference
         self.time = time
@@ -66,7 +70,11 @@ public struct AppDependencies: Sendable {
     public static func make(database: AppDatabase, time: TimeSource = .system, ids: IDGenerator = .random,
                             notifications: any NotificationScheduling = NoOpNotificationScheduler(),
                             snapshots: BackupSnapshotStore = .temporary(),
-                            sync: any SyncService = UnavailableSyncService()) throws -> AppDependencies {
+                            sync: any SyncService = UnavailableSyncService(),
+                            store: any StoreClient = UnavailableStoreClient(),
+                            counterMirror: any CounterMirror = MemoryCounterMirror(),
+                            bundleID: String = Bundle.main.bundleIdentifier ?? "app.invoicebuilder.invoices") throws
+        -> AppDependencies {
         let taxConfigs = try TaxConfigStore.bundled()
         let reference = try ReferenceData.bundled()
         return AppDependencies(
@@ -85,6 +93,9 @@ public struct AppDependencies: Sendable {
             backup: try GRDBBackupService(database: database, time: time, ids: ids, snapshots: snapshots),
             numbering: GRDBNumberingService(database: database, time: time, ids: ids, configs: taxConfigs),
             sync: sync,
+            entitlements: StoreEntitlementService(
+                productID: StoreEntitlementService.productID(bundleID: bundleID), store: store,
+                counts: GRDBFreeTierRepository(database: database), mirror: counterMirror),
             taxConfigs: taxConfigs,
             reference: reference,
             time: time,
@@ -100,7 +111,7 @@ public struct AppDependencies: Sendable {
         guard let container = bundle.object(forInfoDictionaryKey: "InvoiceSyncContainer") as? String,
               !container.isEmpty else {
             return try make(database: AppDatabase.openOnDisk(at: url), notifications: SystemNotificationScheduler(),
-                            snapshots: .defaultStore())
+                            snapshots: .defaultStore(), store: StoreKitClient(), counterMirror: KeychainCounterMirror())
         }
         let database = try AppDatabase.openOnDisk(at: url) {
             LiveSyncService.prepare(&$0, containerIdentifier: container)
@@ -109,7 +120,8 @@ public struct AppDependencies: Sendable {
             database: database, containerIdentifier: container,
             deviceState: GRDBDeviceStateRepository(database: database, time: .system, ids: .random), enabled: false)
         return try make(database: database, notifications: SystemNotificationScheduler(),
-                        snapshots: .defaultStore(), sync: sync)
+                        snapshots: .defaultStore(), sync: sync, store: StoreKitClient(),
+                        counterMirror: KeychainCounterMirror())
     }
 
     /// An empty in-memory database (previews, tests, UI tests).

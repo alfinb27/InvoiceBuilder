@@ -35,6 +35,8 @@ final class DocumentViewModel {
         var numberPreview: String?
         /// This device owns no series of the document's type: start one or take one over (`spec/sync.md` §3).
         var seriesChoice: SeriesChoice?
+        /// The free tier is used up and this is an invoice (`spec/billing.md`): only Issue is locked.
+        var showsPaywall = false
         var isWorking = false
         var errorMessage: String?
         var lineEditor: LineEditorState?
@@ -548,6 +550,10 @@ final class DocumentViewModel {
     /// Issue tapped: shows what blocks issuing, or asks for confirmation with the number it will get.
     func requestIssue() async {
         guard canRequestIssue else { return }
+        if state.document.docType == .invoice, !session.entitlement.canIssueInvoice {
+            state.showsPaywall = true
+            return
+        }
         let problems = currentProblems()
         state.issueProblems = problems
         guard problems.isEmpty else { return }
@@ -623,7 +629,10 @@ final class DocumentViewModel {
             state.issueProblems = []
             state.lineEditor = nil
             recompute()
-            if issued.docType == .invoice { await session.reconcileReminders() }
+            if issued.docType == .invoice {
+                await session.dependencies.entitlements.refreshCount()
+                await session.reconcileReminders()
+            }
         } catch DocumentServiceError.blocked(let problems) {
             state.issueProblems = problems
         } catch {
