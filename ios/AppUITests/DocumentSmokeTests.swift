@@ -47,6 +47,7 @@ final class DocumentSmokeTests: XCTestCase {
             app.swipeUp(velocity: .slow)
             attempts += 1
         }
+        if !price.exists { print("PRICE-FIELD-MISSING hierarchy:\n\(app.debugDescription)") }
         XCTAssertTrue(price.exists, "the price field never appeared")
         // Keystrokes sent while the field is still taking focus are dropped on a slow runner: type, check, retry.
         for _ in 0..<3 where !((price.value as? String) ?? "").contains("1000") {
