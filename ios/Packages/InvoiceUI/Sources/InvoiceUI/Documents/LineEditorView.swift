@@ -86,8 +86,10 @@ struct LineEditorView: View {
                     Button("Cancel") { model.cancelLineEditor() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
+                    // ⌘↩, not plain Return: Return moves between the fields (Description → Quantity → …), and
+                    // binding it here would close the line from the first field on some iOS versions.
                     Button("Done") { model.commitLineEditor() }
-                        .keyboardShortcut(.defaultAction)
+                        .keyboardShortcut(.return, modifiers: .command)
                         .accessibilityIdentifier("lineDone")
                 }
             }
