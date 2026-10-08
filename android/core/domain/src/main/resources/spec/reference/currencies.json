@@ -1,0 +1,468 @@
+{
+  "$comment": "Curated ISO 4217 currencies. minorUnits = ISO 4217 exponent. grouping = digit group sizes from the right (INR [3,2] gives 1,23,45,678). symbol is used only when the currency is the business home currency; otherwise documents show the ISO code (spec/tax/ENGINE.md, Formatting). wordsMajor/wordsMinor feed amount-in-words.",
+  "currencies": [
+    {
+      "code": "INR",
+      "name": "Indian Rupee",
+      "minorUnits": 2,
+      "symbol": "₹",
+      "grouping": [
+        3,
+        2
+      ],
+      "wordsMajor": "Indian Rupees",
+      "wordsMinor": "Paise"
+    },
+    {
+      "code": "GBP",
+      "name": "Pound Sterling",
+      "minorUnits": 2,
+      "symbol": "£",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Pounds",
+      "wordsMinor": "Pence"
+    },
+    {
+      "code": "USD",
+      "name": "US Dollar",
+      "minorUnits": 2,
+      "symbol": "$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "US Dollars",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "EUR",
+      "name": "Euro",
+      "minorUnits": 2,
+      "symbol": "€",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Euros",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "AED",
+      "name": "UAE Dirham",
+      "minorUnits": 2,
+      "symbol": "AED",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "UAE Dirhams",
+      "wordsMinor": "Fils"
+    },
+    {
+      "code": "AUD",
+      "name": "Australian Dollar",
+      "minorUnits": 2,
+      "symbol": "$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Australian Dollars",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "CAD",
+      "name": "Canadian Dollar",
+      "minorUnits": 2,
+      "symbol": "$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Canadian Dollars",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "SGD",
+      "name": "Singapore Dollar",
+      "minorUnits": 2,
+      "symbol": "$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Singapore Dollars",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "NZD",
+      "name": "New Zealand Dollar",
+      "minorUnits": 2,
+      "symbol": "$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "New Zealand Dollars",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "HKD",
+      "name": "Hong Kong Dollar",
+      "minorUnits": 2,
+      "symbol": "$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Hong Kong Dollars",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "CHF",
+      "name": "Swiss Franc",
+      "minorUnits": 2,
+      "symbol": "CHF",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Swiss Francs",
+      "wordsMinor": "Centimes"
+    },
+    {
+      "code": "JPY",
+      "name": "Japanese Yen",
+      "minorUnits": 0,
+      "symbol": "¥",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Japanese Yen",
+      "wordsMinor": null
+    },
+    {
+      "code": "CNY",
+      "name": "Chinese Yuan",
+      "minorUnits": 2,
+      "symbol": "¥",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Chinese Yuan",
+      "wordsMinor": "Fen"
+    },
+    {
+      "code": "KRW",
+      "name": "South Korean Won",
+      "minorUnits": 0,
+      "symbol": "₩",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "South Korean Won",
+      "wordsMinor": null
+    },
+    {
+      "code": "VND",
+      "name": "Vietnamese Dong",
+      "minorUnits": 0,
+      "symbol": "₫",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Vietnamese Dong",
+      "wordsMinor": null
+    },
+    {
+      "code": "ZAR",
+      "name": "South African Rand",
+      "minorUnits": 2,
+      "symbol": "R",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "South African Rand",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "SAR",
+      "name": "Saudi Riyal",
+      "minorUnits": 2,
+      "symbol": "SAR",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Saudi Riyals",
+      "wordsMinor": "Halalas"
+    },
+    {
+      "code": "QAR",
+      "name": "Qatari Riyal",
+      "minorUnits": 2,
+      "symbol": "QAR",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Qatari Riyals",
+      "wordsMinor": "Dirhams"
+    },
+    {
+      "code": "KWD",
+      "name": "Kuwaiti Dinar",
+      "minorUnits": 3,
+      "symbol": "KWD",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Kuwaiti Dinars",
+      "wordsMinor": "Fils"
+    },
+    {
+      "code": "BHD",
+      "name": "Bahraini Dinar",
+      "minorUnits": 3,
+      "symbol": "BHD",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Bahraini Dinars",
+      "wordsMinor": "Fils"
+    },
+    {
+      "code": "OMR",
+      "name": "Omani Rial",
+      "minorUnits": 3,
+      "symbol": "OMR",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Omani Rials",
+      "wordsMinor": "Baisa"
+    },
+    {
+      "code": "SEK",
+      "name": "Swedish Krona",
+      "minorUnits": 2,
+      "symbol": "kr",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Swedish Kronor",
+      "wordsMinor": "Ore"
+    },
+    {
+      "code": "NOK",
+      "name": "Norwegian Krone",
+      "minorUnits": 2,
+      "symbol": "kr",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Norwegian Kroner",
+      "wordsMinor": "Ore"
+    },
+    {
+      "code": "DKK",
+      "name": "Danish Krone",
+      "minorUnits": 2,
+      "symbol": "kr",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Danish Kroner",
+      "wordsMinor": "Ore"
+    },
+    {
+      "code": "PLN",
+      "name": "Polish Zloty",
+      "minorUnits": 2,
+      "symbol": "zł",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Polish Zloty",
+      "wordsMinor": "Groszy"
+    },
+    {
+      "code": "CZK",
+      "name": "Czech Koruna",
+      "minorUnits": 2,
+      "symbol": "Kč",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Czech Koruna",
+      "wordsMinor": "Haleru"
+    },
+    {
+      "code": "HUF",
+      "name": "Hungarian Forint",
+      "minorUnits": 2,
+      "symbol": "Ft",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Hungarian Forint",
+      "wordsMinor": "Filler"
+    },
+    {
+      "code": "RON",
+      "name": "Romanian Leu",
+      "minorUnits": 2,
+      "symbol": "lei",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Romanian Lei",
+      "wordsMinor": "Bani"
+    },
+    {
+      "code": "TRY",
+      "name": "Turkish Lira",
+      "minorUnits": 2,
+      "symbol": "₺",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Turkish Lira",
+      "wordsMinor": "Kurus"
+    },
+    {
+      "code": "ILS",
+      "name": "Israeli New Shekel",
+      "minorUnits": 2,
+      "symbol": "₪",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Israeli New Shekels",
+      "wordsMinor": "Agorot"
+    },
+    {
+      "code": "MYR",
+      "name": "Malaysian Ringgit",
+      "minorUnits": 2,
+      "symbol": "RM",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Malaysian Ringgit",
+      "wordsMinor": "Sen"
+    },
+    {
+      "code": "THB",
+      "name": "Thai Baht",
+      "minorUnits": 2,
+      "symbol": "฿",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Thai Baht",
+      "wordsMinor": "Satang"
+    },
+    {
+      "code": "IDR",
+      "name": "Indonesian Rupiah",
+      "minorUnits": 2,
+      "symbol": "Rp",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Indonesian Rupiah",
+      "wordsMinor": "Sen"
+    },
+    {
+      "code": "PHP",
+      "name": "Philippine Peso",
+      "minorUnits": 2,
+      "symbol": "₱",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Philippine Pesos",
+      "wordsMinor": "Centavos"
+    },
+    {
+      "code": "BDT",
+      "name": "Bangladeshi Taka",
+      "minorUnits": 2,
+      "symbol": "৳",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Bangladeshi Taka",
+      "wordsMinor": "Poisha"
+    },
+    {
+      "code": "LKR",
+      "name": "Sri Lankan Rupee",
+      "minorUnits": 2,
+      "symbol": "Rs",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Sri Lankan Rupees",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "NPR",
+      "name": "Nepalese Rupee",
+      "minorUnits": 2,
+      "symbol": "Rs",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Nepalese Rupees",
+      "wordsMinor": "Paisa"
+    },
+    {
+      "code": "PKR",
+      "name": "Pakistani Rupee",
+      "minorUnits": 2,
+      "symbol": "Rs",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Pakistani Rupees",
+      "wordsMinor": "Paisa"
+    },
+    {
+      "code": "KES",
+      "name": "Kenyan Shilling",
+      "minorUnits": 2,
+      "symbol": "KSh",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Kenyan Shillings",
+      "wordsMinor": "Cents"
+    },
+    {
+      "code": "NGN",
+      "name": "Nigerian Naira",
+      "minorUnits": 2,
+      "symbol": "₦",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Nigerian Naira",
+      "wordsMinor": "Kobo"
+    },
+    {
+      "code": "BRL",
+      "name": "Brazilian Real",
+      "minorUnits": 2,
+      "symbol": "R$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Brazilian Reais",
+      "wordsMinor": "Centavos"
+    },
+    {
+      "code": "MXN",
+      "name": "Mexican Peso",
+      "minorUnits": 2,
+      "symbol": "$",
+      "grouping": [
+        3
+      ],
+      "wordsMajor": "Mexican Pesos",
+      "wordsMinor": "Centavos"
+    }
+  ]
+}
