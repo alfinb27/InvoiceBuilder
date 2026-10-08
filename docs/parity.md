@@ -9,7 +9,7 @@ feature. Status legend: ☐ not started · ◐ in progress · ☑ done · — no
 | Core | Tax engine (IN, GB, GENERIC) | ☑ v0 (`ENGINE.md`, 105 `tax` fixtures, review pending) | ☑ (93.7% region coverage) | ☑ `TaxEngine.kt` (105/105) |
 | Core | Numbering, status, formatting, amount in words, tax ID validation, UPI links | ☑ v0 | ☑ | ☑ |
 | Core | Draft defaults and catalogue prices on documents (`document` fixtures) | ☑ `documents.md` §2–3 | ☑ | ☑ |
-| Data | SQLite schema + migrations (GRDB / Room) | ☑ v0 (4 migrations) | ☑ migrations run the spec SQL; tested equal to `schema.sql` (incl. 0004's table rebuild over a filled database, `MigrationTests`) | ☐ |
+| Data | SQLite schema + migrations (GRDB / Room) | ☑ v0 (4 migrations) | ☑ migrations run the spec SQL; tested equal to `schema.sql` (incl. 0004's table rebuild over a filled database, `MigrationTests`) | ☑ `SpecOpenHelperFactory` runs the spec SQL, Room validates its entities against it; `DataTests` compares with `schema.sql` |
 | Setup | Onboarding (country, registration, business, tax ID, bank/UPI, logo, signature) | ☑ `setup.md` §3 | ☑ | ☐ |
 | Setup | Clients (B2B/B2C, addresses, tax ID) | ☑ `setup.md` §5 | ☑ | ☐ |
 | Setup | Settings: business profile, invoice defaults, numbering series, custom rates (GENERIC), logo and signature | ☑ `setup.md` §4, 6, 7, 9 | ☑ | ☐ |

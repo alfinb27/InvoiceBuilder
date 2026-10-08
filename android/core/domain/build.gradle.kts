@@ -13,7 +13,8 @@ kotlin {
 // design tokens), copied by `make sync-spec` exactly as for the iOS bundles (≈ a package's bundled resources).
 
 dependencies {
-    implementation(libs.kotlinx.serialization.json)
+    api(libs.kotlinx.serialization.json)
+    api(libs.kotlinx.coroutines.core) // Flow in the repository interfaces (≈ AsyncSequence)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.launcher)

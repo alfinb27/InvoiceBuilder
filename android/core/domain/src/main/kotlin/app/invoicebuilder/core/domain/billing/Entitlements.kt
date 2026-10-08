@@ -53,3 +53,13 @@ data class EntitlementStatus(val state: EntitlementState, val count: Int, val di
     val remaining: Int get() = FreeTier.remaining(count)
     val isUnlocked: Boolean get() = state == EntitlementState.unlocked
 }
+
+/** The three counts kept in the database (`billing.md`, Free tier); the Keystore mirror is the fourth. */
+data class FreeTierCounts(
+    /** `app_state.issued_invoice_count`. */
+    val local: Int,
+    /** `device_state.free_counter_mirror`. */
+    val deviceMirror: Int,
+    /** Every invoice ever issued, voided and tombstoned included. */
+    val issuedInDatabase: Int,
+)

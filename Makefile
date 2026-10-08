@@ -1,5 +1,5 @@
 .PHONY: setup validate-spec sync-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-pdf-ios test-ui-ios \
-	test-app-ios test-ios pdf-samples build-ios test-core-android check
+	test-app-ios test-ios pdf-samples build-ios test-core-android test-data-android check
 
 # Simulator for iOS tests; override with `make test-ios SIM="iPhone 16"`.
 SIM ?= iPhone 17 Pro
@@ -52,7 +52,10 @@ pdf-samples:      ## render one PDF per `pdf` fixture into OUT (for the CA / acc
 build-ios:        ## build the app for the simulator
 	xcodebuild $(XCODEBUILD_FLAGS) -project ios/InvoiceApp.xcodeproj -scheme InvoiceApp -destination 'generic/platform=iOS Simulator' build
 
-test-core-android: ## run every fixture against :core:domain (Phase 7+)
-	@if [ -f android/gradlew ]; then cd android && ./gradlew :core:domain:test; else echo "Android project not created yet (Phase 7)"; fi
+test-core-android: ## run every fixture against :core:domain (JVM)
+	cd android && ./gradlew :core:domain:test
 
-check: validate-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-core-android
+test-data-android: ## :core:data on Robolectric: schema vs spec SQL, repositories, backups (iOS files included)
+	cd android && ./gradlew :core:data:testDebugUnitTest
+
+check: validate-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-core-android test-data-android

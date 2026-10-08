@@ -32,3 +32,6 @@ jobs:
       - name: Core fixtures (JVM)
         working-directory: android
         run: ./gradlew :core:domain:test --console=plain
+      - name: Data layer (Robolectric)
+        working-directory: android
+        run: ./gradlew :core:data:testDebugUnitTest --console=plain

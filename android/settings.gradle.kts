@@ -18,3 +18,4 @@ dependencyResolutionManagement {
 rootProject.name = "InvoiceBuilder"
 
 include(":core:domain")
+include(":core:data")
