@@ -15,7 +15,7 @@ import app.invoicebuilder.core.domain.tax.TaxConfig
 import app.invoicebuilder.core.domain.validation.FieldRule
 import java.math.BigDecimal
 
-enum class LineItemField { description, quantity, price, discount, rate, productCode }
+enum class LineItemField { Description, Quantity, Price, Discount, Rate, ProductCode }
 
 /** A line being edited in the line editor: plain text, validated live and applied on Done. iOS: `LineItemDraft`. */
 data class LineItemDraft(
@@ -48,27 +48,27 @@ class LineItemRules(val config: TaxConfig, val chargesTax: Boolean, /** Fraction
 
     fun issues(draft: LineItemDraft): Map<LineItemField, FieldIssue> {
         val issues = mutableMapOf<LineItemField, FieldIssue>()
-        if (draft.description.trimmedOrNull == null) issues[LineItemField.description] = FieldIssue.Required
+        if (draft.description.trimmedOrNull == null) issues[LineItemField.Description] = FieldIssue.Required
         val quantity = DecimalInput.parse(draft.quantityText)
         if (quantity is Outcome.Failure) {
-            issues[LineItemField.quantity] = if (quantity.error == InputError.Empty) FieldIssue.Required else FieldIssue.InvalidNumber(quantity.error)
+            issues[LineItemField.Quantity] = if (quantity.error == InputError.Empty) FieldIssue.Required else FieldIssue.InvalidNumber(quantity.error)
         }
         val price = MoneyInput.parse(draft.priceText, exponent)
         if (price is Outcome.Failure) {
-            issues[LineItemField.price] = if (price.error == InputError.Empty) FieldIssue.Required else FieldIssue.InvalidNumber(price.error)
+            issues[LineItemField.Price] = if (price.error == InputError.Empty) FieldIssue.Required else FieldIssue.InvalidNumber(price.error)
         }
         when (val discount = DocumentInput.discount(draft.discountText, draft.discountIsPercent, exponent)) {
-            is Outcome.Failure -> issues[LineItemField.discount] = discount.error
+            is Outcome.Failure -> issues[LineItemField.Discount] = discount.error
             is Outcome.Success -> {
                 val value = discount.value
                 if (value is Discount.Amount && quantity is Outcome.Success && price is Outcome.Success) {
                     val gross = DecimalString.parse(quantity.value)?.multiply(BigDecimal.valueOf(price.value))
-                    if (gross != null && BigDecimal.valueOf(value.value) > gross) issues[LineItemField.discount] = FieldIssue.ExceedsLineAmount
+                    if (gross != null && BigDecimal.valueOf(value.value) > gross) issues[LineItemField.Discount] = FieldIssue.ExceedsLineAmount
                 }
             }
         }
-        if (chargesTax && draft.rateId.trimmedOrNull == null) issues[LineItemField.rate] = FieldIssue.Required
-        productCodeRule?.let { issues.check(LineItemField.productCode, draft.productCode, it) }
+        if (chargesTax && draft.rateId.trimmedOrNull == null) issues[LineItemField.Rate] = FieldIssue.Required
+        productCodeRule?.let { issues.check(LineItemField.ProductCode, draft.productCode, it) }
         return issues
     }
 
