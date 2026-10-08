@@ -1,6 +1,7 @@
 package app.invoicebuilder.android.reminders
 
 import android.Manifest
+import androidx.core.content.edit
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -85,6 +86,10 @@ class SystemNotificationScheduler(private val context: Context) : NotificationSc
             .setContentIntent(pending)
             .setAutoCancel(true)
             .build()
+        // Checked here, next to the call, so Lint (and a reader) can see the permission guard.
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return
         runCatching { NotificationManagerCompat.from(context).notify("reminder-$documentID", 0, notification) }
     }
 
@@ -142,7 +147,7 @@ class ReminderReconciler(private val container: AppContainer, private val posted
 class PostedReminders(context: Context) {
     private val prefs = context.getSharedPreferences("posted_reminders", Context.MODE_PRIVATE)
     fun contains(key: String) = prefs.getBoolean(key, false)
-    fun add(key: String) = prefs.edit().putBoolean(key, true).apply()
+    fun add(key: String) = prefs.edit { putBoolean(key, true) }
 }
 
 class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {

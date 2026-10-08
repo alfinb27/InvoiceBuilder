@@ -25,7 +25,15 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
+import app.invoicebuilder.core.domain.models.DocumentType
 import app.invoicebuilder.android.catalog.CatalogSection
 import app.invoicebuilder.android.clients.ClientsSection
 import app.invoicebuilder.android.documents.DocumentsSection
@@ -80,6 +88,12 @@ fun MainShell(session: Session) {
     val router = session.router
     CompositionLocalProvider(LocalSession provides session) {
         NavigationSuiteScaffold(
+            // Hardware keyboards (tablets, Chromebooks, DeX): Ctrl+N new invoice, Ctrl+Shift+N new quote (≈ ⌘N / ⇧⌘N).
+            modifier = Modifier.onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown || !event.isCtrlPressed || event.key != Key.N) return@onPreviewKeyEvent false
+                session.startNewDocument(if (event.isShiftPressed) DocumentType.quote else DocumentType.invoice)
+                true
+            },
             navigationSuiteItems = {
                 for (item in tabs) {
                     item(

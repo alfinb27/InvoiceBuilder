@@ -1,6 +1,7 @@
 package app.invoicebuilder.android.documents
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -229,7 +230,7 @@ private fun renderPages(file: File, scale: Float = 2f): List<Bitmap> =
         PdfRenderer(descriptor).use { renderer ->
             (0 until renderer.pageCount).map { index ->
                 renderer.openPage(index).use { page ->
-                    val bitmap = Bitmap.createBitmap((page.width * scale).toInt(), (page.height * scale).toInt(), Bitmap.Config.ARGB_8888)
+                    val bitmap = createBitmap((page.width * scale).toInt(), (page.height * scale).toInt())
                     bitmap.eraseColor(Color.WHITE)
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     bitmap

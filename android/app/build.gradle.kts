@@ -13,7 +13,7 @@ android {
         // Same id as the iOS bundle id, so the Play product id matches the App Store one (`spec/billing.md`).
         applicationId = "app.invoicebuilder.invoices"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

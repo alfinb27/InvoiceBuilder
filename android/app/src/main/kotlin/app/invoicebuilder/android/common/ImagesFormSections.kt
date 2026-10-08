@@ -1,6 +1,7 @@
 package app.invoicebuilder.android.common
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -195,7 +196,7 @@ private fun exportSignature(strokes: List<List<Offset>>): ImagePayload? {
     val pad = 8f + inkWidth
     val width = ((maxX - minX) * scale + pad * 2).toInt().coerceAtLeast(1)
     val height = ((maxY - minY) * scale + pad * 2).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(width, height)
     val canvas = android.graphics.Canvas(bitmap)
     val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.BLACK; style = android.graphics.Paint.Style.STROKE; strokeWidth = inkWidth

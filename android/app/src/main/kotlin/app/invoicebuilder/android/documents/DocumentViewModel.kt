@@ -1,6 +1,7 @@
 package app.invoicebuilder.android.documents
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.invoicebuilder.android.app.DocumentRoute
@@ -84,7 +85,7 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
     /** This invoice's live payments, newest first. */
     var payments by mutableStateOf(emptyList<Payment>())
         private set
-    var paymentsRecorded by mutableStateOf(0)
+    var paymentsRecorded by mutableIntStateOf(0)
         private set
 
     // Typed fields, kept as typed; the document holds their last valid value.

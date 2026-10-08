@@ -1,6 +1,7 @@
 package app.invoicebuilder.android.common
 
 import android.content.ContentResolver
+import androidx.core.graphics.scale
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
@@ -81,5 +82,5 @@ object ImageProcessing {
         ByteArrayOutputStream().also { image.compress(format, quality, it) }.toByteArray()
 
     fun scaled(image: Bitmap, factor: Double): Bitmap =
-        Bitmap.createScaledBitmap(image, max(1, (image.width * factor).roundToInt()), max(1, (image.height * factor).roundToInt()), true)
+        image.scale(max(1, (image.width * factor).roundToInt()), max(1, (image.height * factor).roundToInt()))
 }

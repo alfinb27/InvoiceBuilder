@@ -7,5 +7,4 @@
         <item name="android:windowBackground">@color/background</item>
     </style>
     <color name="background">#F7F8FA</color>
-    <color name="brand">#1A5FD6</color>
 </resources>

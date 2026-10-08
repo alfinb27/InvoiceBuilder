@@ -29,7 +29,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        model.launch(inMemory = intent.getBooleanExtra(EXTRA_IN_MEMORY, false), seed = intent.getStringExtra(EXTRA_SEED))
+        // Test launches only: another app can send any extras to an exported activity, so a release build ignores them.
+        val debuggable = applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+        model.launch(
+            inMemory = debuggable && intent.getBooleanExtra(EXTRA_IN_MEMORY, false),
+            seed = if (debuggable) intent.getStringExtra(EXTRA_SEED) else null,
+        )
         if (savedInstanceState == null) handle(intent)
         setContent {
             InvoiceTheme {

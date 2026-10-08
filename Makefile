@@ -1,5 +1,5 @@
 .PHONY: setup validate-spec sync-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-pdf-ios test-ui-ios \
-	test-app-ios test-ios pdf-samples build-ios test-core-android test-data-android check
+	test-app-ios test-ios pdf-samples build-ios test-core-android test-data-android test-unit-android test-device-android pdf-samples-android check
 
 # Simulator for iOS tests; override with `make test-ios SIM="iPhone 16"`.
 SIM ?= iPhone 17 Pro
@@ -58,4 +58,16 @@ test-core-android: ## run every fixture against :core:domain (JVM)
 test-data-android: ## :core:data on Robolectric: schema vs spec SQL, repositories, backups (iOS files included)
 	cd android && ./gradlew :core:data:testDebugUnitTest
 
-check: validate-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-core-android test-data-android
+test-unit-android: ## every Android JVM test: fixtures, data, billing, plus Android Lint and the R8 release build
+	cd android && ./gradlew :core:domain:test testDebugUnitTest :app:lintDebug :app:assembleRelease
+
+test-device-android: ## on a running emulator or device: the PDF renderer and the app's UI smoke tests
+	cd android && ./gradlew :core:pdf:connectedDebugAndroidTest :app:connectedDebugAndroidTest
+
+pdf-samples-android: ## the PDF review copies from the Android renderer, pulled into $(OUT)/android
+	cd android && ./gradlew :core:pdf:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
+		-Pandroid.testInstrumentationRunnerArguments.pdfSamples=1 \
+		-Pandroid.testInstrumentationRunnerArguments.class=app.invoicebuilder.core.pdf.RenderTests#writeSamples
+	mkdir -p $(OUT)/android && adb pull /sdcard/Android/data/app.invoicebuilder.core.pdf.test/files/pdf-samples/. $(OUT)/android
+
+check: validate-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-core-android test-data-android test-unit-android
