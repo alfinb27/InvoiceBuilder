@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws everything; the window theme only sets edge-to-edge system bars before the first frame. -->
+    <style name="Theme.InvoiceBuilder" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/background</item>
+    </style>
+    <color name="background">#F7F8FA</color>
+    <color name="brand">#1A5FD6</color>
+</resources>
