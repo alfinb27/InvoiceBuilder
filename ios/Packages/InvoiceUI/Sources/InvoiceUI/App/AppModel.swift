@@ -56,7 +56,10 @@ public final class AppModel {
                 device = try await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name)
             }
             await dependencies.sync.setEnabled(device.preferences.isSyncEnabled)
-            await dependencies.entitlements.start()
+            // Never wait for the store at launch: offline, the price lookup waits for a network timeout. Until it
+            // answers the state is `unknown`, which still lets anyone under the free limit issue (`spec/billing.md`).
+            let entitlements = dependencies.entitlements
+            Task { await entitlements.start() }
             var businesses = try await dependencies.businesses.fetchBusinesses()
             if businesses.isEmpty, await syncIsOn(dependencies.sync) {
                 businesses = try await waitForICloud(dependencies)
@@ -84,7 +87,8 @@ public final class AppModel {
             let device = try await demo.deviceState.loadOrCreate(deviceName: UIDevice.current.name)
             let business = try await SampleData.seed(country, dependencies: demo, deviceID: device.id)
             try await SampleData.addDemoDocuments(business: business, dependencies: demo, deviceID: device.id)
-            await demo.entitlements.start()
+            let demoEntitlements = demo.entitlements
+            Task { await demoEntitlements.start() }
             let session = try Session(dependencies: demo, business: business, deviceID: device.id)
             session.isDemo = true
             session.reloadApp = { [weak self] in await self?.reload() }

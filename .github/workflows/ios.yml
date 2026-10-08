@@ -21,7 +21,9 @@ on:
 
 jobs:
   test:
-    runs-on: macos-15
+    # macos-26 (Xcode 26.6, Swift 6.2): SQLiteData's dependencies need Swift tools ≥ 6.2 (swift-collections 1.7's
+    # Package@swift-6.2.swift), which macos-15's default Xcode 16.4 does not have.
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4

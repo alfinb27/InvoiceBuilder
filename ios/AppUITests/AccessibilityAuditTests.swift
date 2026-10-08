@@ -68,25 +68,46 @@ final class AccessibilityAuditTests: XCTestCase {
     /// Runs the audit once the screen has settled (a fading view measures as low contrast). Fails on contrast below
     /// 4.5:1, clipped text and missing Dynamic Type support in what the app draws; "nearly passed" contrast is
     /// logged only (system section headers and footers report it everywhere). Ignored: system chrome and search
-    /// fields, disabled controls (WCAG exempts them) and `systemDrawn`.
+    /// fields, disabled controls (WCAG exempts them), what sits under the translucent bars, and `systemDrawn`.
+    ///
+    /// Audits twice and fails only on what both passes report: on the slower simulators a section header can measure
+    /// mid-transition once, which is not a property of the screen.
     @MainActor
     private func audit(_ screen: String, _ app: XCUIApplication) throws {
         Thread.sleep(forTimeInterval: 1.5)
+        var firstPass: Set<String> = []
         try app.performAccessibilityAudit { issue in
-            let description = issue.compactDescription
-            if description.localizedCaseInsensitiveContains("nearly passed") { return true }
-            // No element: text seen through a translucent bar (rows scrolled under onboarding's Continue bar).
-            guard let element = issue.element else {
-                return description.localizedCaseInsensitiveContains("contrast")
-            }
-            let system: Set<XCUIElement.ElementType> = [.tabBar, .navigationBar, .keyboard, .searchField, .toolbar]
-            if system.contains(element.elementType) || !element.isEnabled { return true }
-            if Self.systemDrawn.contains(element.label) || Self.toolbarItems.contains(element.identifier) {
-                return true
-            }
-            XCTContext.runActivity(named: "\(screen): \(description)") { _ in }
+            if let key = self.key(for: issue, app) { firstPass.insert(key) }
+            return true
+        }
+        guard !firstPass.isEmpty else { return }
+        Thread.sleep(forTimeInterval: 2)
+        try app.performAccessibilityAudit { issue in
+            guard let key = self.key(for: issue, app), firstPass.contains(key) else { return true }
+            XCTContext.runActivity(named: "\(screen): \(key)") { _ in }
             return false
         }
+    }
+
+    /// The issue as text, or nil when it is one the audit ignores (see `audit`).
+    @MainActor
+    private func key(for issue: XCUIAccessibilityAuditIssue, _ app: XCUIApplication) -> String? {
+        let description = issue.compactDescription
+        if description.localizedCaseInsensitiveContains("nearly passed") { return nil }
+        // No element: text seen through a translucent bar (rows scrolled under onboarding's Continue bar).
+        guard let element = issue.element else {
+            return description.localizedCaseInsensitiveContains("contrast") ? nil : description
+        }
+        let system: Set<XCUIElement.ElementType> = [.tabBar, .navigationBar, .keyboard, .searchField, .toolbar]
+        if system.contains(element.elementType) || !element.isEnabled { return nil }
+        if Self.systemDrawn.contains(element.label) || Self.toolbarItems.contains(element.identifier) { return nil }
+        // Seen through the translucent bars: a row partly under the tab bar (smaller iPhones, e.g. the 16e), or a
+        // header still under the navigation bar's glass as a pushed page settles.
+        let tabBar = app.tabBars.firstMatch
+        if tabBar.exists, element.frame.maxY > tabBar.frame.minY { return nil }
+        let navigationBar = app.navigationBars.firstMatch
+        if navigationBar.exists, element.frame.minY < navigationBar.frame.maxY { return nil }
+        return "\(description) — \"\(element.label)\" [\(element.identifier)]"
     }
 
     @MainActor

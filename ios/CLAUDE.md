@@ -81,9 +81,10 @@ make test-ios           # all of the above
   before simulators work; until then another installed Xcode can be used with `DEVELOPER_DIR=…`.
 - Switching toolchains (Command Line Tools ↔ Xcode) on the same package: delete its `.build/` first; stale
   products make the Swift Testing macros "not found".
-- **CI is the stricter compiler.** GitHub's `macos-15` runner builds with Xcode 16.4 (iOS 18.5 SDK), which is older
-  than a local beta: a type the newer SDK marks `Sendable` may not be marked there, and Swift 6 then rejects code
-  that built locally (`CIContext` did). A green local build is not proof; the PR check is.
+- **CI is the stricter compiler.** GitHub's `macos-26` runner builds with Xcode 26.6 (iOS 26 SDK), older than the
+  local Xcode 27: a type the newer SDK marks `Sendable` may not be marked there, and Swift 6 then rejects code that
+  built locally (`CIContext` did on Xcode 16.4). A green local build is not proof; the PR check is. The runner can't
+  go back to Xcode 16 (Swift 6.1): SQLiteData's dependency graph needs Swift tools ≥ 6.2.
 - SQLiteData brings Swift macros: xcodebuild needs `-skipMacroValidation` (the Makefile passes it); Xcode asks to
   trust them once.
 - Offline builds: `xcodebuild … -clonedSourcePackagesDirPath <dir> -disableAutomaticPackageResolution
