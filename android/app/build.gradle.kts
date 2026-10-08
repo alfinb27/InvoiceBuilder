@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "app.invoicebuilder.android"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         // Same id as the iOS bundle id, so the Play product id matches the App Store one (`spec/billing.md`).

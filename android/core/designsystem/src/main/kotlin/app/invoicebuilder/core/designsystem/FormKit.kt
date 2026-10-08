@@ -225,3 +225,37 @@ fun <T> SegmentedChoice(options: List<Pair<T, String>>, selection: T, onSelect: 
 /** A short red alert row with an icon, inside a section. */
 @Composable
 fun SectionDivider() = HorizontalDivider(color = Theme.colors.border.copy(alpha = 0.6f))
+
+/**
+ * ≈ `DatePicker(displayedComponents: .date)`: a field showing a calendar date that opens the Material date picker.
+ * Dates are calendar dates (no time zone, `CLAUDE.md` rule 3); the picker works in UTC midnight millis, so the
+ * conversion never shifts a day.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun DateField(title: String, date: java.time.LocalDate?, onChange: (java.time.LocalDate) -> Unit, modifier: Modifier = Modifier, tag: String? = null) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val text = date?.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)) ?: "None"
+    Box(modifier.fillMaxWidth()) {
+        OutlinedTextField(text, {}, readOnly = true, label = { Text(title) }, modifier = Modifier.fillMaxWidth(),
+            trailingIcon = { Icon(Icons.Filled.ArrowDropDown, null) })
+        Box(Modifier.matchParentSize().clickable(role = Role.Button) { open = true }.let { if (tag != null) it.testTag(tag) else it })
+    }
+    if (open) {
+        val state = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = date?.atStartOfDay(java.time.ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
+        )
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { open = false },
+            confirmButton = {
+                TextButton({
+                    state.selectedDateMillis?.let {
+                        onChange(java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneOffset.UTC).toLocalDate())
+                    }
+                    open = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton({ open = false }) { Text("Cancel") } },
+        ) { androidx.compose.material3.DatePicker(state) }
+    }
+}

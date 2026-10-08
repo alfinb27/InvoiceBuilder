@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "app.invoicebuilder.core.pdf"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig { minSdk = 26 }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
