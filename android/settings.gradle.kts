@@ -19,3 +19,6 @@ rootProject.name = "InvoiceBuilder"
 
 include(":core:domain")
 include(":core:data")
+include(":core:pdf")
+include(":core:billing")
+include(":core:designsystem")
