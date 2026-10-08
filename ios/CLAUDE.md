@@ -28,7 +28,7 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 | `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction; `GRDBBackupService` = export and the one-transaction "replace all" restore, plus `BackupSnapshotStore`). |
 | `InvoicePDF` | The renderer: Core Text + `UIGraphicsPDFRenderer` drawing the `PDFDocumentModel` that `InvoiceCore/PDF` builds, laid out by `spec/pdf/layout/*.json`. No database, no view models — a request in, `Data` out. |
 | `InvoiceBilling` | StoreKit 2 + `EntitlementService` implementing `spec/billing.md`. (Phase 5) |
-| `InvoiceSync` | SQLiteData sync engine behind a `SyncService` protocol. `DeviceState` is never synced. (Phase 4b) |
+| `InvoiceSync` | SQLiteData `SyncEngine` behind InvoiceCore's `SyncService` (`LiveSyncService`); `@Table` mirrors of the synced tables (`SyncedTables.swift`, generated from `schema.sql`, tested against it). The only package that imports SQLiteData. `device_state` and `app_state` are never synced. Sync is on only in a build whose Info.plist has `InvoiceSyncContainer` (with the iCloud capability). |
 | `InvoiceUI` | Design system (from `spec/design/tokens.json`) + feature screens (onboarding, invoices/quotes builder, clients, items, settings) + the adaptive shell, `AppModel`, `Session`, routers, `AppDependencies` and `InvoiceCommands` (menu bar + keyboard shortcuts). |
 
 ## Conventions
@@ -66,6 +66,7 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 ```sh
 make test-core-ios      # swift test InvoiceCore: every implemented fixture kind + unit tests (no simulator)
 make test-data-ios      # swift test InvoiceData: migrations == schema.sql, repositories (no simulator)
+make test-sync-ios      # swift test InvoiceSync: table mirrors == schema, SyncEngine accepts the schema (CloudKit mock)
 make test-pdf-ios       # InvoicePDF: the renderer, pagination and fonts (simulator)
 make test-ui-ios        # InvoiceUI view models on a simulator (SIM="iPhone 17 Pro" by default)
 make test-app-ios       # XCUITest smoke flows + screenshot tour
@@ -82,5 +83,7 @@ make test-ios           # all of the above
 - **CI is the stricter compiler.** GitHub's `macos-15` runner builds with Xcode 16.4 (iOS 18.5 SDK), which is older
   than a local beta: a type the newer SDK marks `Sendable` may not be marked there, and Swift 6 then rejects code
   that built locally (`CIContext` did). A green local build is not proof; the PR check is.
+- SQLiteData brings Swift macros: xcodebuild needs `-skipMacroValidation` (the Makefile passes it); Xcode asks to
+  trust them once.
 - Offline builds: `xcodebuild … -clonedSourcePackagesDirPath <dir> -disableAutomaticPackageResolution
   -skipPackageUpdates`, with `<dir>` seeded from a SwiftPM `.build` (`checkouts/`, `repositories/`).

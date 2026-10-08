@@ -25,10 +25,14 @@ public struct GRDBBackupService: BackupService {
         return BackupFile(createdAt: now, app: app, dbSchemaVersion: schemaVersion, data: data)
     }
 
+    public func writeSafetySnapshot() async throws {
+        let snapshot = try await makeBackup(app: BackupFile.AppInfo(platform: "ios", version: "snapshot"))
+        try snapshots.write(snapshot, at: time.now())
+    }
+
     public func restore(_ file: BackupFile, deviceID: String) async throws {
         // §4 step 3: no snapshot, no restore.
-        let snapshot = try await makeBackup(app: file.app.snapshotApp)
-        try snapshots.write(snapshot, at: time.now())
+        try await writeSafetySnapshot()
 
         let now = time.now(), ids = self.ids
         try await database.writer.write { db in
@@ -150,11 +154,6 @@ public struct GRDBBackupService: BackupService {
             try first.update(db)
         }
     }
-}
-
-private extension BackupFile.AppInfo {
-    /// A snapshot is written by this app, whatever wrote the file being restored.
-    var snapshotApp: BackupFile.AppInfo { BackupFile.AppInfo(platform: "ios", version: "snapshot") }
 }
 
 /// Safety snapshots (`spec/backup.md` §4 step 3): `pre-restore-<epoch ms>.invoicebackup`, newest 3 kept.

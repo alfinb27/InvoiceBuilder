@@ -231,6 +231,13 @@ public struct GRDBDeviceStateRepository: DeviceStateRepository {
         let now = time.now()
         try await database.writer.write { db in try DeviceStateRecord.setActiveBusiness(id, now: now, db: db) }
     }
+
+    public func setSyncEnabled(_ enabled: Bool) async throws {
+        let now = time.now()
+        try await database.writer.write { db in
+            try DeviceStateRecord.updatePreferences(now: now, db: db) { $0.syncEnabled = enabled }
+        }
+    }
 }
 
 // MARK: - Shared helpers
@@ -247,9 +254,13 @@ extension DeviceStateRecord {
     }
 
     static func setActiveBusiness(_ businessID: String?, now: Int64, db: Database) throws {
+        try updatePreferences(now: now, db: db) { $0.activeBusinessId = businessID }
+    }
+
+    static func updatePreferences(now: Int64, db: Database, _ change: (inout DevicePreferences) -> Void) throws {
         guard var record = try current(db) else { throw RecordNotFound(table: databaseTableName, id: "this device") }
         var state = try record.deviceState()
-        state.preferences.activeBusinessId = businessID
+        change(&state.preferences)
         state.updatedAt = now
         record = try DeviceStateRecord(state)
         try record.update(db)

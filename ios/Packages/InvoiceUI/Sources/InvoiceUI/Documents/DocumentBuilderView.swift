@@ -104,6 +104,12 @@ struct DocumentBuilderView: View {
         } message: {
             Text(issueMessage)
         }
+        .sheet(item: $model.state.seriesChoice) { choice in
+            SeriesChoiceSheet(choice: choice, docType: model.state.document.docType,
+                              startOwn: { Task { await model.startOwnSeries() } },
+                              takeOver: { id in Task { await model.takeOver(seriesID: id) } },
+                              cancel: { model.state.seriesChoice = nil })
+        }
         .confirmationDialog("Delete this draft?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete draft", role: .destructive) { Task { await model.deleteDraft() } }
         }

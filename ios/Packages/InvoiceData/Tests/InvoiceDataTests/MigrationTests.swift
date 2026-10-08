@@ -51,7 +51,46 @@ struct MigrationTests {
         let migrator = try AppDatabase.migrator()
         try migrator.migrate(database.writer)
         let applied = try database.writer.read { db in try migrator.appliedIdentifiers(db) }
-        #expect(applied == ["0001_init", "0002_document_sequence", "0003_reminder_override"])
+        #expect(applied == ["0001_init", "0002_document_sequence", "0003_reminder_override",
+                            "0004_document_no_self_reference"])
+    }
+
+    /// 0004 rebuilds `document`: a database filled under 0003 keeps every document, line, tax line and payment,
+    /// and the children still reference their document.
+    @Test func rebuildingTheDocumentTableKeepsItsChildren() async throws {
+        let store = try TestStore()
+        _ = try await store.populate()
+        let full = try await store.backupService().makeBackup(app: TestStore.app)
+
+        var upTo3 = DatabaseMigrator()
+        for file in try AppDatabase.migrationFiles().prefix(3) {
+            let sql = try String(contentsOf: file, encoding: .utf8)
+            upTo3.registerMigration(file.deletingPathExtension().lastPathComponent) { db in try db.execute(sql: sql) }
+        }
+        // Fill a database migrated to 0003 through the restore path, then let AppDatabase run 0004 over the data.
+        let filled = try DatabaseQueue()
+        try upTo3.migrate(filled)
+        try await filled.write { db in
+            try GRDBBackupService.replaceAll(with: full.data, deviceID: "x", now: 1, ids: .sequential(), db: db)
+        }
+        let before = try await filled.read { db in
+            try ["document", "line_item", "tax_line", "payment"].map {
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \($0)") ?? 0
+            }
+        }
+        let rebuilt = try AppDatabase(filled)
+        let after = try await rebuilt.writer.read { db in
+            try ["document", "line_item", "tax_line", "payment"].map {
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \($0)") ?? 0
+            }
+        }
+        #expect(before == after && before.allSatisfy { $0 > 0 })
+        let orphans = try await rebuilt.writer.read { db in try Row.fetchAll(db, sql: "PRAGMA foreign_key_check").count }
+        #expect(orphans == 0)
+        let converted = try await rebuilt.writer.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM document WHERE converted_from_id IS NOT NULL") ?? 0
+        }
+        #expect(converted == 1)
     }
 
     @Test func onDiskDatabaseUsesWALAndForeignKeys() throws {

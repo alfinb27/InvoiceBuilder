@@ -21,8 +21,13 @@ public struct DeviceState: Codable, Hashable, Sendable, Identifiable {
 
 public struct DevicePreferences: Codable, Hashable, Sendable {
     public var activeBusinessId: String?
+    /// iCloud sync on this device (`spec/sync.md` §2); nil means on, where the build supports it.
+    public var syncEnabled: Bool?
 
-    public init(activeBusinessId: String? = nil) {
+    public init(activeBusinessId: String? = nil, syncEnabled: Bool? = nil) {
         self.activeBusinessId = activeBusinessId
+        self.syncEnabled = syncEnabled
     }
+
+    public var isSyncEnabled: Bool { syncEnabled ?? true }
 }

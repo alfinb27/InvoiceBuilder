@@ -327,6 +327,18 @@ if (fromSchema && fromMigrations) {
       if (/\bIN\s*\([^)]*'/i.test(check))
         fail(schemaFile, `table ${name}: value-list ${check} is not allowed on synced tables — enforce the values in app code`);
   }
+  // SyncEngine rejects reference cycles, a table referencing itself included ("cycleDetected").
+  const edges = Object.fromEntries(Object.entries(fromSchema).filter(([n]) => !LOCAL_TABLES.has(n))
+    .map(([n, t]) => [n, [...new Set(t.foreignKeys.map((k) => k[0]))]]));
+  const visiting = new Set(), done = new Set();
+  const visit = (n, path) => {
+    if (done.has(n)) return;
+    if (visiting.has(n)) { fail(schemaFile, `foreign keys form a cycle: ${[...path, n].join(" → ")} (SyncEngine rejects cycles)`); return; }
+    visiting.add(n);
+    for (const m of edges[n] ?? []) visit(m, [...path, n]);
+    visiting.delete(n); done.add(n);
+  };
+  for (const n of Object.keys(edges)) visit(n, []);
 }
 
 // ---------- report ----------

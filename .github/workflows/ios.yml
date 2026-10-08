@@ -29,6 +29,7 @@ jobs:
         run: |
           make test-core-ios
           make test-data-ios
+          make test-sync-ios
       - name: Pick a simulator
         id: sim
         run: |

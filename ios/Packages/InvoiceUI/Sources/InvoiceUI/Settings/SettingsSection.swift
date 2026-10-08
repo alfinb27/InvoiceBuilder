@@ -59,6 +59,7 @@ private struct SettingsPageView: View {
         case .numbering: NumberingPage(session: session)
         case .defaults: DefaultsPage(session: session)
         case .taxRates: TaxRatesPage(session: session)
+        case .sync: SyncPage(session: session)
         case .backup: BackupPage(session: session)
         case .about: AboutPage(session: session)
         }
@@ -73,6 +74,7 @@ extension SettingsPage {
         case .numbering: "Invoice numbering"
         case .defaults: "Invoice defaults"
         case .taxRates: "Tax rates"
+        case .sync: "iCloud sync"
         case .backup: "Backup"
         case .about: "About"
         }
@@ -85,6 +87,7 @@ extension SettingsPage {
         case .numbering: "number"
         case .defaults: "doc.text"
         case .taxRates: "percent"
+        case .sync: "icloud"
         case .backup: "externaldrive"
         case .about: "info.circle"
         }

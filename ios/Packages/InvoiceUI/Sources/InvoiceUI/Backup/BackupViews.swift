@@ -94,6 +94,7 @@ struct BackupFlows: ViewModifier {
             }
             .sheet(item: $model.state.pendingRestore) { pending in
                 RestoreConfirmationView(preview: pending.preview, isWorking: model.state.isWorking,
+                                        syncOn: model.state.syncOn,
                                         cancel: model.cancelRestore,
                                         confirm: { Task { await model.confirmRestore() } })
             }
@@ -119,6 +120,7 @@ extension View {
 struct RestoreConfirmationView: View {
     let preview: BackupPreview
     let isWorking: Bool
+    let syncOn: Bool
     let cancel: () -> Void
     let confirm: () -> Void
 
@@ -146,7 +148,9 @@ struct RestoreConfirmationView: View {
                     .disabled(isWorking)
                     .accessibilityIdentifier("backup.confirmRestore")
                 } footer: {
-                    Text("Everything on this device is replaced by the backup. A copy of the current data is kept on this device first.")
+                    Text(syncOn
+                         ? "Everything on this device, and on every iPhone and iPad signed in to your iCloud account, is replaced by the backup. A copy of the current data is kept on this device first."
+                         : "Everything on this device is replaced by the backup. A copy of the current data is kept on this device first.")
                 }
             }
             .navigationTitle("Restore backup?")

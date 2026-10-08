@@ -8,6 +8,8 @@ import UIKit
 public final class AppModel {
     public enum Phase {
         case loading
+        /// First launch with sync on: waiting (up to 10 s, skippable) for a business from iCloud (`spec/sync.md` §2).
+        case checkingICloud
         case onboarding(OnboardingViewModel)
         case ready(Session)
         case failed(String)
@@ -16,6 +18,9 @@ public final class AppModel {
     public private(set) var phase: Phase = .loading
     private let dependencies: AppDependencies?
     private let seed: SampleData.Country?
+    private var skipICloudCheck = false
+    /// How long the first launch waits for iCloud.
+    var iCloudWait: Duration = .seconds(10)
 
     public init(dependencies: AppDependencies, seed: SampleData.Country? = nil) {
         self.dependencies = dependencies
@@ -42,13 +47,18 @@ public final class AppModel {
     /// Loads this device and the active business (`spec/setup.md` §2).
     public func start() async {
         guard case .loading = phase, let dependencies else { return }
+        skipICloudCheck = false
         do {
             var device = try await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name)
             if let seed, try await dependencies.businesses.fetchBusinesses().isEmpty {
                 try await SampleData.seed(seed, dependencies: dependencies, deviceID: device.id)
                 device = try await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name)
             }
-            let businesses = try await dependencies.businesses.fetchBusinesses()
+            await dependencies.sync.setEnabled(device.preferences.isSyncEnabled)
+            var businesses = try await dependencies.businesses.fetchBusinesses()
+            if businesses.isEmpty, await syncIsOn(dependencies.sync) {
+                businesses = try await waitForICloud(dependencies)
+            }
             if let business = BusinessSetup.activeBusiness(preferences: device.preferences, businesses: businesses) {
                 phase = .ready(try makeSession(business: business, deviceID: device.id))
             } else {
@@ -63,6 +73,32 @@ public final class AppModel {
         }
     }
 
+    /// Skips the first-launch iCloud check.
+    public func skipICloud() {
+        skipICloudCheck = true
+    }
+
+    private func syncIsOn(_ sync: any SyncService) async -> Bool {
+        for await status in sync.observeStatus() {
+            return status != .off && status != .unavailable
+        }
+        return false
+    }
+
+    /// Polls for a business arriving from iCloud, four times a second, until one does, `iCloudWait` passes or the user
+    /// skips.
+    private func waitForICloud(_ dependencies: AppDependencies) async throws -> [Business] {
+        phase = .checkingICloud
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: iCloudWait)
+        while clock.now < deadline, !skipICloudCheck {
+            let businesses = try await dependencies.businesses.fetchBusinesses()
+            if !businesses.isEmpty { return businesses }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return try await dependencies.businesses.fetchBusinesses()
+    }
+
     /// A `.invoicebackup` opened from another app (Files, Mail, AirDrop; `spec/backup.md` §6).
     public func open(_ url: URL) async {
         switch phase {
@@ -71,7 +107,7 @@ public final class AppModel {
         case .ready(let session):
             session.router.selectedTab = .settings
             session.router.settings.restore(from: url)
-        case .loading, .failed:
+        case .loading, .checkingICloud, .failed:
             break
         }
     }

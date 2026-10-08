@@ -9,6 +9,8 @@ final class HomeViewModel {
         var clientCount = 0
         var itemCount = 0
         var dashboard = DashboardTotals()
+        /// Issued documents sharing a number (`spec/sync.md` §4); normally empty.
+        var duplicateNumbers: [DuplicateNumbers.Group] = []
     }
 
     private(set) var state = State()
@@ -28,7 +30,17 @@ final class HomeViewModel {
             self.state.itemCount = $0
         }
         async let dashboard: Void = observeDashboard()
-        _ = await (clients, items, dashboard)
+        async let duplicates: Void = observeDuplicates()
+        _ = await (clients, items, dashboard, duplicates)
+    }
+
+    private func observeDuplicates() async {
+        do {
+            for try await groups in session.dependencies.numbering.observeDuplicateNumbers(
+                businessID: session.business.id) {
+                state.duplicateNumbers = groups
+            }
+        } catch {}
     }
 
     private func observeDashboard() async {
@@ -62,6 +74,9 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
                     BusinessCard(session: session)
+                    ForEach(model.state.duplicateNumbers, id: \.self) { group in
+                        DuplicateNumberWarning(group: group, session: session)
+                    }
                     if model.state.dashboard != DashboardTotals() { dashboard }
                     checklist
                     comingNext
@@ -222,5 +237,33 @@ struct Card<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.l))
             .overlay(RoundedRectangle(cornerRadius: Theme.Radius.l).stroke(Theme.border.opacity(0.6)))
+    }
+}
+
+/// Two issued documents share a number (`spec/sync.md` §4): say so and link to them; nothing is renumbered.
+private struct DuplicateNumberWarning: View {
+    let group: DuplicateNumbers.Group
+    let session: Session
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Label("\(group.ids.count) \(DocumentText.noun(group.docType))s share the number \(group.number)",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.warning)
+            Text("Void one of them and issue it again, so each number is used once.")
+                .font(.footnote)
+                .foregroundStyle(Theme.textSecondary)
+            HStack {
+                ForEach(Array(group.ids.enumerated()), id: \.element) { index, id in
+                    Button("Open \(index + 1)") { session.openDocument(id, docType: group.docType) }
+                        .buttonStyle(.bordered)
+                }
+            }
+        }
+        .padding(Theme.Space.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.warning.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .contain)
     }
 }

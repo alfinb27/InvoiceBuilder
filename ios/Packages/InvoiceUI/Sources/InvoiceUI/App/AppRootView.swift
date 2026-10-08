@@ -14,6 +14,14 @@ public struct AppRootView: View {
             switch model.phase {
             case .loading:
                 ProgressView()
+            case .checkingICloud:
+                VStack(spacing: Theme.Space.l) {
+                    ProgressView()
+                    Text("Looking for your business in iCloud…")
+                        .foregroundStyle(Theme.textSecondary)
+                    Button("Skip") { model.skipICloud() }
+                        .accessibilityIdentifier("skipICloud")
+                }
             case .onboarding(let onboarding):
                 OnboardingView(model: onboarding)
             case .ready(let session):
@@ -68,5 +76,9 @@ public struct MainShellView: View {
         .focusedSceneValue(\.session, session)
         .task { await session.observeBusiness() }
         .task { await session.reconcileReminders() }
+        .task {
+            // Changes from another device (`spec/sync.md` §5): reminders follow invoices issued or paid there.
+            for await _ in session.dependencies.sync.observeRemoteChanges() { await session.reconcileReminders() }
+        }
     }
 }

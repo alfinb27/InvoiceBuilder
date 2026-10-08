@@ -33,11 +33,28 @@ final class DocumentViewModel {
         var issueProblems: [IssueProblem] = []
         var confirmingIssue = false
         var numberPreview: String?
+        /// This device owns no series of the document's type: start one or take one over (`spec/sync.md` §3).
+        var seriesChoice: SeriesChoice?
         var isWorking = false
         var errorMessage: String?
         var lineEditor: LineEditorState?
         /// The line last added or edited (⌘D duplicates it).
         var selectedLineID: String?
+    }
+
+    struct SeriesChoice: Equatable, Identifiable {
+        struct Option: Equatable, Identifiable {
+            let series: NumberingSeries
+            /// The number the next document would get after taking the series over.
+            let nextNumber: String?
+            var id: String { series.id }
+        }
+
+        let id = UUID()
+        /// The first number of a new series on this device, or nil when no device letter is left.
+        let ownFirstNumber: String?
+        /// Live series of the type owned by other devices.
+        let others: [Option]
     }
 
     struct LineEditorState: Equatable, Identifiable {
@@ -539,7 +556,8 @@ final class DocumentViewModel {
             businessID: state.document.businessId))) ?? []
         guard let owned = NumberAllocator.series(for: state.document.docType, deviceID: session.deviceID,
                                                  among: series) else {
-            state.issueProblems = [.noSeries]
+            state.seriesChoice = seriesChoice(among: series)
+            if state.seriesChoice == nil { state.issueProblems = [.noSeries] }
             return
         }
         switch NumberAllocator.allocate(from: owned, issueDate: state.document.issueDate, config: config) {
@@ -548,6 +566,47 @@ final class DocumentViewModel {
             state.confirmingIssue = true
         case .failure(let error):
             state.issueProblems = [.numbering(error)]
+        }
+    }
+
+    /// What this device can number from (`spec/sync.md` §3): a new series of its own, or another device's.
+    private func seriesChoice(among series: [NumberingSeries]) -> SeriesChoice? {
+        let docType = state.document.docType
+        let live = series.filter { $0.deletedAt == nil && $0.docType == docType }
+        let rules = session.numberingRules
+        let own = SeriesOwnership.deviceSeriesPattern(
+            defaultPattern: docType == .quote ? config.numbering.quotePattern : config.numbering.invoicePattern,
+            docType: docType, existingPatterns: live.map(\.pattern))
+        let ownFirst = (try? own.get()).flatMap { value in
+            try? rules.preview(pattern: value.pattern, reset: config.numbering.reset, seq: 1).get().number
+        }
+        let others = live.filter { $0.ownerDeviceId != session.deviceID }.map { other in
+            SeriesChoice.Option(series: other, nextNumber: try? rules.nextNumber(other).get().number)
+        }
+        guard ownFirst != nil || !others.isEmpty else { return nil }
+        return SeriesChoice(ownFirstNumber: ownFirst, others: others)
+    }
+
+    /// §3.1, then Issue again.
+    func startOwnSeries() async {
+        state.seriesChoice = nil
+        do {
+            _ = try await session.dependencies.numbering.createDeviceSeries(
+                businessID: state.document.businessId, docType: state.document.docType, deviceID: session.deviceID)
+            await requestIssue()
+        } catch {
+            state.errorMessage = "Numbering couldn't be set up on this device."
+        }
+    }
+
+    /// §3.2, then Issue again.
+    func takeOver(seriesID: String) async {
+        state.seriesChoice = nil
+        do {
+            _ = try await session.dependencies.numbering.takeOver(seriesID: seriesID, deviceID: session.deviceID)
+            await requestIssue()
+        } catch {
+            state.errorMessage = "The series couldn't be taken over."
         }
     }
 

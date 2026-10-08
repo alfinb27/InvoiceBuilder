@@ -1,6 +1,6 @@
 # ADR-0015: iCloud sync (Apple devices only)
 
-- **Status:** Proposed — to be confirmed by the Phase 0 sync spike (`docs/spikes/sync-spike.md`)
+- **Status:** Accepted in code (Phase 4b, 2026-10-08); the two-device run of `docs/spikes/sync-spike.md` is still to do
 - **Date:** 2026-09-19
 
 ## Options considered
@@ -35,3 +35,15 @@ per-column "last edit wins". Device checks: `docs/spikes/sync-spike.md`.
 ## Revisit when
 The spike shows conflicts with our schema/triggers/migrations → hand-written CKSyncEngine (+10–15 days) or ship
 sync in 1.1.
+
+## Phase 4b (2026-10-08)
+- Built as decided: `InvoiceSync` wraps SQLiteData's `SyncEngine`; the rest of the app sees only `SyncService`.
+- **Found:** `SyncEngine` rejects reference cycles, including a table that references itself. `document.converted_from_id`
+  did; migration 0004 rebuilds `document` without that foreign key (the column and its values stay), and
+  `make validate-spec` now rejects cycles. The desk spike missed this because it only compiled the engine.
+- **Account changes** pause sync and keep local data (SQLiteData's default erases it). Erasing to follow a new
+  account is an explicit, confirmed action with a safety snapshot first (`spec/sync.md` §2).
+- **Numbering:** a device without a series starts its own with a device letter (`INV/{fy}/B{seq:4}`) or takes one
+  over; the duplicate-number check runs on Home (`spec/sync.md` §3–4).
+- **Switch:** sync runs only in a build whose Info.plist names the iCloud container (`InvoiceSyncContainer`), set
+  together with the iCloud capability once the Apple developer team exists. Other builds report `unavailable`.
