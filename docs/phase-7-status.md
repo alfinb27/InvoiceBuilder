@@ -16,7 +16,8 @@
 | `:core:domain` at fixture parity | ✅ | 413 JVM tests, 410/410 fixtures (`make test-core-android`) |
 | `:core:data` (Room over the spec SQL, repositories) | ✅ | `DataTests` (schema equals `schema.sql`, repositories, backups incl. iOS files) |
 | Setup screens, adaptive shell, signature pad, photo picker | ✅ | onboarding, Clients, Items, Settings; `NavigationSuiteScaffold`; Compose canvas signature → PNG |
-| Survives rotation, dark mode, "Don't keep activities" without data loss | ✅ / ◐ | state lives in the activity-scoped `AppModel` (ADR-0018); drafts autosave and flush on `ON_STOP`; the open screen is not restored after process death (ADR-0018 follow-up) |
+| Survives rotation, dark mode, "Don't keep activities" without data loss | ✅ | state lives in the activity-scoped `AppModel` (ADR-0018); drafts autosave and flush on `ON_STOP`; `RouterState` (`SavedStateHandle`) reopens the tab and open document after a real process death (checked with `am kill` on the emulator) |
+| Offline launch | ✅ | found on the emulator without Play: billing's reconnection held the launch spinner 10+ s. Launch no longer waits for the store (state stays `unknown`, issuing below the limit still works) and the billing connection gives up after 5 s. Cold launch 1.3 s |
 | First internal-track upload | 🔲 account | needs the Play Console app and an upload key |
 
 ## 7b — builder, PDF, lifecycle features

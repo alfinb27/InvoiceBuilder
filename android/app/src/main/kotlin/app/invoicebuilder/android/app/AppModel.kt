@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import app.invoicebuilder.android.InvoiceApplication
 import app.invoicebuilder.android.backup.appVersion
@@ -23,7 +24,7 @@ import kotlinx.coroutines.launch
  * An `AndroidViewModel` survives configuration changes (rotation, folding, dark mode), so the session and its router
  * outlive the `Activity` that is recreated around them (≈ an `@State` model owned by the `App` struct).
  */
-class AppModel(application: Application) : AndroidViewModel(application) {
+class AppModel(application: Application, private val savedState: SavedStateHandle) : AndroidViewModel(application) {
     sealed interface Phase {
         data object Loading : Phase
         data class Onboarding(val model: OnboardingViewModel) : Phase
@@ -68,7 +69,10 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                     SampleData.seed(seed, container, device.id)
                     device = container.deviceState.loadOrCreate(Build.MODEL)
                 }
-                container.entitlements.start()
+                // Never wait for the store at launch: offline, or with Play unreachable, the billing connection retries
+                // for many seconds. Until it answers the state is `unknown`, which still lets anyone under the free
+                // limit issue (`spec/billing.md`).
+                container.scope.launch { container.entitlements.start() }
                 val businesses = container.businesses.fetchBusinesses()
                 val business = BusinessSetup.activeBusiness(device.preferences, businesses)
                 phase = if (business != null) {
@@ -95,7 +99,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
             val device = demo.deviceState.loadOrCreate(Build.MODEL)
             val business = SampleData.seed(country, demo, device.id)
             SampleData.addDemoDocuments(business, demo, device.id)
-            demo.entitlements.start()
+            demo.scope.launch { demo.entitlements.start() }
             val session = Session(demo, business, device.id, sessionScope, null)
             session.isDemo = true
             session.reloadApp = { reload() }
@@ -150,6 +154,8 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         return Session(container, business, deviceID, sessionScope, posted).also {
             it.reloadApp = { reload() }
             it.start()
+            RouterState.restore(it.router, savedState)
+            RouterState.save(it.router, savedState, sessionScope)
         }
     }
 }

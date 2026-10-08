@@ -27,7 +27,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Play Billing (`spec/billing.md`, Platform rules — Android). iOS: `StoreKitClient`.
@@ -41,6 +42,10 @@ class PlayBillingClient(context: Context) : StoreClient {
     /** The purchase call waiting for its result; while it is set, results go to it instead of [updates]. */
     @Volatile private var pendingPurchase: CompletableDeferred<Pair<BillingResult, List<Purchase>?>>? = null
     private val connection = Mutex()
+
+    private companion object {
+        const val CONNECT_TIMEOUT_MS = 5_000L
+    }
     private var knownOwned: Boolean? = null
 
     private val listener = PurchasesUpdatedListener { result, purchases ->
@@ -54,17 +59,21 @@ class PlayBillingClient(context: Context) : StoreClient {
         .enableAutoServiceReconnection()
         .build()
 
+    /** At most [CONNECT_TIMEOUT_MS]: with Play missing or offline, auto-reconnection retries for a long time. */
     private suspend fun connected(): Boolean = connection.withLock {
         if (client.isReady) return true
-        suspendCoroutine { continuation ->
+        withTimeoutOrNull(CONNECT_TIMEOUT_MS) { connect() } ?: false
+    }
+
+    private suspend fun connect(): Boolean =
+        suspendCancellableCoroutine { continuation ->
             client.startConnection(object : BillingClientStateListener {
                 override fun onBillingSetupFinished(result: BillingResult) {
-                    continuation.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
+                    if (continuation.isActive) continuation.resume(result.responseCode == BillingClient.BillingResponseCode.OK)
                 }
                 override fun onBillingServiceDisconnected() {}
             })
         }
-    }
 
     private suspend fun details(productID: String): ProductDetails? {
         if (!connected()) return null
