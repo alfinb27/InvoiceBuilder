@@ -46,7 +46,6 @@ class PlayBillingClient(context: Context) : StoreClient {
     private companion object {
         const val CONNECT_TIMEOUT_MS = 5_000L
     }
-    private var knownOwned: Boolean? = null
 
     private val listener = PurchasesUpdatedListener { result, purchases ->
         val waiting = pendingPurchase
@@ -85,13 +84,17 @@ class PlayBillingClient(context: Context) : StoreClient {
 
     override suspend fun displayPrice(productID: String): String? = details(productID)?.oneTimePurchaseOfferDetails?.formattedPrice
 
-    override suspend fun owns(productID: String): Boolean {
-        if (!connected()) return knownOwned ?: false // offline: Play's cache answers queryPurchases, so this is rare
+    /**
+     * Play's purchase list (it answers from the Play Store's on-device cache when offline). Null when Play can't be
+     * reached or answers with an error: that is not "not owned", so the caller keeps the state it has (`billing.md`).
+     */
+    override suspend fun owns(productID: String): Boolean? {
+        if (!connected()) return null
         val result = client.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build())
-        if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) return knownOwned ?: false
+        if (result.billingResult.responseCode != BillingClient.BillingResponseCode.OK) return null
         val purchased = result.purchasesList.filter { productID in it.products && it.purchaseState == Purchase.PurchaseState.PURCHASED }
         purchased.forEach { acknowledge(it) } // the startup sweep: anything a crash left unacknowledged
-        return purchased.isNotEmpty().also { knownOwned = it }
+        return purchased.isNotEmpty()
     }
 
     override suspend fun purchase(productID: String, activity: Any): PurchaseOutcome {
@@ -112,7 +115,7 @@ class PlayBillingClient(context: Context) : StoreClient {
             BillingClient.BillingResponseCode.OK -> {
                 val purchase = purchases?.firstOrNull { productID in it.products }
                 when (purchase?.purchaseState) {
-                    Purchase.PurchaseState.PURCHASED -> { acknowledge(purchase); knownOwned = true; PurchaseOutcome.purchased }
+                    Purchase.PurchaseState.PURCHASED -> { acknowledge(purchase); PurchaseOutcome.purchased }
                     Purchase.PurchaseState.PENDING -> PurchaseOutcome.pending
                     else -> PurchaseOutcome.failed
                 }
@@ -133,9 +136,8 @@ class PlayBillingClient(context: Context) : StoreClient {
         } else null
     }
 
-    override suspend fun sync() {
-        knownOwned = null // the next `owns` re-queries the store
-    }
+    /** Play has no separate refresh (≈ `AppStore.sync()`): every [owns] queries the purchase list again. */
+    override suspend fun sync() {}
 
     private suspend fun acknowledge(purchase: Purchase) {
         if (purchase.isAcknowledged || !connected()) return

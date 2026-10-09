@@ -22,8 +22,11 @@ import kotlinx.coroutines.launch
 interface StoreClient {
     /** The localised price, or null when the store cannot be reached or the product is missing. */
     suspend fun displayPrice(productID: String): String?
-    /** Whether a `PURCHASED` purchase of the product is in the store's current list (absent ⇒ refunded). */
-    suspend fun owns(productID: String): Boolean
+    /**
+     * Whether a `PURCHASED` purchase of the product is in the store's current list (absent ⇒ refunded), or null when
+     * the store couldn't be asked (not connected, an error response): not an answer, so the state stays as it is.
+     */
+    suspend fun owns(productID: String): Boolean?
     /** [activity] is the `Activity` the purchase sheet is shown over (≈ the window scene StoreKit uses). */
     suspend fun purchase(productID: String, activity: Any): PurchaseOutcome
     /** Purchase changes arriving outside a purchase call (pending payments completing, refunds seen on resume). */
@@ -59,7 +62,7 @@ class StoreEntitlementService(
         val count = effectiveCount()
         state.update { it.copy(count = count) }
         startListening()
-        apply(if (store.owns(productID)) EntitlementEvent.resolvedOwned else EntitlementEvent.resolvedNotOwned, count)
+        resolve(count) // unanswered: stays `unknown`, which still lets anyone under the limit issue
         store.displayPrice(productID)?.let { price -> state.update { it.copy(displayPrice = price) } }
     }
 
@@ -84,10 +87,16 @@ class StoreEntitlementService(
         )
     }
 
+    /** "Refresh purchases" and every resume. A store that can't be reached leaves an unlock in place (`billing.md`). */
     override suspend fun restore() {
         val count = effectiveCount()
         runCatching { store.sync() }
-        apply(if (store.owns(productID)) EntitlementEvent.resolvedOwned else EntitlementEvent.resolvedNotOwned, count)
+        resolve(count)
+    }
+
+    private suspend fun resolve(count: Int) {
+        val owned = store.owns(productID) ?: return
+        apply(if (owned) EntitlementEvent.resolvedOwned else EntitlementEvent.resolvedNotOwned, count)
     }
 
     private suspend fun effectiveCount(): Int {
@@ -118,7 +127,7 @@ class StoreEntitlementService(
 /** No store (emulators without Play, tests): nothing is owned, nothing can be bought, no price. */
 class UnavailableStoreClient : StoreClient {
     override suspend fun displayPrice(productID: String): String? = null
-    override suspend fun owns(productID: String): Boolean = false
+    override suspend fun owns(productID: String): Boolean = false // no store at all: an answer, nothing is owned
     override suspend fun purchase(productID: String, activity: Any): PurchaseOutcome = PurchaseOutcome.failed
     override fun updates(productID: String): Flow<OwnershipChange> = emptyFlow()
     override suspend fun sync() {}

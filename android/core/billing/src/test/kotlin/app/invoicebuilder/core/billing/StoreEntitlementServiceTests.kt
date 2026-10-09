@@ -14,9 +14,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// iOS: `StoreEntitlementServiceTests.swift` — the same ten cases.
+// iOS: `StoreEntitlementServiceTests.swift` — the same ten cases, plus two for a store that can't be reached (StoreKit
+// always answers from its on-device cache; Play may not be connected).
 
-class FakeStore(var owned: Boolean = false, var outcome: PurchaseOutcome = PurchaseOutcome.purchased) : StoreClient {
+/** [owned] null = the store can't be reached (Play not connected, an error response). */
+class FakeStore(var owned: Boolean? = false, var outcome: PurchaseOutcome = PurchaseOutcome.purchased) : StoreClient {
     var price: String? = "₹299.00"
     var syncs = 0
     private val changes = MutableSharedFlow<OwnershipChange>(extraBufferCapacity = 4)
@@ -130,5 +132,36 @@ class StoreEntitlementServiceTests {
         service.start()
         service.purchase(Any())
         assertEquals(EntitlementState.unlocked, service.status.value.state)
+    }
+
+    @Test fun aResumeThatCannotReachTheStoreKeepsTheUnlock() = runTest(UnconfinedTestDispatcher()) {
+        val store = FakeStore(owned = true)
+        val service = service(store, counts(40))
+        service.start()
+        assertEquals(EntitlementState.unlocked, service.status.value.state)
+
+        store.owned = null // Play disconnected, or SERVICE_UNAVAILABLE
+        service.restore()
+        assertEquals(EntitlementState.unlocked, service.status.value.state)
+        assertTrue(service.status.value.canIssueInvoice)
+
+        store.owned = false // a real answer without the product: refunded
+        service.restore()
+        assertEquals(EntitlementState.limitReached, service.status.value.state)
+    }
+
+    @Test fun aLaunchThatCannotReachTheStoreStaysUnknown() = runTest(UnconfinedTestDispatcher()) {
+        val store = FakeStore(owned = null)
+        val under = service(store, counts(4))
+        under.start()
+        assertEquals(EntitlementState.unknown, under.status.value.state)
+        assertTrue(under.status.value.canIssueInvoice) // below the limit, an unanswered store never blocks
+
+        val over = service(store, counts(20))
+        over.start()
+        assertEquals(EntitlementState.unknown, over.status.value.state)
+        store.owned = true // Play answers on the next resume
+        over.restore()
+        assertEquals(EntitlementState.unlocked, over.status.value.state)
     }
 }

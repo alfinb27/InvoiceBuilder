@@ -83,7 +83,10 @@ in `app_state` (`entitlement`) only to avoid UI flicker, never as the source of 
 
 **Android**
 - `BillingClient` with `enablePendingPurchases(...)` and automatic service reconnection.
-- On start and on every resume: `queryPurchasesAsync(INAPP)`; product absent → not owned (covers refunds).
+- On start and on every resume: `queryPurchasesAsync(INAPP)`; product absent → not owned (covers refunds). A query
+  that cannot complete (Play not connected within a few seconds, or a response other than `OK`) is **not an answer**:
+  the state is left as it is — `unknown` at launch, whatever it was on resume — so a brief Play outage never takes an
+  unlock away. Only a successful query without the product means not owned.
 - Unlock only on `Purchase.PurchaseState.PURCHASED`; `PENDING` (UPI/cash) shows "Payment pending".
 - **Acknowledge** every `PURCHASED`, unacknowledged purchase (`acknowledgePurchase`) — Google auto-refunds after 3 days.
   A startup sweep acknowledges anything missed.
