@@ -24,11 +24,7 @@ final class DocumentSmokeTests: XCTestCase {
         rao.tap()
 
         // A catalogue item
-        scrollTo(app.buttons["addFromItems"], in: app)
-        app.buttons["addFromItems"].tap()
-        let website = app.buttons["catalogItem-Website development"]
-        XCTAssertTrue(website.waitForExistence(timeout: 5))
-        website.tap()
+        app.openCatalogue().tap()
         app.buttons["catalogDone"].tap()
 
         // A one-off line
@@ -37,12 +33,19 @@ final class DocumentSmokeTests: XCTestCase {
         let description = app.textFields["Description"]
         XCTAssertTrue(description.waitForExistence(timeout: 5))
         description.tap()
+        // Return moves Description → Quantity → Price (the editor's own field order), so the price is reached
+        // without tapping it: on CI's iOS 18.5 simulator a tap there can land under the keyboard or outside the sheet.
         description.typeText("Hosting setup\n")
-        // Submitting the description moves the focus, and a loaded runner needs a moment to lay the field out.
-        let price = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Price")).firstMatch
-        XCTAssertTrue(price.waitForExistence(timeout: 10), "the price field never appeared")
-        price.tap()
-        price.typeText("1000")
+        // By identifier or label: SwiftUI puts a modifier's identifier on the field on some iOS versions only.
+        let quantity = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label == %@", "lineQuantity",
+                                                           "Quantity")).firstMatch
+        if !waitForFocus(quantity) { XCTFail("Return didn't move to the quantity. \(fields(in: app))") }
+        app.typeText("\n")
+        let price = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label BEGINSWITH %@", "linePrice",
+                                                        "Price")).firstMatch
+        if !waitForFocus(price) { XCTFail("Return didn't move to the price. \(fields(in: app))") }
+        app.typeText("1000")
+        XCTAssertTrue(((price.value as? String) ?? "").contains("1000"), "price typed: \(price.value ?? "nil")")
         app.buttons["lineDone"].tap()
 
         // Totals: (5000 + 1000) × 1.18 = ₹7,080.00, from the engine
@@ -73,10 +76,7 @@ final class DocumentSmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
         app.buttons["chooseClient"].tap()
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Rao Traders")).firstMatch.tap()
-        scrollTo(app.buttons["addFromItems"], in: app)
-        app.buttons["addFromItems"].tap()
-        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
-        app.buttons["catalogItem-Website development"].tap()
+        app.openCatalogue().tap()
         app.buttons["catalogDone"].tap()
 
         // The draft previews, watermarked.
@@ -114,6 +114,25 @@ final class DocumentSmokeTests: XCTestCase {
         let problem = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Add at least one line"))
             .firstMatch
         XCTAssertTrue(problem.waitForExistence(timeout: 5))
+    }
+
+    /// Waits up to five seconds for `element` to take keyboard focus (CI's simulators are slower).
+    @MainActor
+    private func waitForFocus(_ element: XCUIElement) -> Bool {
+        let focused = NSPredicate(format: "hasKeyboardFocus == true")
+        let expectation = XCTNSPredicateExpectation(predicate: focused, object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: 5) == .completed
+    }
+
+    /// Every text field on screen and which one has the keyboard: tells "the field wasn't found" apart from
+    /// "Return didn't move the focus" when this fails on CI.
+    @MainActor
+    private func fields(in app: XCUIApplication) -> String {
+        let rows = app.textFields.allElementsBoundByIndex.map { field in
+            let focused = (field.value(forKey: "hasKeyboardFocus") as? Bool) == true
+            return "[\(field.identifier)|\(field.label)\(focused ? "|FOCUSED" : "")]"
+        }
+        return "Text fields: " + rows.joined(separator: " ")
     }
 
     /// Swipes up until `element` is on screen.

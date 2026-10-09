@@ -119,3 +119,46 @@ struct IdentityTests {
         #expect(ids.make() == "00000000-0000-4000-8000-000000000002")
     }
 }
+
+@Suite("Document summaries (documents.md §10)")
+struct DocumentSummaryTests {
+    static let today = LocalDate(iso: "2026-09-19")!
+
+    static func summary(_ id: String, docType: DocumentType = .invoice, lifecycle: DocumentLifecycle = .issued,
+                        dueDate: LocalDate? = nil, currency: CurrencyCode = .inr, totalMinor: Int64,
+                        paidMinor: Int64 = 0) -> DocumentSummary {
+        DocumentSummary(id: id, docType: docType, number: "N-\(id)", lifecycle: lifecycle, issueDate: today,
+                        dueDate: dueDate, validUntil: nil, sentAt: nil, quoteOutcome: nil, clientId: "c1",
+                        buyerName: "Client", currency: currency, totalMinor: totalMinor, paidMinor: paidMinor,
+                        lineCount: 1, updatedAt: 0)
+    }
+
+    @Test func statusAndOutstandingComeFromPaidMinor() {
+        let unpaid = Self.summary("d1", totalMinor: 100_000)
+        #expect(unpaid.status(today: Self.today) == .issued)
+        #expect(unpaid.outstanding() == 100_000)
+
+        let paid = Self.summary("d2", totalMinor: 100_000, paidMinor: 100_000)
+        #expect(paid.status(today: Self.today) == .paid)
+        #expect(paid.outstanding() == 0)
+
+        let quote = Self.summary("d3", docType: .quote, totalMinor: 100_000)
+        #expect(quote.outstanding() == nil)
+    }
+
+    @Test func outstandingByCurrencyGroupsAndExcludesPaidVoidAndDrafts() {
+        let rows = [
+            Self.summary("d1", totalMinor: 100_000, paidMinor: 40_000), // partiallyPaid: 60_000 outstanding
+            Self.summary("d2", totalMinor: 50_000), // issued: 50_000 outstanding
+            Self.summary("d3", totalMinor: 999, paidMinor: 999), // fully paid: excluded
+            Self.summary("d4", lifecycle: .void, totalMinor: 500), // void: excluded
+            Self.summary("d5", lifecycle: .draft, totalMinor: 500), // draft: excluded
+            Self.summary("d6", docType: .quote, totalMinor: 1_000), // quote: excluded
+            Self.summary("d7", currency: CurrencyCode(rawValue: "USD"), totalMinor: 20_000), // a second currency
+        ]
+        let totals = rows.outstandingByCurrency(today: Self.today)
+        #expect(totals.map(\.currency) == [.inr, CurrencyCode(rawValue: "USD")]) // sorted by currency code
+        #expect(totals.first { $0.currency == .inr }?.minor == 110_000)
+        #expect(totals.first { $0.currency.rawValue == "USD" }?.minor == 20_000)
+    }
+}

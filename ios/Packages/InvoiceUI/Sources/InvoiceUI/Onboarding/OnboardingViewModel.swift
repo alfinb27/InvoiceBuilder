@@ -26,12 +26,16 @@ public final class OnboardingViewModel {
     let dependencies: AppDependencies
     let deviceID: String
     private let onFinished: @MainActor (Business) -> Void
+    /// "Restore from a backup" instead of setting up (`spec/backup.md` §4): a new device can start from a file.
+    let backup: BackupViewModel
 
     public init(dependencies: AppDependencies, deviceID: String,
+                onRestored: @escaping @MainActor () async -> Void = {},
                 onFinished: @escaping @MainActor (Business) -> Void) {
         self.dependencies = dependencies
         self.deviceID = deviceID
         self.onFinished = onFinished
+        backup = BackupViewModel(dependencies: dependencies, deviceID: deviceID, onRestored: onRestored)
     }
 
     // MARK: Config for the chosen country

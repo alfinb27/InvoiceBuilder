@@ -28,6 +28,10 @@ public struct AppRootView: View {
         }
         .tint(Theme.brand)
         .task { await model.start() }
+        .onOpenURL { url in
+            guard url.isFileURL else { return }
+            Task { await model.open(url) }
+        }
     }
 }
 
@@ -63,5 +67,6 @@ public struct MainShellView: View {
         .environment(session)
         .focusedSceneValue(\.session, session)
         .task { await session.observeBusiness() }
+        .task { await session.reconcileReminders() }
     }
 }

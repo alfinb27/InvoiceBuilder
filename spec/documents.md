@@ -1,25 +1,29 @@
 # Documents: drafts, issuing, duplicating and converting (v0)
 
 Normative for the document features of both apps: invoice and quote drafts, the builder's defaults, issuing
-(`IssueDocument`), duplicating, converting a quote and deleting a draft. iOS implements it in `InvoiceCore`
-(`DocumentRules`, `LinePricing`, `NumberAllocator`, `DocumentService`), `InvoiceData` (`GRDBDocumentRepository`,
-`GRDBDocumentService`) and `InvoiceUI` (the builder); Android in `:core:domain`, `:core:data` and `:app`, with the
-same names. Field shapes are in `schema/domain.schema.json#/$defs/Document`; tax results come only from
-`TaxEngine.compute` (`tax/ENGINE.md`). Pure functions here are proven by `fixtures/documents/*.json` (kind
-`document`). Record rules (ids, timestamps, trimming, tombstones) are `setup.md` §1.
+(`IssueDocument`), duplicating, converting a quote, deleting a draft, recording payments, voiding and the quote
+accept/decline outcomes. iOS implements it in `InvoiceCore` (`DocumentRules`, `LinePricing`, `NumberAllocator`,
+`DocumentService`, `PaymentRepository`, `PaymentService`), `InvoiceData` (`GRDBDocumentRepository`,
+`GRDBDocumentService`, `GRDBPaymentRepository`, `GRDBPaymentService`) and `InvoiceUI` (the builder); Android in
+`:core:domain`, `:core:data` and `:app`, with the same names. Field shapes are in
+`schema/domain.schema.json#/$defs/Document` and `#/$defs/Payment`; tax results come only from `TaxEngine.compute`
+(`tax/ENGINE.md`). Pure functions here are proven by `fixtures/documents/*.json` (kind `document`); derived status
+is proven by `fixtures/status/*.json` (kind `status`). Record rules (ids, timestamps, trimming, tombstones) are
+`setup.md` §1.
 
 ## 1. Lifecycle
 
 | Lifecycle | Number | Editable | Deletable | Tax results |
 |---|---|---|---|---|
 | `draft` | none | yes, autosaved | yes (tombstone) | recomputed on every change; totals columns stored, `computed` = `NULL` |
-| `issued` | allocated at issue, never changes | Phase 4 (revision) | never | frozen at issue |
-| `void` | kept | no | never | kept (Phase 4) |
+| `issued` | allocated at issue, never changes | deferred (revision) | never | frozen at issue |
+| `void` | kept | no | never | kept (§11) |
 
 - Drafts refer to the **live** business and client and re-take both snapshots (§4) on every save.
 - **Issuing** freezes the snapshots, allocates the number and stores the `ComputedDocument` (§6).
-- Display status is derived (`ENGINE.md` §6), never stored. Until payments exist (Phase 4), `paid = 0`.
-- Void, payments, the quote outcomes accepted/declined and revising an issued document are Phase 4.
+- Display status is derived (`ENGINE.md` §6), never stored; `paid` is the sum of an invoice's live payments (§10).
+- Payments (§10), void (§11) and the quote outcomes accepted/declined (§12) are specified below. Revising an
+  issued document remains deferred.
 
 ## 2. New drafts
 
@@ -165,3 +169,43 @@ Only drafts can be deleted: the document gets a tombstone (its lines are unreach
 draft again (its builder is still open, §5) revives it with the new content, so no edit is ever lost. If it was
 converted from a quote and no other live document has the same `convertedFromId`, the quote's `quoteOutcome` returns
 to `null`. Deleting an issued or void document is the error `not_a_draft`.
+
+## 10. Recording a payment
+
+One write: an issued invoice may receive any number of payments.
+
+- Precondition: `docType = invoice`, `lifecycle = issued`. Recording a payment on a draft or void invoice, or on
+  any quote, is the error `not_payable`.
+- Writes one `Payment` row (`businessId`, `documentId`, `amountMinor` > 0, `date`, `method`, optional `reference`,
+  `note`); the document row itself is never touched. `paid` = the sum of `amountMinor` over the invoice's live
+  payments; derived status and `outstanding` are always computed from that sum, never stored (`ENGINE.md` §6).
+- `amountMinor` may exceed the invoice's current outstanding amount: it is stored as given, never clamped or
+  rejected (a UI may warn on overpayment, but storage must not, so a backup round trip stays lossless).
+- Correcting a payment: delete it (tombstone, `setup.md` §1) and record a new one in its place; there is no
+  in-place amount edit.
+- Voiding an invoice (§11) does not delete its payments; they remain as history, and its status stays `void`
+  regardless of them (`ENGINE.md` §6 puts `void` first in the precedence order).
+
+## 11. Void a document
+
+One write: turns a live `issued` invoice or quote into `void`.
+
+- Precondition: `lifecycle = issued`. Voiding a `draft` (delete it instead, §9) or an already-`void` document is
+  the error `not_voidable`.
+- Requires a non-empty `voidReason` (free text, trimmed per `setup.md` §1; empty after trimming is rejected, not
+  stored as `NULL`).
+- Writes `lifecycle = void`, `voidedAt = now`, `voidReason`. Its `number`, snapshots, `computed` result and any
+  payments are unchanged and kept — voiding never reclaims the number (`ENGINE.md` §5).
+- Terminal: void cannot be reversed. A mistaken void is corrected by issuing a new document, never by un-voiding.
+
+## 12. Quote outcome: accept or decline
+
+One write: records the buyer's response to an issued quote, outside of converting it to an invoice (§7).
+
+- Precondition: `docType = quote`, `lifecycle = issued`, and `quoteOutcome` is `null` or the other of
+  `accepted`/`declined` (the buyer can change their mind). A `converted` quote cannot be reopened (`already_converted`);
+  a `draft` or `void` quote cannot be accepted or declined (`not_a_live_quote`).
+- Writes `quoteOutcome = accepted` or `declined`. `validUntil` having already passed does not block the action —
+  an expired quote can still be accepted or declined late, since expiry is a display-time computation only
+  (`ENGINE.md` §6; proven by fixture `status-quote-accepted-after-expiry`).
+- Does not affect lines, totals or any other field.

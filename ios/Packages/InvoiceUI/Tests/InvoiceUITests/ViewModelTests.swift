@@ -1,6 +1,7 @@
 import Foundation
 import ImageIO
 import InvoiceCore
+import InvoiceData
 import Testing
 @testable import InvoiceUI
 
@@ -14,13 +15,18 @@ enum TestEnvironment {
         FileManager.default.temporaryDirectory.appending(path: "InvoicePDFTests-\(UUID().uuidString)")
     }
 
-    static func dependencies() throws -> AppDependencies {
-        try AppDependencies.inMemory(time: .fixed(now: 1_789_800_000_000, today: today), ids: .sequential())
+    static func dependencies(notifications: any NotificationScheduling = NoOpNotificationScheduler()) throws
+        -> AppDependencies {
+        try AppDependencies.make(database: AppDatabase.inMemory(), time: .fixed(now: 1_789_800_000_000, today: today),
+                                 ids: .sequential(), notifications: notifications)
     }
 
-    /// A seeded, onboarded business and its session.
-    static func session(_ country: SampleData.Country = .india) async throws -> Session {
-        let dependencies = try dependencies()
+    /// A seeded, onboarded business and its session. `notifications` defaults to a no-op; pass a fake to test
+    /// reminder reconciliation.
+    static func session(_ country: SampleData.Country = .india,
+                        notifications: any NotificationScheduling = NoOpNotificationScheduler()) async throws
+        -> Session {
+        let dependencies = try dependencies(notifications: notifications)
         let device = try await dependencies.deviceState.loadOrCreate(deviceName: "Test")
         let business = try await SampleData.seed(country, dependencies: dependencies, deviceID: device.id)
         return try Session(dependencies: dependencies, business: business, deviceID: device.id,
@@ -195,6 +201,15 @@ struct RouterTests {
         #expect(router.selection == "c1")
         router.didRemove("c1")
         #expect(router.selection == nil)
+    }
+
+    @Test func aRowActionWaitsForItsDocument() {
+        let router = DocumentsRouter()
+        router.open("d1", then: .recordPayment)
+        #expect(router.selection == .existing("d1"))
+        #expect(router.takeAction(for: "d2") == nil)
+        #expect(router.takeAction(for: "d1") == .recordPayment)
+        #expect(router.takeAction(for: "d1") == nil) // consumed
     }
 }
 

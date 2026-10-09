@@ -54,11 +54,7 @@ final class ScreenshotTour: XCTestCase {
         app.buttons["chooseClient"].tap()
         snapshot("20-client-picker", app)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Umesh Foods")).firstMatch.tap()
-        let addFromItems = app.buttons["addFromItems"]
-        if !addFromItems.isHittable { app.swipeUp(velocity: .slow) }
-        addFromItems.tap()
-        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
-        app.buttons["catalogItem-Website development"].tap()
+        app.openCatalogue().tap()
         app.buttons["catalogItem-Tea leaves"].tap()
         snapshot("21-catalog-picker", app)
         app.buttons["catalogDone"].tap()
@@ -103,11 +99,7 @@ final class ScreenshotTour: XCTestCase {
         XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
         app.buttons["chooseClient"].tap()
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Umesh Foods")).firstMatch.tap()
-        let addFromItems = app.buttons["addFromItems"]
-        if !addFromItems.isHittable { app.swipeUp(velocity: .slow) }
-        addFromItems.tap()
-        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
-        app.buttons["catalogItem-Website development"].tap()
+        app.openCatalogue().tap()
         app.buttons["catalogDone"].tap()
 
         // The pane shows the document itself, redrawn after each edit.
@@ -135,14 +127,7 @@ final class ScreenshotTour: XCTestCase {
         XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
         app.buttons["chooseClient"].tap()
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Rao Traders")).firstMatch.tap()
-        var attempts = 0
-        while !app.buttons["addFromItems"].isHittable && attempts < 8 {
-            app.swipeUp(velocity: .slow)
-            attempts += 1
-        }
-        app.buttons["addFromItems"].tap()
-        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
-        app.buttons["catalogItem-Website development"].tap()
+        app.openCatalogue().tap()
         app.buttons["catalogDone"].tap()
         snapshot("30-builder-large-text", app)
         app.swipeUp(velocity: .slow)

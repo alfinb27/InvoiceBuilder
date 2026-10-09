@@ -25,15 +25,16 @@ struct LineEditorView: View {
                 }
                 Section {
                     FormTextField(title: "Description", text: text(\.description), prompt: "What you're charging for",
-                                  issue: message(.description, "description"))
-                        .focused($focus, equals: .description)
+                                  issue: message(.description, "description"), focus: $focus, focusValue: .description)
                         .submitLabel(.next)
                         .onSubmit { focus = .quantity }
                         .accessibilityIdentifier("lineDescription")
                     HStack(alignment: .top) {
                         FormTextField(title: "Quantity", text: text(\.quantityText),
-                                      issue: message(.quantity, "quantity"), keyboard: .decimalPad)
-                            .focused($focus, equals: .quantity)
+                                      issue: message(.quantity, "quantity"), keyboard: .decimalPad,
+                                      focus: $focus, focusValue: .quantity)
+                            .submitLabel(.next)
+                            .onSubmit { focus = .price }
                             .accessibilityIdentifier("lineQuantity")
                         Picker("Unit", selection: unitBinding) {
                             Text("No unit").tag(String?.none)
@@ -44,8 +45,10 @@ struct LineEditorView: View {
                         .labelsHidden()
                     }
                     FormTextField(title: priceTitle, text: text(\.priceText), prompt: "0.00",
-                                  issue: message(.price, "price"), keyboard: .decimalPad)
-                        .focused($focus, equals: .price)
+                                  issue: message(.price, "price"), keyboard: .decimalPad,
+                                  focus: $focus, focusValue: .price)
+                        .submitLabel(.next)
+                        .onSubmit { focus = .discount }
                         .accessibilityIdentifier("linePrice")
                     discountRow
                 }
@@ -86,8 +89,10 @@ struct LineEditorView: View {
                     Button("Cancel") { model.cancelLineEditor() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
+                    // ⌘↩, not plain Return: Return moves between the fields (Description → Quantity → …), and
+                    // binding it here would close the line from the first field on some iOS versions.
                     Button("Done") { model.commitLineEditor() }
-                        .keyboardShortcut(.defaultAction)
+                        .keyboardShortcut(.return, modifiers: .command)
                         .accessibilityIdentifier("lineDone")
                 }
             }

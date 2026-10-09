@@ -2,13 +2,13 @@ import InvoiceCore
 import Observation
 import SwiftUI
 
-/// Home: the business at a glance, what to set up next and quick actions for invoices and quotes. The dashboard
-/// joins it in Phase 4.
+/// Home: the business at a glance, what's owed, what to set up next and quick actions for invoices and quotes.
 @MainActor @Observable
 final class HomeViewModel {
     struct State: Equatable {
         var clientCount = 0
         var itemCount = 0
+        var dashboard = DashboardTotals()
     }
 
     private(set) var state = State()
@@ -27,7 +27,17 @@ final class HomeViewModel {
         async let items: Void = observeCount(dependencies.catalog.observeItems(businessID: businessID)) {
             self.state.itemCount = $0
         }
-        _ = await (clients, items)
+        async let dashboard: Void = observeDashboard()
+        _ = await (clients, items, dashboard)
+    }
+
+    private func observeDashboard() async {
+        do {
+            for try await totals in session.dependencies.documents.observeDashboard(
+                businessID: session.business.id, homeCurrency: session.business.homeCurrency) {
+                state.dashboard = totals
+            }
+        } catch {}
     }
 
     private func observeCount<Row: Sendable>(_ stream: AsyncThrowingStream<[Row], any Error>,
@@ -52,6 +62,7 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
                     BusinessCard(session: session)
+                    if model.state.dashboard != DashboardTotals() { dashboard }
                     checklist
                     comingNext
                     if session.config.reviewStatus != "reviewed" {
@@ -68,6 +79,23 @@ struct HomeView: View {
             .navigationTitle("Home")
         }
         .task { await model.observe() }
+    }
+
+    private var dashboard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: Theme.Space.m) {
+                Label("Money", systemImage: "banknote")
+                    .font(.headline)
+                HStack(spacing: Theme.Space.l) {
+                    DashboardTile(title: "Outstanding", value: session.money(model.state.dashboard.outstandingMinor))
+                    DashboardTile(title: "Overdue", value: session.money(model.state.dashboard.overdueMinor),
+                                 emphasis: model.state.dashboard.overdueMinor > 0 ? Theme.danger : nil)
+                    DashboardTile(title: "Paid this month",
+                                 value: session.money(model.state.dashboard.paidThisMonthMinor))
+                }
+            }
+        }
+        .accessibilityIdentifier("homeDashboard")
     }
 
     private var checklist: some View {
@@ -143,6 +171,21 @@ private struct BusinessCard: View {
         }
         .modifier(StoredAssetLoader(assetID: session.business.logoAssetId, assets: session.dependencies.assets,
                                     data: $logo))
+    }
+}
+
+private struct DashboardTile: View {
+    let title: String
+    let value: String
+    var emphasis: Color?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.xxs) {
+            Text(title).font(.caption).foregroundStyle(Theme.textSecondary)
+            Text(value).font(.title3.weight(.semibold).monospacedDigit()).foregroundStyle(emphasis ?? Theme.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 

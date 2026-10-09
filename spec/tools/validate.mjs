@@ -150,6 +150,64 @@ function checkTaxCase(file, c) {
     if (lineTaxable !== t.taxable) fail(file, `${where}: sum of line taxable (${lineTaxable}) != totals.taxable (${t.taxable})`);
   }
 }
+
+// ---------- backup fixtures: an independent reference for spec/backup.md §3 ----------
+const COLLECTIONS = ["businesses", "clients", "catalogItems", "numberingSeries", "documents", "payments", "assets"];
+const DOMAIN_DEF = { businesses: "Business", clients: "Client", catalogItems: "CatalogItem",
+  numberingSeries: "NumberingSeries", documents: "Document", payments: "Payment", assets: "Asset" };
+const pointerParts = (p) => p.split("/").slice(1).map((s) => s.replaceAll("~1", "/").replaceAll("~0", "~"));
+function patchBackup(file, input) {
+  if (("base" in input) === ("raw" in input)) { fail(file, "a backup case needs exactly one of base / raw"); return null; }
+  if ("raw" in input) return input.raw;
+  let doc;
+  try { doc = JSON.parse(readFileSync(join(SPEC, input.base), "utf8")); }
+  catch (e) { fail(file, `base ${input.base}: ${e.message}`); return null; }
+  for (const p of input.remove ?? []) {
+    const parts = pointerParts(p), last = parts.pop();
+    const parent = parts.reduce((o, k) => o?.[k], doc);
+    if (!parent || !(last in parent)) fail(file, `remove ${p}: no such member`); else delete parent[last];
+  }
+  for (const [p, v] of Object.entries(input.set ?? {})) {
+    const parts = pointerParts(p), last = parts.pop();
+    const parent = parts.reduce((o, k) => o?.[k], doc);
+    if (parent === undefined || parent === null) fail(file, `set ${p}: no parent`); else parent[last] = v;
+  }
+  return JSON.stringify(doc);
+}
+function referenceValidate(text, appSchemaVersion) {
+  let b;
+  try { b = JSON.parse(text); } catch { return { error: "not_json" }; }
+  if (b === null || typeof b !== "object" || Array.isArray(b)) return { error: "not_json" };
+  if (b.format !== "invoicebuilder-backup") return { error: "not_a_backup" };
+  if (!Number.isInteger(b.formatVersion) || b.formatVersion < 1) return { error: "not_a_backup" };
+  if (b.formatVersion > 1) return { error: "newer_format" };
+  if (!Number.isInteger(b.dbSchemaVersion) || b.dbSchemaVersion < 1) return { error: "invalid_record" };
+  if (b.dbSchemaVersion > appSchemaVersion) return { error: "newer_schema" };
+  for (const c of COLLECTIONS) {
+    if (!Array.isArray(b.data?.[c])) return { error: "invalid_record" };
+    const v = ajv.getSchema(`domain.schema.json#/$defs/${DOMAIN_DEF[c]}`);
+    for (const r of b.data[c]) {
+      // unknown keys are ignored (§3 check 5), so only errors other than "unknown property" count
+      if (!v(r) && v.errors.some((e) => !/additional|unevaluated/.test(e.keyword))) return { error: "invalid_record" };
+    }
+  }
+  for (const c of COLLECTIONS) if (b.counts?.[c] !== b.data[c].length) return { error: "count_mismatch" };
+  for (const c of COLLECTIONS) if (new Set(b.data[c].map((r) => r.id)).size !== b.data[c].length) return { error: "duplicate_id" };
+  for (const d of b.data.documents) if (new Set(d.lines.map((l) => l.id)).size !== d.lines.length) return { error: "duplicate_id" };
+  for (const a of b.data.assets)
+    if (createHash("sha256").update(Buffer.from(a.dataBase64, "base64")).digest("hex") !== a.sha256) return { error: "asset_hash_mismatch" };
+  const ids = Object.fromEntries(COLLECTIONS.map((c) => [c, new Set(b.data[c].map((r) => r.id))]));
+  const ok = (value, c) => value == null || ids[c].has(value);
+  const refs = [
+    ...COLLECTIONS.filter((c) => c !== "businesses").flatMap((c) => b.data[c].map((r) => ok(r.businessId, "businesses"))),
+    ...b.data.businesses.flatMap((r) => [ok(r.logoAssetId, "assets"), ok(r.signatureAssetId, "assets")]),
+    ...b.data.documents.flatMap((d) => [ok(d.clientId, "clients"), ok(d.seriesId, "numberingSeries"),
+      ok(d.convertedFromId, "documents"), ...d.lines.map((l) => ok(l.catalogItemId, "catalogItems"))]),
+    ...b.data.payments.map((p) => ok(p.documentId, "documents")),
+  ];
+  if (refs.includes(false)) return { error: "dangling_reference" };
+  return { live: Object.fromEntries(COLLECTIONS.map((c) => [c, b.data[c].filter((r) => r.deletedAt == null).length])) };
+}
 for (const f of walk(join(SPEC, "fixtures"))) {
   const doc = readJSON(f); if (!doc) continue;
   if (!validateWith("fixtures.schema.json", doc, f)) continue;
@@ -165,6 +223,14 @@ for (const f of walk(join(SPEC, "fixtures"))) {
       if (!configs[ref]) fail(f, `case ${c.id}: unknown config ${ref}`);
       if (!layouts.some(([, layout]) => layout.id === c.input.template))
         fail(f, `case ${c.id}: no layout for template "${c.input.template}"`);
+    }
+    if (doc.kind === "backup") {
+      const text = patchBackup(f, c.input);
+      if (text !== null) {
+        const actual = referenceValidate(text, c.input.appSchemaVersion);
+        if (JSON.stringify(actual) !== JSON.stringify(c.expected))
+          fail(f, `case ${c.id}: the reference gives ${JSON.stringify(actual)}, expected ${JSON.stringify(c.expected)}`);
+      }
     }
     if (doc.kind === "input" && c.input.op === "money" && !currencyCodes.has(c.input.currency))
       fail(f, `case ${c.id}: money input needs a currency from reference/currencies.json`);

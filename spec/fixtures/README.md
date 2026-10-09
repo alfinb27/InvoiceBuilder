@@ -23,6 +23,8 @@ Every file is validated by `make validate-spec` against `spec/schema/fixtures.sc
 | `field` | setup field rules (IFSC, UPI ID, sort code, IBAN, BIC, PAN, postcodes, company number, HSN/SAC) | `spec/setup.md` §8 |
 | `input` | typed money amounts and decimals | `spec/setup.md` §11 |
 | `document` | a new draft's defaults (`op: defaults`) and catalogue prices on a document (`op: linePrice`) | `spec/documents.md` §2, §3.1 |
+| `reminder` | `ReminderScheduler.plan` — eligibility, override precedence, cap truncation | `spec/reminders.md` §3 |
+| `backup` | `BackupCodec.validate` — the checks in order and the live counts a valid file previews; inputs are `spec/samples` files patched with JSON Pointers | `spec/backup.md` §3 |
 
 ## How runners compare results
 

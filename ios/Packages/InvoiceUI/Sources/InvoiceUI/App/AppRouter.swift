@@ -1,3 +1,4 @@
+import Foundation
 import InvoiceCore
 import Observation
 
@@ -62,14 +63,92 @@ public final class DocumentsRouter {
     /// The document in the detail column (pushed on iPhone).
     public var selection: DocumentRoute?
     public var searchText = ""
+    /// Meaningful for invoices only; quotes ignore it.
+    public var statusFilter: InvoiceStatusFilter = .all
+    public var dateFilter: DocumentDateFilter = .allTime
+    /// ⌘F: the list's search field takes focus.
+    public var isSearchFocused = false
+    /// An action chosen from a list row's context menu, run by the document once it is open.
+    public var pendingAction: PendingDocumentAction?
 
     public init() {}
 
     public func open(_ id: String) { selection = .existing(id) }
 
+    /// Opens a document and asks it to run `action` (iPad row context menus).
+    public func open(_ id: String, then action: DocumentAction) {
+        selection = .existing(id)
+        pendingAction = PendingDocumentAction(documentID: id, action: action)
+    }
+
+    /// The pending action for `documentID`, consumed.
+    public func takeAction(for documentID: String) -> DocumentAction? {
+        guard let pending = pendingAction, pending.documentID == documentID else { return nil }
+        pendingAction = nil
+        return pending.action
+    }
+
     /// After a draft was deleted: stop showing it.
     public func didRemove(_ id: String) {
         if selection?.id == id { selection = nil }
+    }
+}
+
+/// What a list row's context menu can ask an issued document to do.
+public enum DocumentAction: Hashable, Sendable {
+    case share, recordPayment, void
+}
+
+public struct PendingDocumentAction: Hashable, Sendable {
+    public let documentID: String
+    public let action: DocumentAction
+}
+
+/// The Invoices list's status segments (`docs/plan.md` Phase 4: "All / Unpaid / Overdue / Paid").
+public enum InvoiceStatusFilter: String, CaseIterable, Hashable, Sendable {
+    case all, unpaid, overdue, paid
+
+    public var label: String {
+        switch self {
+        case .all: "All"
+        case .unpaid: "Unpaid"
+        case .overdue: "Overdue"
+        case .paid: "Paid"
+        }
+    }
+
+    /// True when an issued invoice's derived status belongs in this segment.
+    public func matches(_ status: DocumentStatus) -> Bool {
+        switch self {
+        case .all: true
+        case .unpaid: status == .issued || status == .sent || status == .partiallyPaid || status == .overdue
+        case .overdue: status == .overdue
+        case .paid: status == .paid
+        }
+    }
+}
+
+/// A quick date-range filter on `issueDate` for the Invoices/Quotes list.
+public enum DocumentDateFilter: String, CaseIterable, Hashable, Sendable {
+    case allTime, thisMonth, last30Days, last3Months
+
+    public var label: String {
+        switch self {
+        case .allTime: "All time"
+        case .thisMonth: "This month"
+        case .last30Days: "Last 30 days"
+        case .last3Months: "Last 3 months"
+        }
+    }
+
+    /// The inclusive lower bound for `issueDate`, or nil for no lower bound.
+    public func from(today: LocalDate) -> LocalDate? {
+        switch self {
+        case .allTime: nil
+        case .thisMonth: LocalDate(year: today.year, month: today.month, day: 1) ?? today
+        case .last30Days: today.adding(days: -30)
+        case .last3Months: today.adding(days: -90)
+        }
     }
 }
 
@@ -98,12 +177,21 @@ public enum EditorRoute: Identifiable, Hashable, Sendable {
 }
 
 public enum SettingsPage: String, Hashable, CaseIterable, Sendable {
-    case profile, images, numbering, defaults, taxRates, about
+    case profile, images, numbering, defaults, taxRates, backup, about
 }
 
 @MainActor @Observable
 public final class SettingsRouter {
     public var selection: SettingsPage?
+    /// A backup file opened from another app or dropped onto Settings, waiting for the Backup page
+    /// (`spec/backup.md` §6).
+    public var incomingBackup: URL?
+
+    /// Shows the Backup page and hands it `url` to restore.
+    public func restore(from url: URL) {
+        selection = .backup
+        incomingBackup = url
+    }
 
     public init() {}
 }

@@ -131,6 +131,23 @@ enum DocumentText {
     }
 }
 
+enum PaymentMethodText {
+    /// The fixed set from `domain.schema.json#/$defs/Payment.method`, in picker order.
+    static let all: [PaymentMethod] = [.cash, .bank, .upi, .card, .cheque, .other]
+
+    static func label(_ method: PaymentMethod) -> String {
+        switch method {
+        case .cash: "Cash"
+        case .bank: "Bank transfer"
+        case .upi: "UPI"
+        case .card: "Card"
+        case .cheque: "Cheque"
+        case .other: "Other"
+        default: method.rawValue.capitalized
+        }
+    }
+}
+
 /// A status chip for lists and headers.
 struct StatusTag: View {
     let status: DocumentStatus
@@ -150,6 +167,11 @@ extension LocalDate {
         let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
         self = LocalDate(year: parts.year ?? 2000, month: parts.month ?? 1, day: parts.day ?? 1)
             ?? LocalDate(daysSinceEpoch: 0)
+    }
+
+    /// From an epoch-ms audit timestamp (`voidedAt`, `sentAt`), in the device calendar.
+    init(epochMs: Int64) {
+        self.init(date: Date(timeIntervalSince1970: Double(epochMs) / 1000))
     }
 
     /// `19 Sept 2026`, for rows and headers (display only; stored dates stay ISO).

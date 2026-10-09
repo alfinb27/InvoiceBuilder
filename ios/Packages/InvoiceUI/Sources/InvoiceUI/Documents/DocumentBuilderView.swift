@@ -305,6 +305,14 @@ private struct BuilderForm: View {
                             .accessibilityLabel("Payment terms")
                     }
                 }
+                Picker("Remind me", selection: Binding(get: { document.reminderDaysAfterDueOverride },
+                                                        set: { model.setReminderOverride($0) })) {
+                    Text("Business default").tag(Int?.none)
+                    ForEach([0, 1, 3, 7, 14, 30], id: \.self) { days in
+                        Text(days == 0 ? "On the due date" : "\(days) days after the due date").tag(Optional(days))
+                    }
+                }
+                .accessibilityIdentifier("reminderOverridePicker")
             }
         }
     }

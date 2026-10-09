@@ -15,6 +15,7 @@ struct DocumentRecord: SnakeCaseRecord, Equatable {
     var issueDate: String
     var supplyDate: String?
     var dueDate: String?
+    var reminderDaysAfterDueOverride: Int?
     var validUntil: String?
     var sentAt: Int64?
     var voidedAt: Int64?
@@ -62,6 +63,7 @@ struct DocumentRecord: SnakeCaseRecord, Equatable {
         issueDate = document.issueDate.iso
         supplyDate = document.supplyDate?.iso
         dueDate = document.dueDate?.iso
+        reminderDaysAfterDueOverride = document.reminderDaysAfterDueOverride
         validUntil = document.validUntil?.iso
         sentAt = document.sentAt
         voidedAt = document.voidedAt
@@ -105,7 +107,8 @@ struct DocumentRecord: SnakeCaseRecord, Equatable {
             docType: DocumentType(rawValue: docType), number: number, seriesId: seriesId, periodKey: periodKey,
             sequence: sequence, lifecycle: DocumentLifecycle(rawValue: lifecycle), issueDate: try Self.date(issueDate),
             supplyDate: try supplyDate.map(Self.date), dueDate: try dueDate.map(Self.date),
-            validUntil: try validUntil.map(Self.date), sentAt: sentAt, voidedAt: voidedAt, voidReason: voidReason,
+            reminderDaysAfterDueOverride: reminderDaysAfterDueOverride, validUntil: try validUntil.map(Self.date),
+            sentAt: sentAt, voidedAt: voidedAt, voidReason: voidReason,
             quoteOutcome: quoteOutcome.map(QuoteOutcome.init(rawValue:)), convertedFromId: convertedFromId,
             currency: CurrencyCode(rawValue: currency), exchangeRate: exchangeRate, supplyType: supplyType,
             placeOfSupply: placeOfSupply, reverseCharge: reverseCharge, pricesIncludeTax: pricesIncludeTax,

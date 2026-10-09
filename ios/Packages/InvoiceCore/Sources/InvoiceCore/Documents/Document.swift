@@ -19,6 +19,8 @@ public struct Document: Codable, Hashable, Sendable, Identifiable {
     /// Tax point; selects the rates in force.
     public var supplyDate: LocalDate?
     public var dueDate: LocalDate?
+    /// Overrides `business.reminderDaysAfterDue` for this invoice (`spec/reminders.md` §1); nil defers to it.
+    public var reminderDaysAfterDueOverride: Int?
     /// Quotes only.
     public var validUntil: LocalDate?
     public var sentAt: Int64?
@@ -57,8 +59,8 @@ public struct Document: Codable, Hashable, Sendable, Identifiable {
     public init(id: String, createdAt: Int64 = 0, updatedAt: Int64 = 0, deletedAt: Int64? = nil, businessId: String,
                 docType: DocumentType, number: String? = nil, seriesId: String? = nil, periodKey: String? = nil,
                 sequence: Int? = nil, lifecycle: DocumentLifecycle = .draft, issueDate: LocalDate,
-                supplyDate: LocalDate? = nil, dueDate: LocalDate? = nil, validUntil: LocalDate? = nil,
-                sentAt: Int64? = nil, voidedAt: Int64? = nil, voidReason: String? = nil,
+                supplyDate: LocalDate? = nil, dueDate: LocalDate? = nil, reminderDaysAfterDueOverride: Int? = nil,
+                validUntil: LocalDate? = nil, sentAt: Int64? = nil, voidedAt: Int64? = nil, voidReason: String? = nil,
                 quoteOutcome: QuoteOutcome? = nil, convertedFromId: String? = nil, currency: CurrencyCode,
                 exchangeRate: String? = nil, supplyType: String, placeOfSupply: String? = nil,
                 reverseCharge: Bool = false, pricesIncludeTax: Bool = false, roundOff: Bool? = nil,
@@ -80,6 +82,7 @@ public struct Document: Codable, Hashable, Sendable, Identifiable {
         self.issueDate = issueDate
         self.supplyDate = supplyDate
         self.dueDate = dueDate
+        self.reminderDaysAfterDueOverride = reminderDaysAfterDueOverride
         self.validUntil = validUntil
         self.sentAt = sentAt
         self.voidedAt = voidedAt
@@ -113,7 +116,8 @@ public struct Document: Codable, Hashable, Sendable, Identifiable {
     /// The date that selects the rates and config version in force (`ENGINE.md` Step 0).
     public var effectiveDate: LocalDate { supplyDate ?? issueDate }
 
-    /// Derived display status (`ENGINE.md` §6). Payments arrive in Phase 4; until then nothing is paid.
+    /// Derived display status (`ENGINE.md` §6). `paid` is the sum of the invoice's live payments (`documents.md`
+    /// §10); callers without that sum handy pass 0.
     public func status(today: LocalDate, paid: Int64 = 0) -> DocumentStatus {
         DocumentStatus.derive(statusInput(today: today, paid: paid))
     }
@@ -340,13 +344,15 @@ public struct DocumentSummary: Hashable, Sendable, Identifiable {
     public var buyerName: String?
     public var currency: CurrencyCode
     public var totalMinor: Int64
+    /// The sum of the invoice's live payments (`documents.md` §10); 0 for quotes and drafts.
+    public var paidMinor: Int64
     public var lineCount: Int
     public var updatedAt: Int64
 
     public init(id: String, docType: DocumentType, number: String?, lifecycle: DocumentLifecycle,
                 issueDate: LocalDate, dueDate: LocalDate?, validUntil: LocalDate?, sentAt: Int64?,
                 quoteOutcome: QuoteOutcome?, clientId: String?, buyerName: String?, currency: CurrencyCode,
-                totalMinor: Int64, lineCount: Int, updatedAt: Int64) {
+                totalMinor: Int64, paidMinor: Int64 = 0, lineCount: Int, updatedAt: Int64) {
         self.id = id
         self.docType = docType
         self.number = number
@@ -360,13 +366,48 @@ public struct DocumentSummary: Hashable, Sendable, Identifiable {
         self.buyerName = buyerName
         self.currency = currency
         self.totalMinor = totalMinor
+        self.paidMinor = paidMinor
         self.lineCount = lineCount
         self.updatedAt = updatedAt
     }
 
-    public func status(today: LocalDate, paid: Int64 = 0) -> DocumentStatus {
+    public func status(today: LocalDate) -> DocumentStatus {
         DocumentStatus.derive(DocumentStatus.Input(docType: docType, lifecycle: lifecycle, total: totalMinor,
-                                                   paid: paid, dueDate: dueDate, validUntil: validUntil,
+                                                   paid: paidMinor, dueDate: dueDate, validUntil: validUntil,
                                                    sentAt: sentAt, outcome: quoteOutcome, today: today))
+    }
+
+    /// `max(total − paid, 0)`; nil for quotes (`ENGINE.md` §6).
+    public func outstanding() -> Int64? {
+        docType == .quote ? nil : max(totalMinor - paidMinor, 0)
+    }
+}
+
+public extension [DocumentSummary] {
+    /// Outstanding balance per currency across this client's live, unpaid issued invoices (`documents.md` §10),
+    /// sorted by currency code. Several currencies are kept separate rather than summed, since there is no
+    /// spec'd conversion between them (`DashboardTotals`'s doc comment explains why).
+    func outstandingByCurrency(today: LocalDate) -> [(currency: CurrencyCode, minor: Int64)] {
+        var totals: [CurrencyCode: Int64] = [:]
+        for document in self where document.docType == .invoice && document.lifecycle == .issued {
+            guard let outstanding = document.outstanding(), document.status(today: today) != .paid else { continue }
+            totals[document.currency, default: 0] += outstanding
+        }
+        return totals.sorted { $0.key.rawValue < $1.key.rawValue }.map { ($0.key, $0.value) }
+    }
+}
+
+/// Home-currency totals for the Home dashboard (`docs/plan.md` Phase 4). v1 only sums documents in the business's
+/// home currency: a payment carries no currency of its own (`documents.md` §10), so a foreign-currency invoice's
+/// payments cannot be safely converted without a spec'd conversion rule.
+public struct DashboardTotals: Hashable, Sendable {
+    public var outstandingMinor: Int64
+    public var overdueMinor: Int64
+    public var paidThisMonthMinor: Int64
+
+    public init(outstandingMinor: Int64 = 0, overdueMinor: Int64 = 0, paidThisMonthMinor: Int64 = 0) {
+        self.outstandingMinor = outstandingMinor
+        self.overdueMinor = overdueMinor
+        self.paidThisMonthMinor = paidThisMonthMinor
     }
 }

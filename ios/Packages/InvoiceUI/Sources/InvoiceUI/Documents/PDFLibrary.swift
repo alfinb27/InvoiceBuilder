@@ -125,6 +125,13 @@ actor PDFLibrary {
         }
     }
 
+    /// Removes every cached file (after a restore replaced the data, `spec/backup.md` §4 step 5).
+    func forgetAll() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil))
+            ?? []
+        for file in files { try? FileManager.default.removeItem(at: file) }
+    }
+
     /// Removes cached files for a document (a draft that was deleted, or a restore).
     func forget(documentID: String) {
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil))

@@ -24,8 +24,8 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 
 | Package | Rule |
 |---|---|
-| `InvoiceCore` | Pure Swift + Foundation. No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`) and the repository/service protocols. |
-| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction). |
+| `InvoiceCore` | Pure Swift + Foundation (+ CryptoKit for hashes). No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`), the backup codec (`Backup/`: `BackupFile`, `BackupCodec.validate`, per `spec/backup.md`) and the repository/service protocols. |
+| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction; `GRDBBackupService` = export and the one-transaction "replace all" restore, plus `BackupSnapshotStore`). |
 | `InvoicePDF` | The renderer: Core Text + `UIGraphicsPDFRenderer` drawing the `PDFDocumentModel` that `InvoiceCore/PDF` builds, laid out by `spec/pdf/layout/*.json`. No database, no view models — a request in, `Data` out. |
 | `InvoiceBilling` | StoreKit 2 + `EntitlementService` implementing `spec/billing.md`. (Phase 5) |
 | `InvoiceSync` | SQLiteData sync engine behind a `SyncService` protocol. `DeviceState` is never synced. (Phase 4b) |
@@ -79,8 +79,10 @@ make test-ios           # all of the above
   before simulators work; until then another installed Xcode can be used with `DEVELOPER_DIR=…`.
 - Switching toolchains (Command Line Tools ↔ Xcode) on the same package: delete its `.build/` first; stale
   products make the Swift Testing macros "not found".
-- **CI is the stricter compiler.** GitHub's `macos-15` runner builds with Xcode 16.4 (iOS 18.5 SDK), which is older
-  than a local beta: a type the newer SDK marks `Sendable` may not be marked there, and Swift 6 then rejects code
-  that built locally (`CIContext` did). A green local build is not proof; the PR check is.
+- **CI runs the local Xcode.** The iOS workflow uses GitHub's `xcode-27` image (macOS 27, public preview) with
+  Xcode 27.1 selected through `DEVELOPER_DIR`, the same build as the local Xcode (27A9269), so the compiler and SDK
+  match; its simulators run iOS 27.0. iOS 18–26 are not covered on CI: run the UI suites on a local iOS 26.x
+  simulator before a release (`make test-app-ios SIM=…`). When the image adds a newer Xcode, update `DEVELOPER_DIR`
+  together with the local Xcode.
 - Offline builds: `xcodebuild … -clonedSourcePackagesDirPath <dir> -disableAutomaticPackageResolution
   -skipPackageUpdates`, with `<dir>` seeded from a SwiftPM `.build` (`checkouts/`, `repositories/`).

@@ -14,16 +14,26 @@ public struct AppDependencies: Sendable {
     public var setup: any BusinessSetupService
     public var documents: any DocumentRepository
     public var documentService: any DocumentService
+    public var payments: any PaymentRepository
+    public var paymentService: any PaymentService
+    /// Export and restore (`spec/backup.md`).
+    public var backup: any BackupService
     public var taxConfigs: TaxConfigStore
     public var reference: ReferenceData
     public var time: TimeSource
     public var ids: IDGenerator
+    /// `SystemNotificationScheduler` only for `live()`; every other path defaults to a no-op (`spec/reminders.md`
+    /// §3) so tests and UI-test runs never touch the real notification center or show a permission prompt.
+    public var notifications: any NotificationScheduling
 
     public init(businesses: any BusinessRepository, clients: any ClientRepository, catalog: any CatalogRepository,
                 numberingSeries: any NumberingSeriesRepository, assets: any AssetRepository,
                 deviceState: any DeviceStateRepository, setup: any BusinessSetupService,
-                documents: any DocumentRepository, documentService: any DocumentService, taxConfigs: TaxConfigStore,
-                reference: ReferenceData, time: TimeSource, ids: IDGenerator) {
+                documents: any DocumentRepository, documentService: any DocumentService,
+                payments: any PaymentRepository, paymentService: any PaymentService, backup: any BackupService,
+                taxConfigs: TaxConfigStore,
+                reference: ReferenceData, time: TimeSource, ids: IDGenerator,
+                notifications: any NotificationScheduling = NoOpNotificationScheduler()) {
         self.businesses = businesses
         self.clients = clients
         self.catalog = catalog
@@ -33,15 +43,21 @@ public struct AppDependencies: Sendable {
         self.setup = setup
         self.documents = documents
         self.documentService = documentService
+        self.payments = payments
+        self.paymentService = paymentService
+        self.backup = backup
         self.taxConfigs = taxConfigs
         self.reference = reference
         self.time = time
         self.ids = ids
+        self.notifications = notifications
     }
 
-    /// Repositories backed by `database`, plus the bundled spec.
-    public static func make(database: AppDatabase, time: TimeSource = .system, ids: IDGenerator = .random) throws
-        -> AppDependencies {
+    /// Repositories backed by `database`, plus the bundled spec. `notifications` defaults to a no-op and safety
+    /// snapshots to a temporary folder; only `live()` passes the real ones.
+    public static func make(database: AppDatabase, time: TimeSource = .system, ids: IDGenerator = .random,
+                            notifications: any NotificationScheduling = NoOpNotificationScheduler(),
+                            snapshots: BackupSnapshotStore = .temporary()) throws -> AppDependencies {
         let taxConfigs = try TaxConfigStore.bundled()
         let reference = try ReferenceData.bundled()
         return AppDependencies(
@@ -55,16 +71,21 @@ public struct AppDependencies: Sendable {
             documents: GRDBDocumentRepository(database: database, time: time),
             documentService: GRDBDocumentService(database: database, time: time, ids: ids, configs: taxConfigs,
                                                  currencies: reference.currencies),
+            payments: GRDBPaymentRepository(database: database, time: time),
+            paymentService: GRDBPaymentService(database: database, time: time, ids: ids),
+            backup: try GRDBBackupService(database: database, time: time, ids: ids, snapshots: snapshots),
             taxConfigs: taxConfigs,
             reference: reference,
             time: time,
-            ids: ids
+            ids: ids,
+            notifications: notifications
         )
     }
 
     /// The app's on-disk database in Application Support.
     public static func live() throws -> AppDependencies {
-        try make(database: AppDatabase.openOnDisk(at: AppDatabase.defaultURL()))
+        try make(database: AppDatabase.openOnDisk(at: AppDatabase.defaultURL()),
+                 notifications: SystemNotificationScheduler(), snapshots: .defaultStore())
     }
 
     /// An empty in-memory database (previews, tests, UI tests).
