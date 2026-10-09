@@ -1,5 +1,13 @@
 package app.invoicebuilder.android.settings
 
+import androidx.compose.runtime.setValue
+
+import androidx.compose.runtime.mutableStateOf
+
+import androidx.compose.runtime.saveable.rememberSaveable
+
+import app.invoicebuilder.core.domain.support.SpecResources
+
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.content.Context
@@ -382,6 +390,8 @@ private fun TaxRatesPage(session: Session) {
 private fun AboutPage(session: Session) {
     val context = LocalContext.current
     val reports = remember { Diagnostics.reports(context) }
+    var showsLicences by rememberSaveable { mutableStateOf(false) }
+    if (showsLicences) LicencesSheet { showsLicences = false }
     DetailColumn {
         FormSection("App") {
             LabeledValue("Version", AppContainer.appVersion(context))
@@ -390,6 +400,9 @@ private fun AboutPage(session: Session) {
         FormSection("${session.config.labels.taxName} rules", "Tax rules are built into the app and updated with it. Check invoices with your accountant.") {
             LabeledValue("Tax rules", session.config.ref)
             LabeledValue("Status", if (session.config.reviewStatus == "reviewed") "Professionally reviewed" else "Awaiting professional review")
+        }
+        FormSection {
+            NavRow("Fonts and licences", { showsLicences = true }, tag = "about.licences")
         }
         FormSection("This device") {
             Text(session.deviceID, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
@@ -401,6 +414,24 @@ private fun AboutPage(session: Session) {
                     val file = File(context.cacheDir, "diagnostics.txt").also { it.writeText(reports.joinToString("\n\n")) }
                     SystemSheets.shareFile(context, file, "text/plain", "InvoiceBuilder diagnostics")
                 })
+            }
+        }
+    }
+}
+
+/** The open-source fonts the app and its PDFs use, with their licences (SIL Open Font License 1.1). iOS: `LicencesPage`. */
+@Composable
+private fun LicencesSheet(onDismiss: () -> Unit) {
+    val fonts = listOf(
+        Triple("Bricolage Grotesque", "Headings and amounts", "design/fonts/OFL-BricolageGrotesque.txt"),
+        Triple("Figtree", "Text", "design/fonts/OFL-Figtree.txt"),
+        Triple("Noto Sans", "Invoices and quotes (PDF)", "pdf/fonts/OFL.txt"),
+    )
+    EditorSheet("Fonts and licences", onCancel = onDismiss, onSave = null) {
+        for ((name, use, file) in fonts) {
+            FormSection(name, use) {
+                Text(runCatching { SpecResources.text(file) }.getOrDefault(""), style = MaterialTheme.typography.bodySmall,
+                    color = Theme.colors.textSecondary)
             }
         }
     }
