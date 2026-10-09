@@ -172,5 +172,10 @@ interface EntitlementService {
     suspend fun start()
     suspend fun refreshCount()
     suspend fun purchase(activity: Any)
-    suspend fun restore()
+    /**
+     * "Refresh purchases", and every resume: re-asks the store. False when the store couldn't be asked (Play not
+     * connected, an error response); the state is then unchanged and the screen says so. iOS: `restore()` returns
+     * nothing, because `AppStore.sync()` shows the system's own sign-in and error screens.
+     */
+    suspend fun restore(): Boolean
 }

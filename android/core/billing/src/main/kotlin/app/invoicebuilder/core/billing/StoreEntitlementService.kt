@@ -88,15 +88,17 @@ class StoreEntitlementService(
     }
 
     /** "Refresh purchases" and every resume. A store that can't be reached leaves an unlock in place (`billing.md`). */
-    override suspend fun restore() {
+    override suspend fun restore(): Boolean {
         val count = effectiveCount()
         runCatching { store.sync() }
-        resolve(count)
+        return resolve(count)
     }
 
-    private suspend fun resolve(count: Int) {
-        val owned = store.owns(productID) ?: return
+    /** False when the store couldn't be asked: no event, the state stays as it is. */
+    private suspend fun resolve(count: Int): Boolean {
+        val owned = store.owns(productID) ?: return false
         apply(if (owned) EntitlementEvent.resolvedOwned else EntitlementEvent.resolvedNotOwned, count)
+        return true
     }
 
     private suspend fun effectiveCount(): Int {

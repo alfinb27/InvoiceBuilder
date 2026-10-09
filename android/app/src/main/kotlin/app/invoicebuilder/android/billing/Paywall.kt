@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.invoicebuilder.android.app.Session
+import app.invoicebuilder.android.common.ErrorAlert
 import app.invoicebuilder.core.designsystem.FormSection
 import app.invoicebuilder.core.designsystem.LabeledValue
 import app.invoicebuilder.core.designsystem.NavRow
@@ -62,6 +63,7 @@ fun PaywallDialog(session: Session, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isWorking by remember { mutableStateOf(false) }
+    var refreshFailed by remember { mutableStateOf(false) }
     LaunchedEffect(status.state) {
         if (status.state == EntitlementState.unlocked) { delay(1000); onDismiss() }
     }
@@ -106,8 +108,17 @@ fun PaywallDialog(session: Session, onDismiss: () -> Unit) {
                         }
                     }
                 }
-                TextButton({ scope.launch { isWorking = true; session.container.entitlements.restore(); isWorking = false } }, enabled = !isWorking,
-                    modifier = Modifier.testTag("paywall.restore")) { Text("Refresh purchases") }
+                TextButton({
+                    scope.launch {
+                        isWorking = true
+                        refreshFailed = !session.container.entitlements.restore()
+                        isWorking = false
+                    }
+                }, enabled = !isWorking, modifier = Modifier.testTag("paywall.restore")) { Text("Refresh purchases") }
+                if (refreshFailed) {
+                    Text(BillingText.refreshFailed, Modifier.testTag("paywall.refreshFailed"), style = MaterialTheme.typography.bodySmall,
+                        color = Theme.colors.warning, textAlign = TextAlign.Center)
+                }
                 Text("A one-time purchase, charged to your Google Play account at confirmation.",
                     style = MaterialTheme.typography.bodySmall, color = Theme.colors.textTertiary, textAlign = TextAlign.Center)
                 TextButton(onDismiss) { Text("Close") }
@@ -128,6 +139,8 @@ private fun Benefit(text: String, icon: ImageVector) {
 @Composable
 fun UnlockPage(session: Session) {
     var showsPaywall by remember { mutableStateOf(false) }
+    var refreshing by remember { mutableStateOf(false) }
+    var refreshMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val status = session.entitlement
     ReadableColumn {
@@ -143,10 +156,25 @@ fun UnlockPage(session: Session) {
                 LabeledValue("Free invoices left", "${status.remaining} of ${FreeTier.LIMIT}")
                 NavRow("Unlock unlimited invoices", { showsPaywall = true })
             }
-            NavRow("Refresh purchases", { scope.launch { session.container.entitlements.restore() } })
+            NavRow("Refresh purchases", {
+                if (refreshing) return@NavRow
+                scope.launch {
+                    refreshing = true
+                    if (!session.container.entitlements.restore()) refreshMessage = BillingText.refreshFailed
+                    refreshing = false
+                }
+            }, value = if (refreshing) "Checking…" else null, tag = "unlock.refresh")
         }
     }
     if (showsPaywall) PaywallDialog(session) { showsPaywall = false }
+    ErrorAlert(refreshMessage, { refreshMessage = null }, title = "Purchases not refreshed")
+}
+
+/** What the unlock screens say. */
+object BillingText {
+    /** Play didn't answer "Refresh purchases" (`spec/billing.md`, Android): nothing changed, so say so. */
+    const val refreshFailed = "Google Play can't be reached right now, so your purchases weren't refreshed. " +
+        "Check your connection and try again."
 }
 
 tailrec fun Context.findActivity(): Activity? = when (this) {

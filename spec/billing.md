@@ -90,7 +90,9 @@ in `app_state` (`entitlement`) only to avoid UI flicker, never as the source of 
 - Unlock only on `Purchase.PurchaseState.PURCHASED`; `PENDING` (UPI/cash) shows "Payment pending".
 - **Acknowledge** every `PURCHASED`, unacknowledged purchase (`acknowledgePurchase`) — Google auto-refunds after 3 days.
   A startup sweep acknowledges anything missed.
-- "Refresh purchases" button re-runs the query (parity with iOS restore).
+- "Refresh purchases" button re-runs the query (parity with iOS restore). When the query can't complete, the screen
+  says so — "Google Play can't be reached right now, so your purchases weren't refreshed. Check your connection and
+  try again." — because, unlike `AppStore.sync()` on iOS, Play shows no screen of its own; the state is unchanged.
 
 ## Test matrix (Phase 5 / 7c definition of done)
 

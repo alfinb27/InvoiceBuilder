@@ -141,12 +141,12 @@ class StoreEntitlementServiceTests {
         assertEquals(EntitlementState.unlocked, service.status.value.state)
 
         store.owned = null // Play disconnected, or SERVICE_UNAVAILABLE
-        service.restore()
+        assertFalse(service.restore()) // "Refresh purchases" says Play couldn't be reached
         assertEquals(EntitlementState.unlocked, service.status.value.state)
         assertTrue(service.status.value.canIssueInvoice)
 
         store.owned = false // a real answer without the product: refunded
-        service.restore()
+        assertTrue(service.restore())
         assertEquals(EntitlementState.limitReached, service.status.value.state)
     }
 
