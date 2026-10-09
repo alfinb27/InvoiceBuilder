@@ -43,11 +43,11 @@ final class DocumentSmokeTests: XCTestCase {
         // By identifier or label: SwiftUI puts a modifier's identifier on the field on some iOS versions only.
         let quantity = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label == %@", "lineQuantity",
                                                            "Quantity")).firstMatch
-        XCTAssertTrue(waitForFocus(quantity), "Return didn't move to the quantity")
+        if !waitForFocus(quantity) { XCTFail("Return didn't move to the quantity. \(fields(in: app))") }
         app.typeText("\n")
         let price = app.textFields.matching(NSPredicate(format: "identifier == %@ OR label BEGINSWITH %@", "linePrice",
                                                         "Price")).firstMatch
-        XCTAssertTrue(waitForFocus(price), "Return didn't move to the price")
+        if !waitForFocus(price) { XCTFail("Return didn't move to the price. \(fields(in: app))") }
         app.typeText("1000")
         XCTAssertTrue(((price.value as? String) ?? "").contains("1000"), "price typed: \(price.value ?? "nil")")
         app.buttons["lineDone"].tap()
@@ -123,12 +123,23 @@ final class DocumentSmokeTests: XCTestCase {
         XCTAssertTrue(problem.waitForExistence(timeout: 5))
     }
 
-    /// Waits up to two seconds for `element` to take keyboard focus.
+    /// Waits up to five seconds for `element` to take keyboard focus (CI's simulators are slower).
     @MainActor
     private func waitForFocus(_ element: XCUIElement) -> Bool {
         let focused = NSPredicate(format: "hasKeyboardFocus == true")
         let expectation = XCTNSPredicateExpectation(predicate: focused, object: element)
-        return XCTWaiter().wait(for: [expectation], timeout: 2) == .completed
+        return XCTWaiter().wait(for: [expectation], timeout: 5) == .completed
+    }
+
+    /// Every text field on screen and which one has the keyboard: tells "the field wasn't found" apart from
+    /// "Return didn't move the focus" when this fails on CI.
+    @MainActor
+    private func fields(in app: XCUIApplication) -> String {
+        let rows = app.textFields.allElementsBoundByIndex.map { field in
+            let focused = (field.value(forKey: "hasKeyboardFocus") as? Bool) == true
+            return "[\(field.identifier)|\(field.label)\(focused ? "|FOCUSED" : "")]"
+        }
+        return "Text fields: " + rows.joined(separator: " ")
     }
 
     /// Swipes up until `element` is on screen.

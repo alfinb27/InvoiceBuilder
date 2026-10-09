@@ -46,3 +46,12 @@ jobs:
         run: make test-ui-ios SIM="${{ steps.sim.outputs.name }}"
       - name: App UI smoke tests
         run: make test-app-ios SIM="${{ steps.sim.outputs.name }}"
+      # A failed simulator test leaves its result bundle (logs, the failing screen, the accessibility tree) in
+      # DerivedData: keep it, so a CI-only failure can be read instead of guessed at.
+      - name: Keep the test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresult
+          path: ~/Library/Developer/Xcode/DerivedData/*/Logs/Test/*.xcresult
+          retention-days: 7
