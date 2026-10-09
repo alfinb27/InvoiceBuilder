@@ -21,17 +21,12 @@ class FileDeviceMarkerStore(private val directory: File) : DeviceMarkerStore {
     }
 
     /** Written to a temporary file, then renamed over the old one, so a crash never leaves half an id. */
-    override fun write(id: String) {
-        runCatching {
-            directory.mkdirs()
-            val temporary = File(directory, "$NAME.tmp")
-            temporary.writeText(id)
-            if (!temporary.renameTo(file)) {
-                file.delete()
-                temporary.renameTo(file)
-            }
-        }
-    }
+    override fun write(id: String): Boolean = runCatching {
+        directory.mkdirs()
+        val temporary = File(directory, "$NAME.tmp")
+        temporary.writeText(id)
+        temporary.renameTo(file) || (file.delete() && temporary.renameTo(file))
+    }.getOrDefault(false)
 
     private companion object {
         const val NAME = "device-id"

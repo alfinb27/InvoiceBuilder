@@ -29,15 +29,15 @@ public struct KeychainDeviceMarkerStore: DeviceMarkerStore {
         }
     }
 
-    public func write(_ id: String) {
+    @discardableResult
+    public func write(_ id: String) -> Bool {
         let data = Data(id.utf8)
         let status = SecItemUpdate(baseQuery as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-        if status == errSecItemNotFound {
-            var add = baseQuery
-            add[kSecValueData as String] = data
-            add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-            SecItemAdd(add as CFDictionary, nil)
-        }
+        guard status == errSecItemNotFound else { return status == errSecSuccess }
+        var add = baseQuery
+        add[kSecValueData as String] = data
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
     }
 
     private var baseQuery: [String: Any] {

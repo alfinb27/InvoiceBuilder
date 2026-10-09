@@ -15,7 +15,11 @@ sealed interface DeviceMarker {
  */
 interface DeviceMarkerStore {
     fun read(): DeviceMarker
-    fun write(id: String)
+    /**
+     * False when it could not be stored: the caller then keeps the id it has, rather than replacing it on every launch
+     * because the marker never sticks.
+     */
+    fun write(id: String): Boolean
 }
 
 /** Whether this database's `device_state` row belongs to this device (`spec/setup.md` §2). iOS: `DeviceIdentity`. */
@@ -37,10 +41,17 @@ object DeviceIdentity {
     }
 }
 
-/** A marker that lives as long as the process (tests, in-memory databases). */
-class InMemoryDeviceMarkerStore(@Volatile private var marker: DeviceMarker = DeviceMarker.Missing) : DeviceMarkerStore {
+/** A marker that lives as long as the process (tests, in-memory databases). [writesSucceed] false = a store that refuses. */
+class InMemoryDeviceMarkerStore(
+    @Volatile private var marker: DeviceMarker = DeviceMarker.Missing,
+    private val writesSucceed: Boolean = true,
+) : DeviceMarkerStore {
     override fun read(): DeviceMarker = marker
-    override fun write(id: String) { marker = DeviceMarker.Found(id) }
+    override fun write(id: String): Boolean {
+        if (!writesSucceed) return false
+        marker = DeviceMarker.Found(id)
+        return true
+    }
     /** Tests: what the next read returns (`Missing` = a database restored onto another device). */
     fun set(value: DeviceMarker) { marker = value }
 }

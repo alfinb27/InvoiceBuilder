@@ -221,8 +221,9 @@ public struct GRDBDeviceStateRepository: DeviceStateRepository {
     }
 
     /// This device's row, created on first use. A row copied from another device by an OS backup (the marker is
-    /// missing or names another id) takes a new id and keeps everything else. The marker is read and written inside
-    /// the write transaction, so two callers at launch (the app and the sync service) agree on one id.
+    /// missing or names another id) takes a new id and keeps everything else — only once the new marker is stored, so a
+    /// marker that can't be written never changes the id. The marker is read and written inside the write
+    /// transaction, so two callers at launch agree on one id.
     public func loadOrCreate(deviceName: String) async throws -> DeviceState {
         let now = time.now()
         let newID = ids.make()
@@ -239,11 +240,12 @@ public struct GRDBDeviceStateRepository: DeviceStateRepository {
                 return state
             case .replace:
                 var state = try existing!.deviceState()
+                // Marker first: if it can't be stored, keep the id rather than replacing it on every launch.
+                guard marker.write(newID) else { return state }
                 try db.execute(sql: "UPDATE device_state SET id = ?, updated_at = ? WHERE id = ?",
                                arguments: [newID, now, state.id])
                 state.id = newID
                 state.updatedAt = now
-                marker.write(newID)
                 return state
             }
         }

@@ -195,6 +195,16 @@ struct RepositoryTests {
         #expect(try await store.device.loadOrCreate(deviceName: "x").id != copied.id)
     }
 
+    @Test func aMarkerThatCannotBeWrittenNeverChangesTheID() async throws {
+        let store = try TestStore()
+        let device = try await store.device.loadOrCreate(deviceName: "iPhone")
+        // A Keychain that refuses the item: replacing the id on every launch would be worse than not checking.
+        let refusing = GRDBDeviceStateRepository(database: store.database, time: store.time, ids: store.ids,
+                                                 marker: InMemoryDeviceMarkerStore(.missing, writesSucceed: false))
+        #expect(try await refusing.loadOrCreate(deviceName: "iPhone").id == device.id)
+        #expect(try await refusing.loadOrCreate(deviceName: "iPhone").id == device.id)
+    }
+
     @Test func anUnreadableMarkerNeverChangesTheID() async throws {
         let store = try TestStore()
         let device = try await store.device.loadOrCreate(deviceName: "iPhone")

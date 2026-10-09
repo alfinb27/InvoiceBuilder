@@ -34,7 +34,7 @@ by `fixtures/validation/fields.json` (kind `field`).
   |---|---|---|
   | none | any | **create** the row with a new id, then write the marker |
   | present | equal to the row's id | **keep** |
-  | present | missing, or another id | **replace**: the row takes a new id (keeping `device_name`, `preferences` and `free_counter_mirror`), then write the marker |
+  | present | missing, or another id | **replace**: write the marker with a new id, then give the row that id (keeping `device_name`, `preferences` and `free_counter_mirror`); if the marker can't be written, **keep** instead, so an id is never replaced on every launch |
   | present | could not be read (device locked, I/O error) | **keep**, without writing the marker; check again next time |
 
   After a replace, the series the old id owned are another device's: the first issue offers the usual choice

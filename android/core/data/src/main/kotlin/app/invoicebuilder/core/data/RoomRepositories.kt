@@ -126,8 +126,9 @@ class RoomDeviceStateRepository(
 ) : DeviceStateRepository {
     /**
      * Created on first use. A row copied from another device by Auto Backup (the marker is missing or names another
-     * id) takes a new id and keeps everything else. The marker is read and written inside the transaction, so two
-     * callers at launch (the app and the reminders job) agree on one id.
+     * id) takes a new id and keeps everything else — only once the new marker is stored, so a marker that can't be
+     * written never changes the id. The marker is read and written inside the transaction, so two callers at launch
+     * (the app and the reminders job) agree on one id.
      */
     override suspend fun loadOrCreate(deviceName: String): DeviceState = db.withTransaction {
         val existing = db.devices().current()?.toDomain()
@@ -137,9 +138,12 @@ class RoomDeviceStateRepository(
                 db.devices().insert(it.toEntity())
                 marker.write(it.id)
             }
-            DeviceIdentity.Action.replace -> existing!!.copy(id = ids.make(), updatedAt = time.now()).also {
-                db.devices().changeID(existing.id, it.id, it.updatedAt)
-                marker.write(it.id)
+            DeviceIdentity.Action.replace -> {
+                val replaced = existing!!.copy(id = ids.make(), updatedAt = time.now())
+                // Marker first: if it can't be stored, keep the id rather than replacing it on every launch.
+                if (!marker.write(replaced.id)) return@withTransaction existing
+                db.devices().changeID(existing.id, replaced.id, replaced.updatedAt)
+                replaced
             }
         }
     }

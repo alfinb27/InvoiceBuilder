@@ -236,11 +236,20 @@ class DataTests {
     }
 
     @Test
+    fun aMarkerThatCannotBeWrittenNeverChangesTheID() = runTest {
+        val device = store.devices.loadOrCreate("Pixel")
+        // A marker that never sticks: replacing the id on every launch would be worse than not checking.
+        val refusing = RoomDeviceStateRepository(store.db, store.time, store.ids, InMemoryDeviceMarkerStore(DeviceMarker.Missing, writesSucceed = false))
+        assertEquals(device.id, refusing.loadOrCreate("Pixel").id)
+        assertEquals(device.id, refusing.loadOrCreate("Pixel").id)
+    }
+
+    @Test
     fun theMarkerFileSurvivesAndReportsWhatIsThere() {
         val directory = Files.createTempDirectory("no-backup").toFile()
         val marker = FileDeviceMarkerStore(directory)
         assertEquals(DeviceMarker.Missing, marker.read())
-        marker.write("d1")
+        assertTrue(marker.write("d1"))
         assertEquals(DeviceMarker.Found("d1"), FileDeviceMarkerStore(directory).read())
         marker.write("d2")
         assertEquals(DeviceMarker.Found("d2"), marker.read())

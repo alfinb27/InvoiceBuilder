@@ -14,7 +14,9 @@ public enum DeviceMarker: Hashable, Sendable {
 /// only). Android: `DeviceMarkerStore` over `noBackupFilesDir`.
 public protocol DeviceMarkerStore: Sendable {
     func read() -> DeviceMarker
-    func write(_ id: String)
+    /// False when it could not be stored: the caller then keeps the id it has, rather than replacing it on every
+    /// launch because the marker never sticks.
+    @discardableResult func write(_ id: String) -> Bool
 }
 
 /// Whether this database's `device_state` row belongs to this device (`spec/setup.md` §2).
@@ -41,13 +43,22 @@ public enum DeviceIdentity {
 /// A marker that lives as long as the process (tests, previews, in-memory databases).
 public final class InMemoryDeviceMarkerStore: DeviceMarkerStore {
     private let value: Mutex<DeviceMarker>
+    /// Tests: false makes every write fail, as a Keychain that refuses the item would.
+    public let writesSucceed: Bool
 
-    public init(_ marker: DeviceMarker = .missing) {
+    public init(_ marker: DeviceMarker = .missing, writesSucceed: Bool = true) {
         value = Mutex(marker)
+        self.writesSucceed = writesSucceed
     }
 
     public func read() -> DeviceMarker { value.withLock { $0 } }
-    public func write(_ id: String) { value.withLock { $0 = .found(id) } }
+
+    @discardableResult
+    public func write(_ id: String) -> Bool {
+        guard writesSucceed else { return false }
+        value.withLock { $0 = .found(id) }
+        return true
+    }
     /// Tests: what the next read returns (`.missing` = a database restored onto another device).
     public func set(_ marker: DeviceMarker) { value.withLock { $0 = marker } }
 }
