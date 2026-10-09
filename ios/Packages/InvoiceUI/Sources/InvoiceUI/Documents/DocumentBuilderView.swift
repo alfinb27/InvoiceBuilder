@@ -12,30 +12,46 @@ struct DocumentScreen: View {
         _model = State(initialValue: DocumentViewModel(session: session, route: route))
     }
 
+    // Split in three: as one expression the body was too much for Xcode 26's type checker (CI).
     var body: some View {
-        Group {
-            if !model.state.isLoaded {
-                ProgressView()
-            } else if model.state.notFound {
-                ContentUnavailableView("This document no longer exists", systemImage: "doc.questionmark")
-            } else if model.isDraft {
-                DocumentBuilderView(model: model, session: session)
-            } else {
-                IssuedDocumentView(model: model, session: session)
+        lifecycle
+            .focusedSceneValue(\.documentEditor, model)
+            .sheet(item: $model.preview) { DocumentPreviewView(model: $0) }
+            .alert("Something went wrong", isPresented: errorBinding) {
+                Button("OK", role: .cancel) { model.dismissError() }
+            } message: {
+                Text(model.state.errorMessage ?? "")
             }
+    }
+
+    /// Loading, saving when the screen goes away or the app leaves the foreground, and the issue haptic.
+    private var lifecycle: some View {
+        content
+            .task { await model.load() }
+            // A success tap when a draft becomes an issued document.
+            .sensoryFeedback(.success, trigger: model.state.document.lifecycle) { old, new in
+                Self.becameIssued(old, new)
+            }
+            .onDisappear { Task { await model.close() } }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { Task { await model.flush() } }
+            }
+    }
+
+    @ViewBuilder private var content: some View {
+        if !model.state.isLoaded {
+            ProgressView()
+        } else if model.state.notFound {
+            ContentUnavailableView("This document no longer exists", systemImage: "doc.questionmark")
+        } else if model.isDraft {
+            DocumentBuilderView(model: model, session: session)
+        } else {
+            IssuedDocumentView(model: model, session: session)
         }
-        .task { await model.load() }
-        .onDisappear { Task { await model.close() } }
-        .onChange(of: scenePhase) { _, phase in
-            if phase != .active { Task { await model.flush() } }
-        }
-        .focusedSceneValue(\.documentEditor, model)
-        .sheet(item: $model.preview) { DocumentPreviewView(model: $0) }
-        .alert("Something went wrong", isPresented: errorBinding) {
-            Button("OK", role: .cancel) { model.dismissError() }
-        } message: {
-            Text(model.state.errorMessage ?? "")
-        }
+    }
+
+    private static func becameIssued(_ old: DocumentLifecycle, _ new: DocumentLifecycle) -> Bool {
+        old == .draft && new == .issued
     }
 
     private var errorBinding: Binding<Bool> {
@@ -104,6 +120,15 @@ struct DocumentBuilderView: View {
         } message: {
             Text(issueMessage)
         }
+        .sheet(isPresented: $model.state.showsPaywall) {
+            PaywallView(session: session)
+        }
+        .sheet(item: $model.state.seriesChoice) { choice in
+            SeriesChoiceSheet(choice: choice, docType: model.state.document.docType,
+                              startOwn: { Task { await model.startOwnSeries() } },
+                              takeOver: { id in Task { await model.takeOver(seriesID: id) } },
+                              cancel: { model.state.seriesChoice = nil })
+        }
         .confirmationDialog("Delete this draft?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete draft", role: .destructive) { Task { await model.deleteDraft() } }
         }
@@ -140,9 +165,8 @@ struct DocumentBuilderView: View {
             Button {
                 Task { await model.requestIssue() }
             } label: {
-                if model.state.isWorking { ProgressView() } else { Text("Issue") }
+                if model.state.isWorking { ProgressView() } else { Text("Issue").fontWeight(.semibold) }
             }
-            .buttonStyle(.borderedProminent)
             .keyboardShortcut(.return, modifiers: .command)
             .disabled(!model.canRequestIssue)
             .accessibilityIdentifier("issueButton")

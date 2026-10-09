@@ -21,7 +21,25 @@ by `fixtures/validation/fields.json` (kind `field`).
 
 - On first launch the app creates this device's `device_state` row: `id` = a new UUID (the `owner_device_id` of the
   numbering series it creates), `device_name` = the platform device name, `preferences = {}`. The row is local: never
-  synced and never backed up. Only one row exists; if several are found, the earliest `created_at` wins.
+  synced and never written to a `.invoicebackup` file. Only one row exists; if several are found, the earliest
+  `created_at` wins.
+- **A copied database keeps nobody else's identity (ADR-0019).** OS backups (iCloud device backup, Android Auto
+  Backup) copy the whole database, `device_state` included, so a new phone restored from an old one's backup would
+  otherwise share its id and both would number from the same series. Each device therefore keeps a **device
+  marker** — its id, stored where an OS backup never carries it to another device (iOS: a Keychain item with
+  `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`; Android: a file in `noBackupFilesDir`). Whenever the row is
+  loaded, `DeviceIdentity.check(rowId, marker)` decides:
+
+  | Row | Marker | Action |
+  |---|---|---|
+  | none | any | **create** the row with a new id, then write the marker |
+  | present | equal to the row's id | **keep** |
+  | present | missing, or another id | **replace**: write the marker with a new id, then give the row that id (keeping `device_name`, `preferences` and `free_counter_mirror`); if the marker can't be written, **keep** instead, so an id is never replaced on every launch |
+  | present | could not be read (device locked, I/O error) | **keep**, without writing the marker; check again next time |
+
+  After a replace, the series the old id owned are another device's: the first issue offers the usual choice
+  (`sync.md` §3 — start a series of this device's own, or take one over). A reinstall on the same device can also
+  replace the id (the marker or the database did not survive); the same choice handles it.
 - `preferences` is a JSON object; v0 keys: `activeBusinessId` (string).
 - **Active business:** `preferences.activeBusinessId` when it names a live business; otherwise the live business with
   the earliest `created_at` (ties: lowest `id`); none → onboarding. v1 shows no business picker unless there are

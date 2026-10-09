@@ -23,6 +23,7 @@
 | Avoid CloudKit reserved names (`creationDate`, `modificationDate`, `recordID`, `recordType`, `etag`, …) | ✓ we use `created_at` / `updated_at` |
 | BLOB columns sync as CKAssets; keep blobs in their own table | ✓ `asset` table |
 | Migrations after release: add tables, or add columns that are nullable or have a DEFAULT with `ON CONFLICT REPLACE`; never remove or rename | Added to the repo rules (`CLAUDE.md` rule 5) |
+| No reference cycles, self-references included (`SchemaError.cycleDetected`; found in Phase 4b when the engine first started on the schema) | **Changed:** `document.converted_from_id` is no longer a foreign key (migration 0004); `make validate-spec` rejects cycles |
 | Conflicts: per-column "last edit wins" (not customisable) | Matches ADR-0015's assumption; payments and lines are separate rows, so concurrent edits rarely touch the same column |
 | Children received before parents are cached until the parent arrives | Good for `document` → `line_item` / `tax_line` / `payment` |
 

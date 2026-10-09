@@ -1,0 +1,80 @@
+{
+  "$schema": "../../schema/pdf-layout.schema.json",
+  "id": "minimal",
+  "label": "Minimal",
+  "description": "Hairlines and white space only: no fills, a small title, everything stacked in one column.",
+  "page": {
+    "margins": {
+      "top": 46,
+      "right": 46,
+      "bottom": 34,
+      "left": 46
+    },
+    "footerHeight": 22
+  },
+  "style": {
+    "fontSizes": {
+      "title": 15,
+      "heading": 9.5,
+      "body": 9,
+      "small": 7.5
+    },
+    "lineHeight": 1.45,
+    "colors": {
+      "text": "#1A1A1A",
+      "muted": "#6B7280",
+      "rule": "#E5E7EB",
+      "onAccent": "#FFFFFF"
+    },
+    "accentUse": [],
+    "rule": {
+      "width": 0.5
+    },
+    "table": {
+      "headerWeight": "semibold",
+      "headerUppercase": true,
+      "rowPadding": {
+        "vertical": 6,
+        "horizontal": 4
+      },
+      "rowRule": "none"
+    },
+    "blockSpacing": 16,
+    "logo": {
+      "maxWidth": 110,
+      "maxHeight": 36
+    },
+    "qrSize": 76,
+    "signatureHeight": 36
+  },
+  "blocks": [
+    {
+      "id": "header",
+      "variant": "plain"
+    },
+    {
+      "id": "parties",
+      "variant": "twoColumns"
+    },
+    {
+      "id": "items",
+      "variant": "plain"
+    },
+    {
+      "id": "totals",
+      "variant": "right"
+    },
+    {
+      "id": "payment",
+      "variant": "twoColumns"
+    },
+    {
+      "id": "notes",
+      "variant": "stacked"
+    },
+    {
+      "id": "signature",
+      "variant": "left"
+    }
+  ]
+}

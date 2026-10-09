@@ -542,3 +542,25 @@ struct BusinessSetupTests {
         #expect(SetupSearch.items(items, matching: "coffee").isEmpty)
     }
 }
+
+/// `spec/setup.md` §2, ADR-0019: a database copied onto another device by an OS backup takes a new device id.
+@Suite("Device identity")
+struct DeviceIdentityTests {
+    @Test func noRowCreatesOne() {
+        #expect(DeviceIdentity.check(rowID: nil, marker: .missing) == .create)
+        #expect(DeviceIdentity.check(rowID: nil, marker: .found("old")) == .create) // reinstalled: the database is new
+    }
+
+    @Test func aMatchingMarkerKeepsTheRow() {
+        #expect(DeviceIdentity.check(rowID: "d1", marker: .found("d1")) == .keep)
+    }
+
+    @Test func aMissingOrDifferentMarkerReplacesTheId() {
+        #expect(DeviceIdentity.check(rowID: "d1", marker: .missing) == .replace) // restored onto a new phone
+        #expect(DeviceIdentity.check(rowID: "d1", marker: .found("d2")) == .replace) // another device's database
+    }
+
+    @Test func anUnreadableMarkerNeverChangesTheId() {
+        #expect(DeviceIdentity.check(rowID: "d1", marker: .unreadable) == .keep)
+    }
+}

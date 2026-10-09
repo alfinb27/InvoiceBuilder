@@ -1,0 +1,32 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "billing",
+  "description": "EntitlementMachine.next and canIssueInvoice (billing.md, Transitions). FREE_LIMIT = 15.",
+  "cases": [
+    { "id": "billing-launch-owned", "input": { "state": "unknown", "event": "resolvedOwned", "count": 3 }, "expected": { "state": "unlocked", "canIssueInvoice": true, "remaining": 12 } },
+    { "id": "billing-launch-not-owned-under-limit", "input": { "state": "unknown", "event": "resolvedNotOwned", "count": 3 }, "expected": { "state": "free", "canIssueInvoice": true, "remaining": 12 } },
+    { "id": "billing-launch-not-owned-at-limit", "input": { "state": "unknown", "event": "resolvedNotOwned", "count": 15 }, "expected": { "state": "limitReached", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-unknown-below-limit-can-issue", "input": { "state": "unknown", "event": "counted", "count": 14 }, "expected": { "state": "unknown", "canIssueInvoice": true, "remaining": 1 } },
+    { "id": "billing-unknown-at-limit-cannot-issue", "input": { "state": "unknown", "event": "counted", "count": 15 }, "expected": { "state": "unknown", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-fifteenth-invoice-reaches-limit", "input": { "state": "free", "event": "counted", "count": 15 }, "expected": { "state": "limitReached", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-fourteenth-invoice-stays-free", "input": { "state": "free", "event": "counted", "count": 14 }, "expected": { "state": "free", "canIssueInvoice": true, "remaining": 1 } },
+    { "id": "billing-synced-count-over-limit", "input": { "state": "free", "event": "counted", "count": 21 }, "expected": { "state": "limitReached", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-buy-early", "input": { "state": "free", "event": "purchaseStarted", "count": 4 }, "expected": { "state": "purchasing", "canIssueInvoice": true, "remaining": 11 } },
+    { "id": "billing-buy-at-limit", "input": { "state": "limitReached", "event": "purchaseStarted", "count": 15 }, "expected": { "state": "purchasing", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-purchased", "input": { "state": "purchasing", "event": "purchased", "count": 15 }, "expected": { "state": "unlocked", "canIssueInvoice": true, "remaining": 0 } },
+    { "id": "billing-ask-to-buy-pending", "input": { "state": "purchasing", "event": "purchasePending", "count": 15 }, "expected": { "state": "pending", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-pending-approved", "input": { "state": "pending", "event": "purchased", "count": 15 }, "expected": { "state": "unlocked", "canIssueInvoice": true, "remaining": 0 } },
+    { "id": "billing-pending-declined", "input": { "state": "pending", "event": "purchaseFailed", "count": 15 }, "expected": { "state": "limitReached", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-cancel-at-limit-lands-on-limit", "input": { "state": "purchasing", "event": "purchaseCancelled", "count": 15 }, "expected": { "state": "limitReached", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-cancel-early-lands-on-free", "input": { "state": "purchasing", "event": "purchaseCancelled", "count": 2 }, "expected": { "state": "free", "canIssueInvoice": true, "remaining": 13 } },
+    { "id": "billing-purchase-failed", "input": { "state": "purchasing", "event": "purchaseFailed", "count": 7 }, "expected": { "state": "free", "canIssueInvoice": true, "remaining": 8 } },
+    { "id": "billing-refund-revokes-to-limit", "input": { "state": "unlocked", "event": "revoked", "count": 40 }, "expected": { "state": "limitReached", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-refund-revokes-to-free", "input": { "state": "unlocked", "event": "revoked", "count": 3 }, "expected": { "state": "free", "canIssueInvoice": true, "remaining": 12 } },
+    { "id": "billing-refund-seen-at-launch", "input": { "state": "unlocked", "event": "resolvedNotOwned", "count": 16 }, "expected": { "state": "limitReached", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-unlocked-ignores-count", "input": { "state": "unlocked", "event": "counted", "count": 99 }, "expected": { "state": "unlocked", "canIssueInvoice": true, "remaining": 0 } },
+    { "id": "billing-purchase-from-updates-listener", "input": { "state": "limitReached", "event": "purchased", "count": 15 }, "expected": { "state": "unlocked", "canIssueInvoice": true, "remaining": 0 } },
+    { "id": "billing-revoked-ignored-when-free", "input": { "state": "free", "event": "revoked", "count": 5 }, "expected": { "state": "free", "canIssueInvoice": true, "remaining": 10 } },
+    { "id": "billing-start-ignored-while-pending", "input": { "state": "pending", "event": "purchaseStarted", "count": 15 }, "expected": { "state": "pending", "canIssueInvoice": false, "remaining": 0 } },
+    { "id": "billing-unlocked-owned-again", "input": { "state": "unlocked", "event": "resolvedOwned", "count": 50 }, "expected": { "state": "unlocked", "canIssueInvoice": true, "remaining": 0 } }
+  ]
+}

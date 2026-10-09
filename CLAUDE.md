@@ -37,6 +37,7 @@ second. Both apps implement the shared `spec/`. The approved plan is `docs/plan.
 | Documents: drafts, issuing, duplicate, convert, payments, void (normative) | `spec/documents.md` |
 | Reminders (normative) | `spec/reminders.md` |
 | Backup and restore (normative) | `spec/backup.md` |
+| iCloud sync and numbering on several devices (normative) | `spec/sync.md` |
 | Setup: onboarding, clients, catalogue, numbering (normative) | `spec/setup.md` |
 | Entitlements and free tier | `spec/billing.md` |
 | Golden fixtures | `spec/fixtures/**` (format: `spec/fixtures/README.md`) |

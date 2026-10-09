@@ -59,6 +59,8 @@ private struct SettingsPageView: View {
         case .numbering: NumberingPage(session: session)
         case .defaults: DefaultsPage(session: session)
         case .taxRates: TaxRatesPage(session: session)
+        case .unlock: UnlockPage(session: session)
+        case .sync: SyncPage(session: session)
         case .backup: BackupPage(session: session)
         case .about: AboutPage(session: session)
         }
@@ -73,6 +75,8 @@ extension SettingsPage {
         case .numbering: "Invoice numbering"
         case .defaults: "Invoice defaults"
         case .taxRates: "Tax rates"
+        case .unlock: "Unlimited invoices"
+        case .sync: "iCloud sync"
         case .backup: "Backup"
         case .about: "About"
         }
@@ -85,6 +89,8 @@ extension SettingsPage {
         case .numbering: "number"
         case .defaults: "doc.text"
         case .taxRates: "percent"
+        case .unlock: "infinity"
+        case .sync: "icloud"
         case .backup: "externaldrive"
         case .about: "info.circle"
         }
@@ -553,6 +559,17 @@ private struct AboutPage: View {
                 LabeledContent("Device ID") {
                     Text(session.deviceID).font(.caption.monospaced()).textSelection(.enabled)
                 }
+            }
+            Section {
+                let reports = Diagnostics.shared.reports()
+                LabeledContent("Reports", value: "\(reports.count)")
+                if !reports.isEmpty {
+                    Button("Share diagnostic reports…") { SystemSheets.share(reports) { _ in } }
+                }
+            } header: {
+                Text("Diagnostics")
+            } footer: {
+                Text("Crash and performance reports from iOS. They stay on this device unless you share them, for example with support.")
             }
         }
         .navigationTitle("About")

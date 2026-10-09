@@ -6,13 +6,17 @@ iOS engineer, so explanations and code comments should map Android concepts to t
 
 ## Stack
 
-- Kotlin 2.x (K2), Jetpack Compose + Material 3 (+ Material 3 Adaptive), minSdk 26, target/compile SDK 36.
+- Kotlin 2.x (K2), Jetpack Compose + Material 3 (+ Material 3 Adaptive), minSdk 26, target/compile SDK 37
+  (the Compose BOM requires 37; ADR-0018).
 - Gradle Kotlin DSL, one version catalog (`gradle/libs.versions.toml` ≈ pinned SPM versions), AGP 9, KSP
   (compile-time code generation ≈ Swift macros).
-- `ViewModel` + `StateFlow<UiState>` (≈ `@Observable` view model), Navigation 3 (back stack you own ≈
-  `NavigationStack(path:)`), manual DI via `AppContainer` in the `Application` subclass (≈ `AppDependencies`).
-- Room (SQLite, same schema as GRDB), DataStore (≈ typed `UserDefaults`), WorkManager (reminders),
-  kotlinx.serialization (≈ `Codable`), Play Billing Library 8+, ZXing core (QR).
+- **As iOS (ADR-0018):** routers (`AppRouter`, `DocumentsRouter`, …) and screen models hold Compose snapshot state
+  (`mutableStateOf` ≈ `@Observable`); the `Session` owns them and the activity-scoped `AppModel` (an
+  `AndroidViewModel`) owns the session, so rotation and folding keep everything. Open editors live in
+  `Session.retained(key)` and are released when they close. Room `Flow`s are collected with
+  `collectAsStateWithLifecycle`. Manual DI via `AppContainer` in `InvoiceApplication` (≈ `AppDependencies`).
+- Room (SQLite, same schema as GRDB), WorkManager (daily reminders job), kotlinx.serialization (≈ `Codable`),
+  Play Billing 9 + Block Store (`:core:billing`), ZXing core (QR), PdfDocument + StaticLayout (`:core:pdf`).
 
 ## Modules (1:1 with iOS packages)
 
@@ -23,7 +27,7 @@ iOS engineer, so explanations and code comments should map Android concepts to t
 | `:core:pdf` | `InvoicePDF` | Same templates / layout spec as iOS. |
 | `:core:billing` | `InvoiceBilling` | Same state machine (`spec/billing.md`). |
 | `:core:designsystem` | `InvoiceUI` (design system) | Theme from `spec/design/tokens.json`. |
-| `:app` | app target | Screens, navigation, `AppContainer`. |
+| `:app` | app target + `InvoiceUI` screens | Screens, routers, `AppContainer`, `Session`. Folders match InvoiceUI's. |
 
 ## Kotlin rules that differ from Swift
 
@@ -44,12 +48,18 @@ iOS engineer, so explanations and code comments should map Android concepts to t
 - **Large screens**: apps targeting SDK 36 cannot lock orientation/resizability on screens ≥ 600 dp. Every screen
   must work at compact, medium and expanded widths.
 
-## Commands (once the project exists)
+## Commands
 
 ```sh
-./gradlew :core:domain:test          # all spec fixtures on the JVM (same count as iOS)
-./gradlew testDebugUnitTest lint     # unit tests (Room migrations, view models, Roborazzi) + Android Lint
-./gradlew connectedDebugAndroidTest  # instrumented tests on an emulator/device
+make test-core-android    # all spec fixtures on the JVM (same count as iOS)
+make test-unit-android    # every JVM test + Android Lint + the R8 release build
+make test-device-android  # on a running emulator/device: PDF renderer (PDFBox text checks) + Compose UI smoke tests
+make pdf-samples-android  # review PDFs from the Android renderer
 ```
 
-Requires a JDK 17+ and the Android SDK (install Android Studio).
+- JDK 21 (`JAVA_HOME=/opt/homebrew/opt/openjdk@21/...` here) and the SDK in `android/local.properties` (gitignored).
+- An emulator without Android Studio: `sdkmanager "emulator" "system-images;android-36;google_apis;arm64-v8a"`,
+  `avdmanager create avd -n ib_phone -k …`, `emulator -avd ib_phone -no-window`.
+- UI tests launch with the `inMemory` / `seed` extras (≈ `-inMemory`, `-seed IN`); release builds ignore them.
+- Compose test tags are the iOS accessibility identifiers. A tag on a child of a `mergeDescendants` node is
+  invisible to tests: tag the merged node.

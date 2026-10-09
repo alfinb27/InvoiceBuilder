@@ -24,6 +24,8 @@ final class BackupViewModel {
         var isWorking = false
         var errorMessage: String?
         var didRestore = false
+        /// With sync on, a restore replaces the data on every device (`spec/backup.md` §4 step 2).
+        var syncOn = false
     }
 
     struct PendingRestore: Identifiable {
@@ -55,12 +57,24 @@ final class BackupViewModel {
         BackupText.lastBackup(days: state.status?.daysSinceLastBackup(today: today))
     }
 
-    /// Keeps `status` current.
+    /// Keeps `status` and `syncOn` current.
     func observe() async {
+        async let backup: Void = observeBackup()
+        async let sync: Void = observeSync()
+        _ = await (backup, sync)
+    }
+
+    private func observeBackup() async {
         do {
             for try await status in dependencies.backup.observeStatus() { state.status = status }
         } catch {
             // The stream only fails with the database; the last value stays.
+        }
+    }
+
+    private func observeSync() async {
+        for await status in dependencies.sync.observeStatus() {
+            state.syncOn = status != .off && status != .unavailable
         }
     }
 

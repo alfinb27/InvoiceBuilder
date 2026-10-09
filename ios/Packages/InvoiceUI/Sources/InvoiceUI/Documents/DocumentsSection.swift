@@ -70,6 +70,12 @@ final class DocumentListViewModel {
     }
 
     func dismissError() { state.errorMessage = nil }
+
+    /// Tests fill the list directly (performance tests with 1,000 rows).
+    func replaceForTesting(_ documents: [DocumentSummary]) {
+        state.documents = documents
+        state.isLoading = false
+    }
 }
 
 /// The Invoices tab: invoices or quotes on the left, the builder or the issued document on the right (pushed on

@@ -1,6 +1,8 @@
 import Foundation
+import InvoiceBilling
 import InvoiceCore
 import InvoiceData
+import InvoiceSync
 
 /// Everything the screens need, built once at launch (ADR-0004: manual injection). View models receive it through
 /// their initialisers; tests and previews use `inMemory()` or fakes.
@@ -18,6 +20,12 @@ public struct AppDependencies: Sendable {
     public var paymentService: any PaymentService
     /// Export and restore (`spec/backup.md`).
     public var backup: any BackupService
+    /// Device series, takeover and the duplicate-number check (`spec/sync.md` §3–4).
+    public var numbering: any NumberingService
+    /// iCloud sync (`spec/sync.md`); `UnavailableSyncService` unless the build names an iCloud container.
+    public var sync: any SyncService
+    /// The unlock and the free-tier count (`spec/billing.md`).
+    public var entitlements: any EntitlementService
     public var taxConfigs: TaxConfigStore
     public var reference: ReferenceData
     public var time: TimeSource
@@ -31,7 +39,8 @@ public struct AppDependencies: Sendable {
                 deviceState: any DeviceStateRepository, setup: any BusinessSetupService,
                 documents: any DocumentRepository, documentService: any DocumentService,
                 payments: any PaymentRepository, paymentService: any PaymentService, backup: any BackupService,
-                taxConfigs: TaxConfigStore,
+                numbering: any NumberingService, sync: any SyncService = UnavailableSyncService(),
+                entitlements: any EntitlementService, taxConfigs: TaxConfigStore,
                 reference: ReferenceData, time: TimeSource, ids: IDGenerator,
                 notifications: any NotificationScheduling = NoOpNotificationScheduler()) {
         self.businesses = businesses
@@ -46,6 +55,9 @@ public struct AppDependencies: Sendable {
         self.payments = payments
         self.paymentService = paymentService
         self.backup = backup
+        self.numbering = numbering
+        self.sync = sync
+        self.entitlements = entitlements
         self.taxConfigs = taxConfigs
         self.reference = reference
         self.time = time
@@ -57,7 +69,13 @@ public struct AppDependencies: Sendable {
     /// snapshots to a temporary folder; only `live()` passes the real ones.
     public static func make(database: AppDatabase, time: TimeSource = .system, ids: IDGenerator = .random,
                             notifications: any NotificationScheduling = NoOpNotificationScheduler(),
-                            snapshots: BackupSnapshotStore = .temporary()) throws -> AppDependencies {
+                            snapshots: BackupSnapshotStore = .temporary(),
+                            sync: any SyncService = UnavailableSyncService(),
+                            store: any StoreClient = UnavailableStoreClient(),
+                            counterMirror: any CounterMirror = MemoryCounterMirror(),
+                            deviceMarker: any DeviceMarkerStore = InMemoryDeviceMarkerStore(),
+                            bundleID: String = Bundle.main.bundleIdentifier ?? "app.invoicebuilder.invoices") throws
+        -> AppDependencies {
         let taxConfigs = try TaxConfigStore.bundled()
         let reference = try ReferenceData.bundled()
         return AppDependencies(
@@ -66,7 +84,7 @@ public struct AppDependencies: Sendable {
             catalog: GRDBCatalogRepository(database: database, time: time),
             numberingSeries: GRDBNumberingSeriesRepository(database: database, time: time),
             assets: GRDBAssetRepository(database: database),
-            deviceState: GRDBDeviceStateRepository(database: database, time: time, ids: ids),
+            deviceState: GRDBDeviceStateRepository(database: database, time: time, ids: ids, marker: deviceMarker),
             setup: GRDBBusinessSetupService(database: database, time: time, ids: ids),
             documents: GRDBDocumentRepository(database: database, time: time),
             documentService: GRDBDocumentService(database: database, time: time, ids: ids, configs: taxConfigs,
@@ -74,6 +92,11 @@ public struct AppDependencies: Sendable {
             payments: GRDBPaymentRepository(database: database, time: time),
             paymentService: GRDBPaymentService(database: database, time: time, ids: ids),
             backup: try GRDBBackupService(database: database, time: time, ids: ids, snapshots: snapshots),
+            numbering: GRDBNumberingService(database: database, time: time, ids: ids, configs: taxConfigs),
+            sync: sync,
+            entitlements: StoreEntitlementService(
+                productID: StoreEntitlementService.productID(bundleID: bundleID), store: store,
+                counts: GRDBFreeTierRepository(database: database), mirror: counterMirror),
             taxConfigs: taxConfigs,
             reference: reference,
             time: time,
@@ -82,10 +105,27 @@ public struct AppDependencies: Sendable {
         )
     }
 
-    /// The app's on-disk database in Application Support.
-    public static func live() throws -> AppDependencies {
-        try make(database: AppDatabase.openOnDisk(at: AppDatabase.defaultURL()),
-                 notifications: SystemNotificationScheduler(), snapshots: .defaultStore())
+    /// The app's on-disk database in Application Support. A build whose Info.plist names an iCloud container
+    /// (`InvoiceSyncContainer`, set together with the iCloud capability) syncs it (`spec/sync.md`).
+    public static func live(bundle: Bundle = .main) throws -> AppDependencies {
+        let url = try AppDatabase.defaultURL()
+        guard let container = bundle.object(forInfoDictionaryKey: "InvoiceSyncContainer") as? String,
+              !container.isEmpty else {
+            return try make(database: AppDatabase.openOnDisk(at: url), notifications: SystemNotificationScheduler(),
+                            snapshots: .defaultStore(), store: StoreKitClient(), counterMirror: KeychainCounterMirror(),
+                            deviceMarker: KeychainDeviceMarkerStore())
+        }
+        let database = try AppDatabase.openOnDisk(at: url) {
+            LiveSyncService.prepare(&$0, containerIdentifier: container)
+        }
+        let sync = try LiveSyncService(
+            database: database, containerIdentifier: container,
+            deviceState: GRDBDeviceStateRepository(database: database, time: .system, ids: .random,
+                                                    marker: KeychainDeviceMarkerStore()),
+            enabled: false)
+        return try make(database: database, notifications: SystemNotificationScheduler(),
+                        snapshots: .defaultStore(), sync: sync, store: StoreKitClient(),
+                        counterMirror: KeychainCounterMirror(), deviceMarker: KeychainDeviceMarkerStore())
     }
 
     /// An empty in-memory database (previews, tests, UI tests).

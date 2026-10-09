@@ -7,7 +7,7 @@ import Testing
 @Suite("Spec fixtures")
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
-                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup"]
+                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup", "series", "billing"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -402,6 +402,82 @@ struct FixtureTests {
         case .failure(let error):
             expectFixture(fixture, .object(["error": .string(error.code.rawValue)]))
         }
+    }
+}
+
+extension FixtureTests {
+    // MARK: sync.md §3–4
+
+    struct SeriesInput: Decodable {
+        struct Row: Decodable {
+            let id: String
+            let docType: String
+            let lifecycle: String
+            let number: String?
+        }
+
+        let op: String
+        let docType: String?
+        let pattern: String?
+        let existingPatterns: [String]?
+        let counters: [String: Int]?
+        let highest: [String: Int]?
+        let documents: [Row]?
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "series"))
+    func series(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(SeriesInput.self, from: fixture.inputData)
+        switch input.op {
+        case "deviceSeries":
+            let result = SeriesOwnership.deviceSeriesPattern(
+                defaultPattern: try #require(input.pattern), docType: DocumentType(rawValue: try #require(input.docType)),
+                existingPatterns: input.existingPatterns ?? [])
+            switch result {
+            case .success(let value):
+                expectFixture(fixture, .object(["pattern": .string(value.pattern), "label": .string(value.label)]))
+            case .failure(let error):
+                expectFixture(fixture, .object(["error": .string(error.rawValue)]))
+            }
+        case "takeOver":
+            let counters = SeriesOwnership.takeOverCounters(input.counters ?? [:], highest: input.highest ?? [:])
+            expectFixture(fixture, .object(["counters": .object(counters.mapValues { .int(Int64($0)) })]))
+        case "duplicates":
+            let rows = (input.documents ?? []).map {
+                DuplicateNumbers.Row(id: $0.id, docType: DocumentType(rawValue: $0.docType),
+                                     lifecycle: DocumentLifecycle(rawValue: $0.lifecycle), number: $0.number)
+            }
+            let groups = DuplicateNumbers.find(rows)
+            expectFixture(fixture, .object(["groups": .array(groups.map {
+                .object(["docType": .string($0.docType.rawValue), "number": .string($0.number),
+                         "ids": .array($0.ids.map(JSONValue.string))])
+            })]))
+        default:
+            Issue.record("\(fixture.id): unknown op \(input.op)")
+        }
+    }
+}
+
+extension FixtureTests {
+    // MARK: billing.md, Transitions
+
+    struct BillingInput: Decodable {
+        let state: String
+        let event: String
+        let count: Int
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "billing"))
+    func billing(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(BillingInput.self, from: fixture.inputData)
+        let state = try #require(EntitlementState(rawValue: input.state))
+        let event = try #require(EntitlementEvent(rawValue: input.event))
+        let next = EntitlementMachine.next(state, event, count: input.count)
+        expectFixture(fixture, .object([
+            "state": .string(next.rawValue),
+            "canIssueInvoice": .bool(EntitlementMachine.canIssueInvoice(next, count: input.count)),
+            "remaining": .int(Int64(FreeTier.remaining(count: input.count))),
+        ]))
     }
 }
 

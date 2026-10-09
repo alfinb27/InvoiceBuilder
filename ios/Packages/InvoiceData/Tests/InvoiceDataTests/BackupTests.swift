@@ -126,7 +126,8 @@ struct BackupTests {
         // The snapshot holds what was there before.
         let written = try snapshots.snapshots()
         #expect(written.count == 1)
-        let snapshot = try BackupCodec.validate(Data(contentsOf: written[0]), appSchemaVersion: 3).get()
+        let snapshot = try BackupCodec.validate(Data(contentsOf: written[0]),
+                                               appSchemaVersion: AppDatabase.schemaVersion()).get()
         #expect(snapshot.file.data == before.data)
 
         // This device had no series of its own for the restored business: it takes them over.

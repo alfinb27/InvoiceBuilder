@@ -19,6 +19,8 @@ final class DocumentViewModel {
         var result: Result<ComputedDocument, TaxEngineError>?
         /// This invoice's live payments (`documents.md` §10), newest first; empty for quotes and drafts.
         var payments: [Payment] = []
+        /// Payments recorded while this document is open (drives the success haptic).
+        var paymentsRecorded = 0
 
         // Typed fields, kept as typed; the document holds their last valid value.
         var discountText = ""
@@ -33,11 +35,30 @@ final class DocumentViewModel {
         var issueProblems: [IssueProblem] = []
         var confirmingIssue = false
         var numberPreview: String?
+        /// This device owns no series of the document's type: start one or take one over (`spec/sync.md` §3).
+        var seriesChoice: SeriesChoice?
+        /// The free tier is used up and this is an invoice (`spec/billing.md`): only Issue is locked.
+        var showsPaywall = false
         var isWorking = false
         var errorMessage: String?
         var lineEditor: LineEditorState?
         /// The line last added or edited (⌘D duplicates it).
         var selectedLineID: String?
+    }
+
+    struct SeriesChoice: Equatable, Identifiable {
+        struct Option: Equatable, Identifiable {
+            let series: NumberingSeries
+            /// The number the next document would get after taking the series over.
+            let nextNumber: String?
+            var id: String { series.id }
+        }
+
+        let id = UUID()
+        /// The first number of a new series on this device, or nil when no device letter is left.
+        let ownFirstNumber: String?
+        /// Live series of the type owned by other devices.
+        let others: [Option]
     }
 
     struct LineEditorState: Equatable, Identifiable {
@@ -531,6 +552,10 @@ final class DocumentViewModel {
     /// Issue tapped: shows what blocks issuing, or asks for confirmation with the number it will get.
     func requestIssue() async {
         guard canRequestIssue else { return }
+        if state.document.docType == .invoice, !session.entitlement.canIssueInvoice {
+            state.showsPaywall = true
+            return
+        }
         let problems = currentProblems()
         state.issueProblems = problems
         guard problems.isEmpty else { return }
@@ -539,7 +564,8 @@ final class DocumentViewModel {
             businessID: state.document.businessId))) ?? []
         guard let owned = NumberAllocator.series(for: state.document.docType, deviceID: session.deviceID,
                                                  among: series) else {
-            state.issueProblems = [.noSeries]
+            state.seriesChoice = seriesChoice(among: series)
+            if state.seriesChoice == nil { state.issueProblems = [.noSeries] }
             return
         }
         switch NumberAllocator.allocate(from: owned, issueDate: state.document.issueDate, config: config) {
@@ -548,6 +574,47 @@ final class DocumentViewModel {
             state.confirmingIssue = true
         case .failure(let error):
             state.issueProblems = [.numbering(error)]
+        }
+    }
+
+    /// What this device can number from (`spec/sync.md` §3): a new series of its own, or another device's.
+    private func seriesChoice(among series: [NumberingSeries]) -> SeriesChoice? {
+        let docType = state.document.docType
+        let live = series.filter { $0.deletedAt == nil && $0.docType == docType }
+        let rules = session.numberingRules
+        let own = SeriesOwnership.deviceSeriesPattern(
+            defaultPattern: docType == .quote ? config.numbering.quotePattern : config.numbering.invoicePattern,
+            docType: docType, existingPatterns: live.map(\.pattern))
+        let ownFirst = (try? own.get()).flatMap { value in
+            try? rules.preview(pattern: value.pattern, reset: config.numbering.reset, seq: 1).get().number
+        }
+        let others = live.filter { $0.ownerDeviceId != session.deviceID }.map { other in
+            SeriesChoice.Option(series: other, nextNumber: try? rules.nextNumber(other).get().number)
+        }
+        guard ownFirst != nil || !others.isEmpty else { return nil }
+        return SeriesChoice(ownFirstNumber: ownFirst, others: others)
+    }
+
+    /// §3.1, then Issue again.
+    func startOwnSeries() async {
+        state.seriesChoice = nil
+        do {
+            _ = try await session.dependencies.numbering.createDeviceSeries(
+                businessID: state.document.businessId, docType: state.document.docType, deviceID: session.deviceID)
+            await requestIssue()
+        } catch {
+            state.errorMessage = "Numbering couldn't be set up on this device."
+        }
+    }
+
+    /// §3.2, then Issue again.
+    func takeOver(seriesID: String) async {
+        state.seriesChoice = nil
+        do {
+            _ = try await session.dependencies.numbering.takeOver(seriesID: seriesID, deviceID: session.deviceID)
+            await requestIssue()
+        } catch {
+            state.errorMessage = "The series couldn't be taken over."
         }
     }
 
@@ -564,7 +631,10 @@ final class DocumentViewModel {
             state.issueProblems = []
             state.lineEditor = nil
             recompute()
-            if issued.docType == .invoice { await session.reconcileReminders() }
+            if issued.docType == .invoice {
+                await session.dependencies.entitlements.refreshCount()
+                await session.reconcileReminders()
+            }
         } catch DocumentServiceError.blocked(let problems) {
             state.issueProblems = problems
         } catch {
@@ -642,6 +712,7 @@ final class DocumentViewModel {
     /// shown here in step, without a round trip back to the database.
     func recordedPayment(_ payment: Payment) {
         state.payments.insert(payment, at: 0)
+        state.paymentsRecorded += 1
         reconcileReminders()
     }
 

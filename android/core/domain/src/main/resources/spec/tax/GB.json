@@ -1,0 +1,96 @@
+{
+  "$schema": "../schema/tax-config.schema.json",
+  "schemaVersion": 1,
+  "country": "GB",
+  "configVersion": "2026-09-19",
+  "reviewStatus": "draft",
+  "currency": "GBP",
+  "paperSize": "A4",
+  "fiscalYearStart": "04-06",
+  "amountInWords": false,
+  "labels": {
+    "taxName": "VAT",
+    "taxIdName": "VAT registration number",
+    "productCodeName": "Commodity code",
+    "placeOfSupply": "Place of supply"
+  },
+  "taxIdFormats": [
+    {
+      "id": "gbVat",
+      "pattern": "^GB([0-9]{9}|[0-9]{12}|GD[0-4][0-9]{2}|HA[5-9][0-9]{2})$",
+      "checksum": "ukVatMod97",
+      "normalizePrefix": "GB"
+    }
+  ],
+  "regions": [],
+  "registrations": [
+    {
+      "id": "vatRegistered",
+      "label": "VAT registered",
+      "chargesTax": true,
+      "requiresTaxId": true,
+      "titles": { "invoice": "VAT Invoice", "quote": "Quotation" }
+    },
+    {
+      "id": "notRegistered",
+      "label": "Not VAT registered",
+      "chargesTax": false,
+      "requiresTaxId": false,
+      "titles": { "invoice": "Invoice", "quote": "Quotation" }
+    }
+  ],
+  "rates": [
+    { "id": "standard", "percent": "20", "category": "standard", "label": "Standard 20%", "effectiveFrom": "2011-01-04" },
+    { "id": "reduced", "percent": "5", "category": "reduced", "label": "Reduced 5%", "effectiveFrom": "1997-09-01" },
+    { "id": "zero", "percent": "0", "category": "zero", "label": "Zero-rated", "effectiveFrom": "1973-04-01" },
+    { "id": "exempt", "percent": "0", "category": "exempt", "label": "Exempt", "effectiveFrom": "1973-04-01" },
+    { "id": "outsideScope", "percent": "0", "category": "outsideScope", "label": "Outside the scope of VAT", "effectiveFrom": "1973-04-01" }
+  ],
+  "supplyTypes": [
+    { "id": "domestic", "label": "UK supply (includes services to overseas consumers)" },
+    { "id": "exportServicesB2B", "label": "Services to an overseas business" },
+    { "id": "exportGoods", "label": "Goods exported outside the UK" }
+  ],
+  "supplyTypeDefaults": [
+    { "when": { "buyerForeign": true, "buyerIsBusiness": true }, "supplyType": "exportServicesB2B" }
+  ],
+  "componentRules": [
+    {
+      "when": { "supplyType": ["domestic"] },
+      "components": [{ "code": "VAT", "share": "1" }]
+    },
+    {
+      "when": { "supplyType": ["exportServicesB2B"] },
+      "components": [{ "code": "VAT", "share": "1", "rateOverride": "0", "categoryOverride": "outsideScope" }],
+      "notes": ["outside_scope"]
+    },
+    {
+      "when": { "supplyType": ["exportGoods"] },
+      "components": [{ "code": "VAT", "share": "1", "rateOverride": "0", "categoryOverride": "zero" }],
+      "notes": ["export_goods_zero"]
+    }
+  ],
+  "reverseCharge": { "supported": true, "notes": ["drc"] },
+  "rounding": {
+    "amountMode": "halfAwayFromZero",
+    "taxLevel": "invoice",
+    "taxMode": "towardZero"
+  },
+  "shipping": { "rule": "apportion" },
+  "numbering": {
+    "reset": "never",
+    "invoicePattern": "INV-{seq:4}",
+    "quotePattern": "QT-{seq:4}"
+  },
+  "foreignCurrency": { "homeTotals": true, "taxInHomeCurrency": true },
+  "checks": [
+    { "code": "seller_tax_id_missing", "severity": "error", "require": ["seller.taxId"], "when": { "sellerRegistration": ["vatRegistered"] } },
+    { "code": "buyer_details_required", "severity": "warning", "require": ["buyer.name", "buyer.address"], "when": { "sellerRegistration": ["vatRegistered"] } },
+    { "code": "exchange_rate_missing", "severity": "error", "require": ["draft.exchangeRate"], "when": { "sellerRegistration": ["vatRegistered"], "foreignCurrency": true } }
+  ],
+  "notesCatalog": {
+    "drc": { "text": "Reverse charge: customer to account for the VAT to HMRC", "placement": "bottom" },
+    "outside_scope": { "text": "Outside the scope of UK VAT", "placement": "bottom" },
+    "export_goods_zero": { "text": "Zero-rated export of goods", "placement": "bottom" }
+  }
+}

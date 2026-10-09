@@ -27,8 +27,8 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 | `InvoiceCore` | Pure Swift + Foundation (+ CryptoKit for hashes). No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`), the backup codec (`Backup/`: `BackupFile`, `BackupCodec.validate`, per `spec/backup.md`) and the repository/service protocols. |
 | `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction; `GRDBBackupService` = export and the one-transaction "replace all" restore, plus `BackupSnapshotStore`). |
 | `InvoicePDF` | The renderer: Core Text + `UIGraphicsPDFRenderer` drawing the `PDFDocumentModel` that `InvoiceCore/PDF` builds, laid out by `spec/pdf/layout/*.json`. No database, no view models — a request in, `Data` out. |
-| `InvoiceBilling` | StoreKit 2 + `EntitlementService` implementing `spec/billing.md`. (Phase 5) |
-| `InvoiceSync` | SQLiteData sync engine behind a `SyncService` protocol. `DeviceState` is never synced. (Phase 4b) |
+| `InvoiceBilling` | `StoreEntitlementService` (InvoiceCore's `EntitlementService`): the `spec/billing.md` state machine driven by a `StoreClient` (`StoreKitClient` = StoreKit 2; tests use a fake), the effective free-tier count and the Keychain mirror (`KeychainCounterMirror`). `ios/InvoiceBuilder.storekit` is the scheme's local StoreKit configuration. |
+| `InvoiceSync` | SQLiteData `SyncEngine` behind InvoiceCore's `SyncService` (`LiveSyncService`); `@Table` mirrors of the synced tables (`SyncedTables.swift`, generated from `schema.sql`, tested against it). The only package that imports SQLiteData. `device_state` and `app_state` are never synced. Sync is on only in a build whose Info.plist has `InvoiceSyncContainer` (with the iCloud capability). |
 | `InvoiceUI` | Design system (from `spec/design/tokens.json`) + feature screens (onboarding, invoices/quotes builder, clients, items, settings) + the adaptive shell, `AppModel`, `Session`, routers, `AppDependencies` and `InvoiceCommands` (menu bar + keyboard shortcuts). |
 
 ## Conventions
@@ -66,6 +66,8 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 ```sh
 make test-core-ios      # swift test InvoiceCore: every implemented fixture kind + unit tests (no simulator)
 make test-data-ios      # swift test InvoiceData: migrations == schema.sql, repositories (no simulator)
+make test-sync-ios      # swift test InvoiceSync: table mirrors == schema, SyncEngine accepts the schema (CloudKit mock)
+make test-billing-ios   # swift test InvoiceBilling: every purchase flow against a fake store
 make test-pdf-ios       # InvoicePDF: the renderer, pagination and fonts (simulator)
 make test-ui-ios        # InvoiceUI view models on a simulator (SIM="iPhone 17 Pro" by default)
 make test-app-ios       # XCUITest smoke flows + screenshot tour
@@ -83,6 +85,8 @@ make test-ios           # all of the above
   Xcode 27.1 selected through `DEVELOPER_DIR`, the same build as the local Xcode (27A9269), so the compiler and SDK
   match; its simulators run iOS 27.0. iOS 18–26 are not covered on CI: run the UI suites on a local iOS 26.x
   simulator before a release (`make test-app-ios SIM=…`). When the image adds a newer Xcode, update `DEVELOPER_DIR`
-  together with the local Xcode.
+  together with the local Xcode. SQLiteData's dependency graph needs Swift tools ≥ 6.2, so CI can't use Xcode 16.
+- SQLiteData brings Swift macros: xcodebuild needs `-skipMacroValidation` (the Makefile passes it); Xcode asks to
+  trust them once.
 - Offline builds: `xcodebuild … -clonedSourcePackagesDirPath <dir> -disableAutomaticPackageResolution
   -skipPackageUpdates`, with `<dir>` seeded from a SwiftPM `.build` (`checkouts/`, `repositories/`).

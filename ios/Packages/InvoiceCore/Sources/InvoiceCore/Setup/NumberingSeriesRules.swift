@@ -81,7 +81,7 @@ public struct NumberingSeriesRules: Sendable {
         return updated
     }
 
-    private func preview(pattern: String, reset: NumberingReset, seq: Int) -> Result<NumberingResult, NumberingError> {
+    public func preview(pattern: String, reset: NumberingReset, seq: Int) -> Result<NumberingResult, NumberingError> {
         Numbering.format(pattern: pattern, reset: reset, date: today, seq: seq,
                          fiscalYearStart: config.fiscalYearStart, maxLength: config.numbering.maxLength,
                          allowedPattern: config.numbering.allowedPattern)

@@ -15,6 +15,7 @@ TARGETS=(
   "ios/Packages/InvoiceCore|Sources/InvoiceCore/Resources/spec|tax reference pdf/labels pdf/layout pdf/fonts design"
   "ios/Packages/InvoiceData|Sources/InvoiceData/Resources/spec|schema/db/migrations"
   "android/core/domain|src/main/resources/spec|tax reference pdf/labels pdf/layout pdf/fonts design"
+  "android/core/data|src/main/resources/spec|schema/db/migrations"
 )
 status=0
 for target in "${TARGETS[@]}"; do
