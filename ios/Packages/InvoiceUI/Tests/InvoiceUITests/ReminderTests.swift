@@ -46,8 +46,9 @@ struct ReminderReconcilerTests {
         withDefault.reminderDaysAfterDue = 3
         try await session.dependencies.businesses.save(withDefault)
 
-        let overdue = try await issuedInvoice(session, id: "doc-overdue", daysFromToday: -10)
-        let paid = try await issuedInvoice(session, id: "doc-paid", daysFromToday: -10)
+        // Due 2 days ago + 3 days: the reminder is tomorrow.
+        let overdue = try await issuedInvoice(session, id: "doc-overdue", daysFromToday: -2)
+        let paid = try await issuedInvoice(session, id: "doc-paid", daysFromToday: -2)
         try await session.dependencies.paymentService.recordPayment(
             documentID: paid.id, amountMinor: paid.totals.totalMinor, date: session.today, method: .cash,
             reference: nil, note: nil)
@@ -72,7 +73,7 @@ struct ReminderReconcilerTests {
         var withDefault = session.business
         withDefault.reminderDaysAfterDue = 3
         try await session.dependencies.businesses.save(withDefault)
-        _ = try await issuedInvoice(session, id: "doc-overdue", daysFromToday: -10)
+        _ = try await issuedInvoice(session, id: "doc-overdue", daysFromToday: -2)
 
         await session.reconcileReminders()
         #expect(scheduler.added.isEmpty && scheduler.removeAllCount >= 1)
@@ -86,11 +87,56 @@ struct ReminderReconcilerTests {
         var withDefault = session.business
         withDefault.reminderDaysAfterDue = 3
         try await session.dependencies.businesses.save(withDefault)
-        _ = try await issuedInvoice(session, id: "doc-1", daysFromToday: -10)
+        _ = try await issuedInvoice(session, id: "doc-1", daysFromToday: -2)
 
         await session.reconcileReminders()
         #expect(scheduler.added.count == 1)
         await session.reconcileReminders()
         #expect(scheduler.added.count == 1) // replaced, not accumulated
+    }
+
+    @Test func reminderDatesAlreadyPassedAreNotScheduled() async throws {
+        // Due 10 days ago + 3 days = a week ago: a calendar trigger that never fires, so it must not be added (and
+        // must not take one of the 50 places, `spec/reminders.md` §3).
+        let scheduler = FakeNotificationScheduler()
+        let session = try await TestEnvironment.session(notifications: scheduler)
+        var withDefault = session.business
+        withDefault.reminderDaysAfterDue = 3
+        try await session.dependencies.businesses.save(withDefault)
+        _ = try await issuedInvoice(session, id: "doc-old", daysFromToday: -10)
+        let upcoming = try await issuedInvoice(session, id: "doc-upcoming", daysFromToday: -2)
+
+        await session.reconcileReminders()
+        #expect(scheduler.added.map(\.identifier) == ["reminder-\(upcoming.id)"])
+    }
+
+    @Test func notificationShowsTheOutstandingAmount() async throws {
+        let scheduler = FakeNotificationScheduler()
+        let session = try await TestEnvironment.session(notifications: scheduler)
+        var withDefault = session.business
+        withDefault.reminderDaysAfterDue = 3
+        try await session.dependencies.businesses.save(withDefault)
+        let invoice = try await issuedInvoice(session, id: "doc-part-paid", daysFromToday: -2)
+        try await session.dependencies.paymentService.recordPayment(
+            documentID: invoice.id, amountMinor: 100_000, date: session.today, method: .cash, reference: nil, note: nil)
+
+        await session.reconcileReminders()
+        let body = try #require(scheduler.added.first?.content.body)
+        let outstanding = session.money(invoice.totals.totalMinor - 100_000, currency: invoice.currency)
+        #expect(body.contains(outstanding), "\(body)")
+        #expect(!body.contains(session.money(invoice.totals.totalMinor, currency: invoice.currency)))
+    }
+
+    @Test func sendReminderNamesTheSellerAsIssued() async throws {
+        // `spec/reminders.md` §4: the message (and its UPI link) use the issued document's seller snapshot, so a
+        // business renamed after issuing doesn't change what an old invoice's reminder says.
+        let session = try await TestEnvironment.session(notifications: FakeNotificationScheduler())
+        var invoice = try await issuedInvoice(session, id: "doc-renamed", daysFromToday: -2)
+        invoice.sellerSnapshot?.name = "Name When Issued"
+        #expect(session.business.name != "Name When Issued")
+
+        let text = ReminderMessage.text(document: invoice, paidMinor: 0, session: session)
+        #expect(text.contains("from Name When Issued was due"), "\(text)")
+        #expect(!text.contains(session.business.name))
     }
 }

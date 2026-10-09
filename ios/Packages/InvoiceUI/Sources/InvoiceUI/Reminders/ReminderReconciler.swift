@@ -39,17 +39,20 @@ struct ReminderReconciler {
         guard let business = try? await dependencies.businesses.fetchBusiness(id: businessID),
               let candidates = try? await dependencies.documents.fetchReminderCandidates(businessID: businessID)
         else { return }
+        // From today: a calendar trigger in the past never fires, and must not take one of the `cap` places.
         let scheduled = ReminderScheduler.plan(businessDefaultDays: business.reminderDaysAfterDue, cap: Self.cap,
-                                               candidates: candidates)
+                                               candidates: candidates, from: dependencies.time.today())
 
         scheduler.removeAllPending()
         for reminder in scheduled {
             guard let document = try? await dependencies.documents.fetchDocument(id: reminder.documentId) else {
                 continue
             }
+            let paid = (try? await dependencies.payments.fetchPayments(documentID: document.id)) ?? []
             let content = UNMutableNotificationContent()
             content.title = "Payment reminder"
-            content.body = Self.body(for: document, formatter: dependencies.reference.currencies)
+            content.body = Self.body(for: document, paidMinor: paid.reduce(0) { $0 + $1.amountMinor },
+                                     formatter: dependencies.reference.currencies)
             content.sound = .default
             content.categoryIdentifier = Self.notificationCategory
             content.userInfo = ["documentID": reminder.documentId]
@@ -64,10 +67,11 @@ struct ReminderReconciler {
         }
     }
 
-    /// "INV/26-27/0001: ₹11,800 from Rao Traders is overdue" (or "due" before the due date has passed).
-    private static func body(for document: Document, formatter currencies: CurrencyCatalog) -> String {
+    /// "INV/26-27/0001: ₹6,800.00 from Rao Traders is due." — the outstanding amount, not the total
+    /// (`spec/reminders.md` §3). A payment recorded later reconciles again, so the text follows it.
+    static func body(for document: Document, paidMinor: Int64, formatter currencies: CurrencyCatalog) -> String {
         let spec = SpecFormatter(currencies: currencies)
-        let amount = spec.money(max(document.totals.totalMinor, 0), currency: document.currency,
+        let amount = spec.money(max(document.totals.totalMinor - paidMinor, 0), currency: document.currency,
                                 homeCurrency: document.currency)
         let who = document.buyerSnapshot?.name.map { " from \($0)" } ?? ""
         let number = document.number ?? ""

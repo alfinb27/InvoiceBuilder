@@ -30,12 +30,16 @@ public struct ScheduledReminder: Hashable, Sendable {
 public enum ReminderScheduler {
     /// For each eligible candidate, `remindOn = dueDate + effectiveDays` (plain calendar-day addition). Eligible:
     /// one of the "still owed" statuses, a due date, and a non-nil effective days (`overrideDays ?? businessDefaultDays`).
-    /// Sorted by `remindOn` ascending (ties by `documentId`), truncated to the first `cap`.
-    public static func plan(businessDefaultDays: Int?, cap: Int, candidates: [ReminderCandidate]) -> [ScheduledReminder] {
+    /// Dates before `from` are dropped, then the rest are sorted by `remindOn` ascending (ties by `documentId`) and
+    /// truncated to the first `cap`, so a date that has already passed never takes one of the `cap` places.
+    public static func plan(businessDefaultDays: Int?, cap: Int, candidates: [ReminderCandidate],
+                            from: LocalDate) -> [ScheduledReminder] {
         let scheduled = candidates.compactMap { candidate -> ScheduledReminder? in
             guard isEligible(candidate.status), let dueDate = candidate.dueDate,
                   let days = candidate.overrideDays ?? businessDefaultDays else { return nil }
-            return ScheduledReminder(documentId: candidate.documentId, remindOn: dueDate.adding(days: days))
+            let remindOn = dueDate.adding(days: days)
+            guard remindOn >= from else { return nil }
+            return ScheduledReminder(documentId: candidate.documentId, remindOn: remindOn)
         }
         return scheduled.sorted { lhs, rhs in
             lhs.remindOn == rhs.remindOn ? lhs.documentId < rhs.documentId : lhs.remindOn < rhs.remindOn
