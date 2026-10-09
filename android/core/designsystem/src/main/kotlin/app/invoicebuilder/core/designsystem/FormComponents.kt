@@ -112,17 +112,6 @@ fun Tag(text: String, color: Color = Theme.colors.info, modifier: Modifier = Mod
     )
 }
 
-/** The large full-width button at the bottom of onboarding steps. */
-@Composable
-fun PrimaryButton(title: String, onClick: () -> Unit, modifier: Modifier = Modifier, isBusy: Boolean = false, enabled: Boolean = true, tag: String? = null) {
-    Button(onClick, modifier.fillMaxWidth().heightIn(min = Theme.Layout.minTouchTarget + 4.dp).let { if (tag != null) it.testTag(tag) else it }, enabled = enabled && !isBusy) {
-        Box(contentAlignment = Alignment.Center) {
-            if (isBusy) CircularProgressIndicator(Modifier.size(20.dp), color = Theme.colors.brandOn, strokeWidth = 2.dp)
-            else Text(title, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
 /** Caps the width for readable forms on wide windows, centred (≈ `.readableWidth()`). */
 fun Modifier.readableWidth(): Modifier = this.widthIn(max = Theme.Layout.maxReadableWidth)
 

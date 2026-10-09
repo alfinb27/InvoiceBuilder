@@ -17,7 +17,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -86,8 +89,13 @@ private val tabs = listOf(
 @Composable
 fun MainShell(session: Session) {
     val router = session.router
+    val adaptive = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
+    // The builder has the phone screen to itself (`docs/design/design.md` §6.4); rails and drawers stay.
+    val layout = if (adaptive == NavigationSuiteType.NavigationBar && router.selectedTab == AppTab.documents &&
+        router.documents.isEditingDraft) NavigationSuiteType.None else adaptive
     CompositionLocalProvider(LocalSession provides session) {
         NavigationSuiteScaffold(
+            layoutType = layout,
             // Hardware keyboards (tablets, Chromebooks, DeX): Ctrl+N new invoice, Ctrl+Shift+N new quote (≈ ⌘N / ⇧⌘N).
             modifier = Modifier.onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown || !event.isCtrlPressed || event.key != Key.N) return@onPreviewKeyEvent false

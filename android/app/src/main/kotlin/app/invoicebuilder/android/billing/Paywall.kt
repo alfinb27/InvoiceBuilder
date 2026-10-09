@@ -80,10 +80,10 @@ fun PaywallDialog(session: Session, onDismiss: () -> Unit) {
                     },
                     style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
                 )
-                Text(if (status.isUnlocked) "Thank you. Issue as many invoices as you need." else "Unlock unlimited invoices once, on every device you use.",
+                Text(if (status.isUnlocked) "Thank you. Send as many invoices as you need." else "Unlock unlimited invoices once, on every device you use.",
                     color = Theme.colors.textSecondary, textAlign = TextAlign.Center)
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Theme.Space.s)) {
-                    Benefit("Issue as many invoices as you need", Icons.AutoMirrored.Filled.NoteAdd)
+                    Benefit("Send as many invoices as you need", Icons.AutoMirrored.Filled.NoteAdd)
                     Benefit("One payment, no subscription", Icons.Filled.CreditCard)
                     Benefit("On every device with your Google account", Icons.Filled.Devices)
                     Benefit("Your invoices, quotes and backups were never locked", Icons.Filled.LockOpen)

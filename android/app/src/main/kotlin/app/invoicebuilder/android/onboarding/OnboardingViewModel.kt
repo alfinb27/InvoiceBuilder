@@ -20,6 +20,7 @@ import app.invoicebuilder.core.domain.setup.BusinessField
 import app.invoicebuilder.core.domain.setup.BusinessRules
 import app.invoicebuilder.core.domain.setup.BusinessSetup
 import app.invoicebuilder.core.domain.setup.FieldIssue
+import app.invoicebuilder.core.domain.setup.OnboardingStage
 import app.invoicebuilder.core.domain.setup.OnboardingStep
 import app.invoicebuilder.core.domain.tax.TaxConfig
 import app.invoicebuilder.core.domain.tax.TaxConfigStore
@@ -27,8 +28,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * Onboarding (`spec/setup.md` §3): five steps over one `BusinessDraft`. Nothing is written until Finish, which creates
- * the business, its images, its series and the active-business preference in one transaction. iOS: `OnboardingViewModel`.
+ * Onboarding (`spec/setup.md` §3): a Welcome screen, then five steps over one `BusinessDraft` shown as three stages.
+ * Nothing is written until Finish, which creates the business, its images, its series and the active-business
+ * preference in one transaction. iOS: `OnboardingViewModel`.
  */
 class OnboardingViewModel(
     val container: AppContainer,
@@ -39,12 +41,16 @@ class OnboardingViewModel(
     private val onTryDemo: suspend (SampleData.Country) -> Unit,
     private val onFinished: (Business) -> Unit,
 ) {
-    var step by mutableStateOf(OnboardingStep.country)
+    var showsWelcome by mutableStateOf(true)
         private set
+    var stage by mutableStateOf(OnboardingStage.whereYouWork)
     var draft by mutableStateOf(BusinessDraft())
         private set
-    /** Steps where Continue was pressed: their missing-field problems are now shown. */
+    /** Steps whose stage had Continue (or Finish) pressed: their missing-field problems are now shown. */
     var attempted by mutableStateOf(emptySet<OnboardingStep>())
+        private set
+    /** "Somewhere else" was chosen: the country search and home currency show. */
+    var picksOtherCountry by mutableStateOf(false)
         private set
     var countrySearch by mutableStateOf("")
     var logo by mutableStateOf<ImagePayload?>(null)
@@ -78,20 +84,27 @@ class OnboardingViewModel(
         draft = rules?.applyDerivations(next) ?: next
     }
 
-    // Steps
+    // Stages
 
-    val stepNumber get() = step.ordinal + 1
-    val stepCount get() = OnboardingStep.entries.size
-    val isLastStep get() = step == OnboardingStep.entries.last()
+    val stageNumber get() = stage.ordinal + 1
+    val stageCount get() = OnboardingStage.entries.size
+    val isLastStage get() = stage == OnboardingStage.entries.last()
 
-    fun title(step: OnboardingStep): String = if (step == OnboardingStep.bank && rules?.isIndia != true) "Bank details" else step.title
+    fun title(stage: OnboardingStage): String = when (stage) {
+        OnboardingStage.whereYouWork -> "Where you work"
+        OnboardingStage.yourBusiness -> "Your business"
+        OnboardingStage.gettingPaid -> "Getting paid"
+    }
 
     fun issues(step: OnboardingStep): Map<BusinessField, FieldIssue> {
         val rules = rules ?: return if (step == OnboardingStep.country) mapOf(BusinessField.Country to FieldIssue.Required) else emptyMap()
         return rules.issues(draft, setOf(step))
     }
 
-    /** The problem under a field: every problem once Continue was pressed on its step, none before. */
+    fun issues(stage: OnboardingStage): Map<BusinessField, FieldIssue> =
+        stage.steps.fold(emptyMap()) { all, step -> issues(step) + all }
+
+    /** The problem under a field: every problem once Continue was pressed on its stage, none before. */
     fun visibleIssue(field: BusinessField): FieldIssue? {
         val step = field.step ?: return null
         if (step !in attempted) return null
@@ -109,21 +122,48 @@ class OnboardingViewModel(
             return TaxIDFeedback.Invalid(IssueMessages.text(FieldIssue.InvalidTaxID(error), "", rules.config.labels.taxIdName))
         }
 
-    fun canVisit(step: OnboardingStep): Boolean = OnboardingStep.entries.filter { it < step }.all { issues(it).isEmpty() }
+    /** A stage can be opened from the side list once every stage before it is complete. */
+    fun canVisit(stage: OnboardingStage): Boolean = OnboardingStage.entries.filter { it < stage }.all { issues(it).isEmpty() }
 
-    fun go(to: OnboardingStep) { if (canVisit(to)) step = to }
+    fun go(to: OnboardingStage) { if (canVisit(to)) stage = to }
+
+    /** "Let's get started" on the Welcome screen. */
+    fun start() { showsWelcome = false }
 
     fun continueTapped() {
-        attempted = attempted + step
-        if (issues(step).isNotEmpty()) return
-        OnboardingStep.entries.getOrNull(step.ordinal + 1)?.let { step = it }
+        attempted = attempted + stage.steps
+        if (issues(stage).isNotEmpty()) return
+        OnboardingStage.entries.getOrNull(stage.ordinal + 1)?.let { stage = it }
     }
 
-    fun back() { OnboardingStep.entries.getOrNull(step.ordinal - 1)?.let { step = it } }
+    /** Back: the previous stage; from the first one, the Welcome screen. Answers are kept. */
+    fun back() {
+        val previous = OnboardingStage.entries.getOrNull(stage.ordinal - 1)
+        if (previous != null) stage = previous else showsWelcome = true
+    }
 
     // Country step
 
-    fun selectCountry(code: String) = update(draft.copy(countryCode = code))
+    fun selectCountry(code: String) {
+        update(draft.copy(countryCode = code))
+        picksOtherCountry = code !in listOf("IN", "GB")
+    }
+
+    /** "Somewhere else": clears India or the UK and shows the country search. */
+    fun pickOtherCountry() {
+        picksOtherCountry = true
+        if (draft.countryCode in listOf("IN", "GB")) update(draft.copy(countryCode = null))
+    }
+
+    /** The country card that is selected: "IN", "GB", "other" or none. */
+    val countryCard: String?
+        get() {
+            val code = draft.countryCode
+            if (code == "IN" || code == "GB") return code
+            return if (picksOtherCountry || code != null) "other" else null
+        }
+
+    val countryName: String? get() = draft.countryCode?.let { container.reference.country(it)?.name }
 
     val suggestedCountries: List<Country> get() = listOf("IN", "GB").mapNotNull(container.reference::country)
 
@@ -158,12 +198,20 @@ class OnboardingViewModel(
 
     // Finish
 
+    /** "Skip for now": finish without anything typed on the Getting paid stage. */
+    fun skipAndFinish() {
+        draft = draft.clearGettingPaid()
+        logo = null
+        signature = null
+        finish()
+    }
+
     fun finish() {
         val rules = rules ?: return
-        for (step in OnboardingStep.entries) {
-            if (issues(step).isNotEmpty()) {
-                attempted = attempted + step
-                this.step = step
+        for (stage in OnboardingStage.entries) {
+            if (issues(stage).isNotEmpty()) {
+                attempted = attempted + stage.steps
+                this.stage = stage
                 return
             }
         }
@@ -183,12 +231,3 @@ class OnboardingViewModel(
         }
     }
 }
-
-val OnboardingStep.title: String
-    get() = when (this) {
-        OnboardingStep.country -> "Country"
-        OnboardingStep.registration -> "Tax registration"
-        OnboardingStep.business -> "Your business"
-        OnboardingStep.bank -> "Bank and UPI"
-        OnboardingStep.images -> "Logo and signature"
-    }

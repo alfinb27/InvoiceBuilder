@@ -47,12 +47,9 @@ fun RegistrationSections(
         issue(BusinessField.Registration)?.let { IssueText(IssueMessages.text(it, "registration type")) }
     }
     if (rules.showsTurnoverTier(draft)) {
-        val tier = rules.turnoverTiers.getOrNull(draft.turnoverTier)
-        val digits = tier?.let { if (it.b2bDigits == 0) "no HSN/SAC code" else "a ${it.b2bDigits}-digit HSN/SAC code" } ?: ""
-        FormSection("Turnover in the previous financial year",
-            "Your B2B invoices then need $digits on every line. We only store the band, never the amount.") {
+        FormSection("Turnover in the previous financial year", TurnoverText.footer(rules, draft.turnoverTier)) {
             rules.turnoverTiers.indices.forEach { index ->
-                ChoiceRow(tierLabel(rules, formatter, index), draft.turnoverTier == index, { onChange(draft.copy(turnoverTier = index)) })
+                ChoiceRow(TurnoverText.label(rules, formatter, index), draft.turnoverTier == index, { onChange(draft.copy(turnoverTier = index)) })
             }
         }
     }
@@ -66,25 +63,33 @@ fun RegistrationSections(
     }
 }
 
-/** "Up to ₹5 crore" / "More than ₹5 crore", from the config's tier bounds (`spec/setup.md` §3.1). */
-private fun tierLabel(rules: BusinessRules, formatter: SpecFormatter, index: Int): String {
-    val tiers = rules.turnoverTiers
-    val upper = tiers[index].maxTurnoverMinor
-    val lower = if (index > 0) tiers[index - 1].maxTurnoverMinor else null
-    fun amount(minor: Long): String {
-        val currency = rules.config.currency ?: CurrencyCode("USD")
-        if (currency == CurrencyCode.INR) {
-            val symbol = formatter.currencies[CurrencyCode.INR]?.symbol ?: "₹"
-            if (minor % 1_000_000_000L == 0L) return "$symbol${minor / 1_000_000_000L} crore"
-            if (minor % 10_000_000L == 0L) return "$symbol${minor / 10_000_000L} lakh"
+/** India's turnover bands, worded from the config's tier bounds (`spec/setup.md` §3.1). iOS: `TurnoverText`. */
+object TurnoverText {
+    /** "Up to ₹5 crore" / "More than ₹5 crore". */
+    fun label(rules: BusinessRules, formatter: SpecFormatter, index: Int): String {
+        val tiers = rules.turnoverTiers
+        val upper = tiers[index].maxTurnoverMinor
+        val lower = if (index > 0) tiers[index - 1].maxTurnoverMinor else null
+        fun amount(minor: Long): String {
+            val currency = rules.config.currency ?: CurrencyCode("USD")
+            if (currency == CurrencyCode.INR) {
+                val symbol = formatter.currencies[CurrencyCode.INR]?.symbol ?: "₹"
+                if (minor % 1_000_000_000L == 0L) return "$symbol${minor / 1_000_000_000L} crore"
+                if (minor % 10_000_000L == 0L) return "$symbol${minor / 10_000_000L} lakh"
+            }
+            return formatter.money(minor, currency, currency)
         }
-        return formatter.money(minor, currency, currency)
+        return when {
+            lower == null && upper != null -> "Up to ${amount(upper)}"
+            lower != null && upper == null -> "More than ${amount(lower)}"
+            lower != null && upper != null -> "${amount(lower)} to ${amount(upper)}"
+            else -> "Any turnover"
+        }
     }
-    return when {
-        lower == null && upper != null -> "Up to ${amount(upper)}"
-        lower != null && upper == null -> "More than ${amount(lower)}"
-        lower != null && upper != null -> "${amount(lower)} to ${amount(upper)}"
-        else -> "Any turnover"
+
+    fun footer(rules: BusinessRules, tier: Int): String {
+        val digits = rules.turnoverTiers.getOrNull(tier)?.let { if (it.b2bDigits == 0) "no HSN/SAC code" else "a ${it.b2bDigits}-digit HSN/SAC code" } ?: ""
+        return "Your B2B invoices then need $digits on every line. We only store the band, never the amount."
     }
 }
 

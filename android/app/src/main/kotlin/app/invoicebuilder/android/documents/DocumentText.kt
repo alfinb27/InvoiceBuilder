@@ -25,6 +25,13 @@ import java.time.format.FormatStyle
 object DocumentText {
     fun noun(docType: DocumentType): String = if (docType == DocumentType.quote) "quote" else "invoice"
 
+    /** The name of the shared PDF (`spec/documents.md` §8): "Invoice INV-26-27-0001.pdf", "Quote draft.pdf". */
+    fun pdfFileName(document: app.invoicebuilder.core.domain.documents.Document): String {
+        val noun = noun(document.docType).replaceFirstChar { it.uppercase() }
+        val number = document.number ?: return "$noun draft.pdf"
+        return "$noun ${number.replace("/", "-")}.pdf"
+    }
+
     /** A document's title: its number once issued, else "New invoice" / "Quote draft". */
     fun title(document: Document, isPersisted: Boolean): String {
         document.number?.let { return it }
@@ -34,11 +41,11 @@ object DocumentText {
 
     fun status(status: DocumentStatus): String = when (status) {
         DocumentStatus.draft -> "Draft"
-        DocumentStatus.issued -> "Issued"
+        DocumentStatus.issued -> "Not sent"
         DocumentStatus.sent -> "Sent"
         DocumentStatus.partiallyPaid -> "Part paid"
         DocumentStatus.paid -> "Paid"
-        DocumentStatus.overdue -> "Overdue"
+        DocumentStatus.overdue -> "Past due"
         DocumentStatus.void -> "Void"
         DocumentStatus.open -> "Open"
         DocumentStatus.accepted -> "Accepted"
@@ -56,17 +63,17 @@ object DocumentText {
         DocumentStatus.issued, DocumentStatus.sent, DocumentStatus.open -> Theme.colors.info
     }
 
-    /** "Line 2", "Lines 1 and 3", "Lines 1, 2 and 5" (1-based for people). */
+    /** "Item 2", "Items 1 and 3", "Items 1, 2 and 5" (1-based for people; the screens call lines items). */
     fun lines(indexes: List<Int>): String {
         val numbers = indexes.map { (it + 1).toString() }
-        if (numbers.size <= 1) return "Line ${numbers.firstOrNull() ?: ""}"
-        return "Lines " + numbers.dropLast(1).joinToString(", ") + " and " + numbers.last()
+        if (numbers.size <= 1) return "Item ${numbers.firstOrNull() ?: ""}"
+        return "Items " + numbers.dropLast(1).joinToString(", ") + " and " + numbers.last()
     }
 
     /** A compliance check or rate warning from the engine (`ENGINE.md` Step 12). */
     fun message(issue: EngineIssue, config: TaxConfig, homeCurrency: CurrencyCode): String {
         val labels = config.labels
-        val lines = issue.lines?.let(::lines) ?: "Some lines"
+        val lines = issue.lines?.let(::lines) ?: "Some items"
         return when (issue.code) {
             "rate_not_effective" -> "$lines: the ${labels.taxName} rate isn't in force on this date. Check the rate or the dates."
             "seller_tax_id_missing" -> "Add your ${labels.taxIdName} in Settings → Business profile."
@@ -84,13 +91,13 @@ object DocumentText {
 
     /** Why the engine could not compute the document (`ENGINE.md` §3, errors). */
     fun message(error: TaxEngineError, config: TaxConfig): String {
-        val line = error.line?.let { "Line ${it + 1}: " } ?: ""
+        val line = error.line?.let { "Item ${it + 1}: " } ?: ""
         return when (error.code) {
             TaxEngineError.Code.NoComponentRule -> "This supply type can't be used with your registration."
             TaxEngineError.Code.UnknownRate -> line + "choose a ${config.labels.taxName} rate."
             TaxEngineError.Code.UnknownRegion -> "Choose a valid ${(config.labels.placeOfSupply ?: "place of supply").lowercase()}."
             TaxEngineError.Code.DiscountExceedsSubtotal -> "The discount is more than the subtotal."
-            TaxEngineError.Code.LineDiscountExceedsAmount -> line + "the discount is more than the line amount."
+            TaxEngineError.Code.LineDiscountExceedsAmount -> line + "the discount is more than the item's amount."
             TaxEngineError.Code.InclusiveCompoundUnsupported -> line + "compound taxes can't be used with tax-inclusive prices."
             TaxEngineError.Code.InvalidInput -> line + "check the quantity, price and amounts."
         }
@@ -98,7 +105,7 @@ object DocumentText {
 
     /** What blocks issuing (`spec/documents.md` §6). */
     fun message(problem: IssueProblem, config: TaxConfig, homeCurrency: CurrencyCode, docType: DocumentType): String = when (problem) {
-        IssueProblem.NoLines -> "Add at least one line."
+        IssueProblem.NoLines -> "Add at least one item."
         is IssueProblem.LineDescriptionMissing -> "${lines(problem.lines)}: add a description."
         is IssueProblem.LineRateMissing -> "${lines(problem.lines)}: choose a ${config.labels.taxName} rate."
         is IssueProblem.Engine -> message(problem.error, config)

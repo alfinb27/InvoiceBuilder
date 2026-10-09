@@ -151,7 +151,7 @@ fun IssuedDocument(model: DocumentViewModel, session: Session, showsBack: Boolea
                 }
             }
             FormSection("Dates") {
-                LabeledValue("Issued", document.issueDate.displayText)
+                LabeledValue("${DocumentText.noun(document.docType).replaceFirstChar { it.uppercase() }} date", document.issueDate.displayText)
                 document.supplyDate?.let { LabeledValue("Supply date", it.displayText) }
                 document.dueDate?.let { LabeledValue("Due", it.displayText) }
                 document.validUntil?.let { LabeledValue("Valid until", it.displayText) }
