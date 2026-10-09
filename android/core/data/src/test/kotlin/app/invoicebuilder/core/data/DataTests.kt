@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -38,6 +39,8 @@ import java.io.File
 import java.nio.file.Files
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
+import app.invoicebuilder.core.domain.setup.DeviceMarker
+import app.invoicebuilder.core.domain.setup.InMemoryDeviceMarkerStore
 
 /** The data layer on the JVM (Robolectric's SQLite), like `swift test` for InvoiceData. */
 @RunWith(RobolectricTestRunner::class)
@@ -54,7 +57,9 @@ class DataTests {
         val reference = ReferenceData.bundled()
         val businesses = RoomBusinessRepository(db, time)
         val clients = RoomClientRepository(db, time)
-        val devices = RoomDeviceStateRepository(db, time, ids)
+        /** This "device"'s marker (ADR-0019). */
+        val marker = InMemoryDeviceMarkerStore()
+        val devices = RoomDeviceStateRepository(db, time, ids, marker)
         val setup = RoomBusinessSetupService(db, time, ids)
         val documents = RoomDocumentRepository(db, time)
         val documentService = RoomDocumentService(db, time, ids, configs, reference.currencies)
@@ -209,5 +214,37 @@ class DataTests {
             fail("restored a payment of 0")
         } catch (expected: Exception) {}
         assertEquals(before.data, store.backup.makeBackup(BackupFile.AppInfo("android", "test")).data)
+    }
+
+    /** ADR-0019: a database restored onto a new phone by Auto Backup arrives without that phone's marker. */
+    @Test
+    fun aDatabaseCopiedToAnotherDeviceTakesANewID() = runTest {
+        val original = store.devices.loadOrCreate("Old Pixel")
+        assertEquals(DeviceMarker.Found(original.id), store.marker.read())
+        store.devices.setActiveBusiness("b1")
+
+        store.marker.set(DeviceMarker.Missing) // the new phone's noBackupFilesDir is empty
+        val copied = store.devices.loadOrCreate("New Pixel")
+        assertNotEquals(original.id, copied.id)
+        assertEquals("b1", copied.preferences.activeBusinessId) // everything else stays
+        assertEquals(original.deviceName, copied.deviceName)
+        assertEquals(DeviceMarker.Found(copied.id), store.marker.read())
+        assertEquals(copied.id, store.devices.loadOrCreate("New Pixel").id) // stable from now on
+
+        store.marker.set(DeviceMarker.Unreadable) // an I/O error never changes the id
+        assertEquals(copied.id, store.devices.loadOrCreate("New Pixel").id)
+    }
+
+    @Test
+    fun theMarkerFileSurvivesAndReportsWhatIsThere() {
+        val directory = Files.createTempDirectory("no-backup").toFile()
+        val marker = FileDeviceMarkerStore(directory)
+        assertEquals(DeviceMarker.Missing, marker.read())
+        marker.write("d1")
+        assertEquals(DeviceMarker.Found("d1"), FileDeviceMarkerStore(directory).read())
+        marker.write("d2")
+        assertEquals(DeviceMarker.Found("d2"), marker.read())
+        java.io.File(directory, "device-id").writeText("")
+        assertEquals(DeviceMarker.Missing, marker.read()) // a write cut short
     }
 }

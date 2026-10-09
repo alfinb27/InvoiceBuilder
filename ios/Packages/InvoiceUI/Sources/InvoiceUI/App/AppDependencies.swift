@@ -73,6 +73,7 @@ public struct AppDependencies: Sendable {
                             sync: any SyncService = UnavailableSyncService(),
                             store: any StoreClient = UnavailableStoreClient(),
                             counterMirror: any CounterMirror = MemoryCounterMirror(),
+                            deviceMarker: any DeviceMarkerStore = InMemoryDeviceMarkerStore(),
                             bundleID: String = Bundle.main.bundleIdentifier ?? "app.invoicebuilder.invoices") throws
         -> AppDependencies {
         let taxConfigs = try TaxConfigStore.bundled()
@@ -83,7 +84,7 @@ public struct AppDependencies: Sendable {
             catalog: GRDBCatalogRepository(database: database, time: time),
             numberingSeries: GRDBNumberingSeriesRepository(database: database, time: time),
             assets: GRDBAssetRepository(database: database),
-            deviceState: GRDBDeviceStateRepository(database: database, time: time, ids: ids),
+            deviceState: GRDBDeviceStateRepository(database: database, time: time, ids: ids, marker: deviceMarker),
             setup: GRDBBusinessSetupService(database: database, time: time, ids: ids),
             documents: GRDBDocumentRepository(database: database, time: time),
             documentService: GRDBDocumentService(database: database, time: time, ids: ids, configs: taxConfigs,
@@ -111,17 +112,20 @@ public struct AppDependencies: Sendable {
         guard let container = bundle.object(forInfoDictionaryKey: "InvoiceSyncContainer") as? String,
               !container.isEmpty else {
             return try make(database: AppDatabase.openOnDisk(at: url), notifications: SystemNotificationScheduler(),
-                            snapshots: .defaultStore(), store: StoreKitClient(), counterMirror: KeychainCounterMirror())
+                            snapshots: .defaultStore(), store: StoreKitClient(), counterMirror: KeychainCounterMirror(),
+                            deviceMarker: KeychainDeviceMarkerStore())
         }
         let database = try AppDatabase.openOnDisk(at: url) {
             LiveSyncService.prepare(&$0, containerIdentifier: container)
         }
         let sync = try LiveSyncService(
             database: database, containerIdentifier: container,
-            deviceState: GRDBDeviceStateRepository(database: database, time: .system, ids: .random), enabled: false)
+            deviceState: GRDBDeviceStateRepository(database: database, time: .system, ids: .random,
+                                                    marker: KeychainDeviceMarkerStore()),
+            enabled: false)
         return try make(database: database, notifications: SystemNotificationScheduler(),
                         snapshots: .defaultStore(), sync: sync, store: StoreKitClient(),
-                        counterMirror: KeychainCounterMirror())
+                        counterMirror: KeychainCounterMirror(), deviceMarker: KeychainDeviceMarkerStore())
     }
 
     /// An empty in-memory database (previews, tests, UI tests).

@@ -46,7 +46,8 @@ struct InvoiceSyncTests {
             LiveSyncService.prepare(&$0, containerIdentifier: container)
         }
         let time = TimeSource.fixed(now: 1_789_800_000_000, today: LocalDate(iso: "2026-09-19")!)
-        let devices = GRDBDeviceStateRepository(database: database, time: time, ids: .sequential())
+        let devices = GRDBDeviceStateRepository(database: database, time: time, ids: .sequential(),
+                                                marker: InMemoryDeviceMarkerStore())
         _ = try await devices.loadOrCreate(deviceName: "Test")
         let service = try LiveSyncService(database: database, containerIdentifier: container, deviceState: devices,
                                           enabled: true)

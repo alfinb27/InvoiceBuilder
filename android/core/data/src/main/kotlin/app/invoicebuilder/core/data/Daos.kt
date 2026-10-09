@@ -84,6 +84,8 @@ interface DeviceStateDao {
     @Update suspend fun update(entity: DeviceStateEntity)
     @Query("UPDATE device_state SET free_counter_mirror = free_counter_mirror + 1, updated_at = :now WHERE id = (SELECT id FROM device_state ORDER BY created_at, id LIMIT 1)")
     suspend fun incrementMirror(now: Long)
+    /** A database copied from another device takes a new id (ADR-0019); nothing references this local row. */
+    @Query("UPDATE device_state SET id = :newID, updated_at = :now WHERE id = :oldID") suspend fun changeID(oldID: String, newID: String, now: Long)
 }
 
 @Dao

@@ -209,21 +209,43 @@ public struct GRDBDeviceStateRepository: DeviceStateRepository {
     let database: AppDatabase
     let time: TimeSource
     let ids: IDGenerator
+    /// This device's id outside the database (`spec/setup.md` §2, ADR-0019): the Keychain in the app, in memory in
+    /// tests. It must outlive the database exactly as long as the device does.
+    let marker: any DeviceMarkerStore
 
-    public init(database: AppDatabase, time: TimeSource, ids: IDGenerator) {
+    public init(database: AppDatabase, time: TimeSource, ids: IDGenerator, marker: any DeviceMarkerStore) {
         self.database = database
         self.time = time
         self.ids = ids
+        self.marker = marker
     }
 
+    /// This device's row, created on first use. A row copied from another device by an OS backup (the marker is
+    /// missing or names another id) takes a new id and keeps everything else. The marker is read and written inside
+    /// the write transaction, so two callers at launch (the app and the sync service) agree on one id.
     public func loadOrCreate(deviceName: String) async throws -> DeviceState {
         let now = time.now()
         let newID = ids.make()
+        let marker = self.marker
         return try await database.writer.write { db in
-            if let existing = try DeviceStateRecord.current(db) { return try existing.deviceState() }
-            let state = DeviceState(id: newID, deviceName: deviceName, createdAt: now, updatedAt: now)
-            try DeviceStateRecord(state).insert(db)
-            return state
+            let existing = try DeviceStateRecord.current(db)
+            switch DeviceIdentity.check(rowID: existing?.id, marker: marker.read()) {
+            case .keep:
+                return try existing!.deviceState()
+            case .create:
+                let state = DeviceState(id: newID, deviceName: deviceName, createdAt: now, updatedAt: now)
+                try DeviceStateRecord(state).insert(db)
+                marker.write(newID)
+                return state
+            case .replace:
+                var state = try existing!.deviceState()
+                try db.execute(sql: "UPDATE device_state SET id = ?, updated_at = ? WHERE id = ?",
+                               arguments: [newID, now, state.id])
+                state.id = newID
+                state.updatedAt = now
+                marker.write(newID)
+                return state
+            }
         }
     }
 

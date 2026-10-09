@@ -17,6 +17,8 @@ import app.invoicebuilder.core.domain.repositories.CatalogRepository
 import app.invoicebuilder.core.domain.repositories.ClientRepository
 import app.invoicebuilder.core.domain.repositories.DeviceStateRepository
 import app.invoicebuilder.core.domain.repositories.NumberingSeriesRepository
+import app.invoicebuilder.core.domain.setup.DeviceIdentity
+import app.invoicebuilder.core.domain.setup.DeviceMarkerStore
 import app.invoicebuilder.core.domain.support.IDGenerator
 import app.invoicebuilder.core.domain.support.TimeSource
 import kotlinx.coroutines.flow.Flow
@@ -112,10 +114,34 @@ class RoomAssetRepository(private val db: AppDatabase) : AssetRepository {
     override fun observeAsset(id: String): Flow<Asset?> = db.assets().observe(id).map { it?.toDomain() }
 }
 
-class RoomDeviceStateRepository(private val db: AppDatabase, private val time: TimeSource, private val ids: IDGenerator) : DeviceStateRepository {
+/**
+ * This device's row. [marker] holds the device id outside the database (`spec/setup.md` §2, ADR-0019): a file in
+ * `noBackupFilesDir` in the app, in memory in tests. It must outlive the database exactly as long as the device does.
+ */
+class RoomDeviceStateRepository(
+    private val db: AppDatabase,
+    private val time: TimeSource,
+    private val ids: IDGenerator,
+    private val marker: DeviceMarkerStore,
+) : DeviceStateRepository {
+    /**
+     * Created on first use. A row copied from another device by Auto Backup (the marker is missing or names another
+     * id) takes a new id and keeps everything else. The marker is read and written inside the transaction, so two
+     * callers at launch (the app and the reminders job) agree on one id.
+     */
     override suspend fun loadOrCreate(deviceName: String): DeviceState = db.withTransaction {
-        db.devices().current()?.toDomain() ?: DeviceState(ids.make(), deviceName, createdAt = time.now(), updatedAt = time.now())
-            .also { db.devices().insert(it.toEntity()) }
+        val existing = db.devices().current()?.toDomain()
+        when (DeviceIdentity.check(existing?.id, marker.read())) {
+            DeviceIdentity.Action.keep -> existing!!
+            DeviceIdentity.Action.create -> DeviceState(ids.make(), deviceName, createdAt = time.now(), updatedAt = time.now()).also {
+                db.devices().insert(it.toEntity())
+                marker.write(it.id)
+            }
+            DeviceIdentity.Action.replace -> existing!!.copy(id = ids.make(), updatedAt = time.now()).also {
+                db.devices().changeID(existing.id, it.id, it.updatedAt)
+                marker.write(it.id)
+            }
+        }
     }
 
     override suspend fun setActiveBusiness(id: String?) = db.withTransaction { setActiveBusiness(db, id, time.now()) }

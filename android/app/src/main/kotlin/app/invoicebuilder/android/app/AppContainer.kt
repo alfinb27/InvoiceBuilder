@@ -13,6 +13,7 @@ import app.invoicebuilder.core.billing.StoreEntitlementService
 import app.invoicebuilder.core.billing.UnavailableStoreClient
 import app.invoicebuilder.core.data.AppDatabase
 import app.invoicebuilder.core.data.BackupSnapshotStore
+import app.invoicebuilder.core.data.FileDeviceMarkerStore
 import app.invoicebuilder.core.data.RoomAssetRepository
 import app.invoicebuilder.core.data.RoomBackupService
 import app.invoicebuilder.core.data.RoomBusinessRepository
@@ -42,6 +43,8 @@ import app.invoicebuilder.core.domain.repositories.NumberingSeriesRepository
 import app.invoicebuilder.core.domain.repositories.NumberingService
 import app.invoicebuilder.core.domain.repositories.PaymentRepository
 import app.invoicebuilder.core.domain.repositories.PaymentService
+import app.invoicebuilder.core.domain.setup.DeviceMarkerStore
+import app.invoicebuilder.core.domain.setup.InMemoryDeviceMarkerStore
 import app.invoicebuilder.core.domain.support.IDGenerator
 import app.invoicebuilder.core.domain.support.TimeSource
 import app.invoicebuilder.core.domain.tax.TaxConfigStore
@@ -97,6 +100,7 @@ class AppContainer(
             snapshots: BackupSnapshotStore = BackupSnapshotStore(File(context.cacheDir, "snapshots-temp")),
             store: StoreClient = UnavailableStoreClient(),
             counterMirror: CounterMirror = MemoryCounterMirror(),
+            deviceMarker: DeviceMarkerStore = InMemoryDeviceMarkerStore(),
         ): AppContainer {
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
             val applicationID = context.packageName.removeSuffix(".debug")
@@ -106,7 +110,7 @@ class AppContainer(
                 catalog = RoomCatalogRepository(db, time),
                 numberingSeries = RoomNumberingSeriesRepository(db, time),
                 assets = RoomAssetRepository(db),
-                deviceState = RoomDeviceStateRepository(db, time, ids),
+                deviceState = RoomDeviceStateRepository(db, time, ids, deviceMarker),
                 setup = RoomBusinessSetupService(db, time, ids),
                 documents = RoomDocumentRepository(db, time),
                 documentService = RoomDocumentService(db, time, ids, taxConfigs, reference.currencies),
@@ -128,13 +132,14 @@ class AppContainer(
             )
         }
 
-        /** The on-disk database, Play Billing, Block Store and real notifications. */
+        /** The on-disk database, Play Billing, Block Store, real notifications and the device marker outside backups. */
         fun live(context: Context): AppContainer = make(
             context, AppDatabase.open(context),
             notifications = SystemNotificationScheduler(context),
             snapshots = BackupSnapshotStore(File(context.filesDir, "snapshots")),
             store = PlayBillingClient(context),
             counterMirror = BlockStoreCounterMirror(context),
+            deviceMarker = FileDeviceMarkerStore(context.noBackupFilesDir),
         )
 
         /** An empty in-memory database (previews, tests, the demo business). */

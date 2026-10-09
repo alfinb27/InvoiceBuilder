@@ -10,6 +10,8 @@ struct TestStore {
     let database: AppDatabase
     let time: TimeSource
     let ids = IDGenerator.sequential()
+    /// This "device"'s marker (ADR-0019), shared by every repository the store hands out.
+    let marker = InMemoryDeviceMarkerStore()
 
     init() throws {
         database = try AppDatabase.inMemory()
@@ -25,7 +27,9 @@ struct TestStore {
     var catalog: GRDBCatalogRepository { GRDBCatalogRepository(database: database, time: time) }
     var series: GRDBNumberingSeriesRepository { GRDBNumberingSeriesRepository(database: database, time: time) }
     var assets: GRDBAssetRepository { GRDBAssetRepository(database: database) }
-    var device: GRDBDeviceStateRepository { GRDBDeviceStateRepository(database: database, time: time, ids: ids) }
+    var device: GRDBDeviceStateRepository {
+        GRDBDeviceStateRepository(database: database, time: time, ids: ids, marker: marker)
+    }
     var setup: GRDBBusinessSetupService { GRDBBusinessSetupService(database: database, time: time, ids: ids) }
 
     static let fullBusiness = Business(
@@ -170,6 +174,32 @@ struct RepositoryTests {
 
         try await store.device.setActiveBusiness(id: "b1")
         #expect(try await store.device.loadOrCreate(deviceName: "iPhone").preferences.activeBusinessId == "b1")
+    }
+
+    /// ADR-0019: the database restored onto a new phone by an OS backup arrives without that phone's marker.
+    @Test func aDatabaseCopiedToAnotherDeviceTakesANewID() async throws {
+        let store = try TestStore()
+        let original = try await store.device.loadOrCreate(deviceName: "Old iPhone")
+        #expect(store.marker.read() == .found(original.id))
+        try await store.device.setActiveBusiness(id: "b1")
+
+        store.marker.set(.missing) // the new phone's Keychain has no marker
+        let copied = try await store.device.loadOrCreate(deviceName: "New iPhone")
+        #expect(copied.id != original.id)
+        #expect(copied.preferences.activeBusinessId == "b1") // everything else stays
+        #expect(copied.deviceName == original.deviceName)
+        #expect(store.marker.read() == .found(copied.id))
+        #expect(try await store.device.loadOrCreate(deviceName: "New iPhone").id == copied.id) // stable from now on
+
+        store.marker.set(.found("another-device"))
+        #expect(try await store.device.loadOrCreate(deviceName: "x").id != copied.id)
+    }
+
+    @Test func anUnreadableMarkerNeverChangesTheID() async throws {
+        let store = try TestStore()
+        let device = try await store.device.loadOrCreate(deviceName: "iPhone")
+        store.marker.set(.unreadable) // e.g. the Keychain before the first unlock
+        #expect(try await store.device.loadOrCreate(deviceName: "iPhone").id == device.id)
     }
 }
 
