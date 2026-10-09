@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 /// Xcode's accessibility audit (contrast, Dynamic Type clipping, missing labels, small hit targets, traits) on the
@@ -62,13 +63,16 @@ final class AccessibilityAuditTests: XCTestCase {
         // accessibility sizes in the large-text screenshot tour.
         "New quote", "Try it with a sample UK business", "Try it with a sample Indian business",
     ]
+    /// What onboarding's bottom bar itself shows (everything else that low on screen is behind the bar).
+    static let bottomBarContent: Set<String> = ["Continue", "Finish", "You can change all of this later in Settings."]
     /// Toolbar buttons: iOS draws them on glass and serves large text through the Large Content Viewer.
     static let toolbarItems: Set<String> = ["issueButton"]
 
     /// Runs the audit once the screen has settled (a fading view measures as low contrast). Fails on contrast below
-    /// 4.5:1, clipped text and missing Dynamic Type support in what the app draws; "nearly passed" contrast is
-    /// logged only (system section headers and footers report it everywhere). Ignored: system chrome and search
-    /// fields, disabled controls (WCAG exempts them), what sits under the translucent bars, and `systemDrawn`.
+    /// 4.5:1 (confirmed on the element's own pixels), clipped text and missing Dynamic Type support in what the app
+    /// draws; "nearly passed" contrast is logged only (system section headers and footers report it everywhere).
+    /// Ignored: system chrome and search fields, disabled controls (WCAG exempts them), what sits under the
+    /// translucent bars (tab bar, navigation bar, onboarding's Continue bar), and `systemDrawn`.
     ///
     /// Audits twice and fails only on what both passes report: on the slower simulators a section header can measure
     /// mid-transition once, which is not a property of the screen.
@@ -82,10 +86,23 @@ final class AccessibilityAuditTests: XCTestCase {
         }
         guard !firstPass.isEmpty else { return }
         Thread.sleep(forTimeInterval: 2)
+        var contrastSuspects: [(key: String, element: XCUIElement)] = []
         try app.performAccessibilityAudit { issue in
             guard let key = self.key(for: issue, app), firstPass.contains(key) else { return true }
+            if issue.auditType == .contrast, let element = issue.element {
+                contrastSuspects.append((key, element)) // measured below, once the audit has finished
+                return true
+            }
             XCTContext.runActivity(named: "\(screen): \(key)") { _ in }
             return false
+        }
+        // The audit's contrast verdict on small text differs between runs on identical pixels (the "B2B" tag, 5.6:1,
+        // failed one CI run and passed the next), so a contrast issue fails only when the element's own pixels agree.
+        // Measured after the audit: a screenshot inside its handler makes the audit time out.
+        for (key, element) in contrastSuspects {
+            let ratio = Self.measuredContrast(element)
+            if let ratio, ratio >= 4.5 { continue }
+            XCTFail("\(screen): \(key) — measured \(ratio.map { String(format: "%.2f:1", $0) } ?? "no screenshot")")
         }
     }
 
@@ -107,7 +124,44 @@ final class AccessibilityAuditTests: XCTestCase {
         if tabBar.exists, element.frame.maxY > tabBar.frame.minY { return nil }
         let navigationBar = app.navigationBars.firstMatch
         if navigationBar.exists, element.frame.minY < navigationBar.frame.maxY { return nil }
+        // Rows scrolled under onboarding's bottom bar (`.bar` behind Continue / Finish, `Theme.Space.l` padding) —
+        // but never the bar's own button and footnote, which are audited like everything else.
+        if !Self.bottomBarContent.contains(element.label) {
+            for title in ["Continue", "Finish"] {
+                let button = app.buttons[title].firstMatch
+                if button.exists, element.frame.maxY > button.frame.minY - 16 { return nil }
+            }
+        }
         return "\(description) — \"\(element.label)\" [\(element.identifier)]"
+    }
+
+    /// WCAG contrast between the darkest and lightest pixels of the element's screenshot: for a text element, its
+    /// glyphs against what is behind them. Nil when the screenshot can't be read.
+    @MainActor
+    static func measuredContrast(_ element: XCUIElement) -> Double? {
+        guard let image = element.screenshot().image.cgImage, image.width > 0, image.height > 0 else { return nil }
+        let width = image.width, height = image.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return false }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        guard drawn else { return nil }
+        func linear(_ value: UInt8) -> Double {
+            let c = Double(value) / 255
+            return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        var darkest = 1.0, lightest = 0.0
+        for offset in stride(from: 0, to: pixels.count, by: 4) {
+            let luminance = 0.2126 * linear(pixels[offset]) + 0.7152 * linear(pixels[offset + 1])
+                + 0.0722 * linear(pixels[offset + 2])
+            darkest = min(darkest, luminance)
+            lightest = max(lightest, luminance)
+        }
+        return (lightest + 0.05) / (darkest + 0.05)
     }
 
     @MainActor
