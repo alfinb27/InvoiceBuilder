@@ -24,11 +24,7 @@ final class DocumentSmokeTests: XCTestCase {
         rao.tap()
 
         // A catalogue item
-        scrollTo(app.buttons["addFromItems"], in: app)
-        app.buttons["addFromItems"].tap()
-        let website = app.buttons["catalogItem-Website development"]
-        XCTAssertTrue(website.waitForExistence(timeout: 5))
-        website.tap()
+        app.openCatalogue().tap()
         app.buttons["catalogDone"].tap()
 
         // A one-off line
@@ -80,10 +76,7 @@ final class DocumentSmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
         app.buttons["chooseClient"].tap()
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Rao Traders")).firstMatch.tap()
-        scrollTo(app.buttons["addFromItems"], in: app)
-        app.buttons["addFromItems"].tap()
-        XCTAssertTrue(app.buttons["catalogItem-Website development"].waitForExistence(timeout: 5))
-        app.buttons["catalogItem-Website development"].tap()
+        app.openCatalogue().tap()
         app.buttons["catalogDone"].tap()
 
         // The draft previews, watermarked.
