@@ -1,13 +1,14 @@
 {
   "$schema": "../../schema/fixtures.schema.json",
   "kind": "reminder",
-  "description": "ReminderScheduler.plan: eligibility, override precedence and cap truncation (reminders.md §3).",
+  "description": "ReminderScheduler.plan: eligibility, override precedence, dates before `from` dropped, cap truncation (reminders.md §3).",
   "cases": [
     {
       "id": "reminder-business-default",
       "input": {
         "businessDefaultDays": 7,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "overdue" }
         ]
@@ -23,6 +24,7 @@
       "input": {
         "businessDefaultDays": 7,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "dueDate": "2026-09-01", "overrideDays": 2, "status": "overdue" }
         ]
@@ -38,6 +40,7 @@
       "input": {
         "businessDefaultDays": null,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "overdue" }
         ]
@@ -51,6 +54,7 @@
       "input": {
         "businessDefaultDays": 7,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "status": "issued" }
         ]
@@ -64,6 +68,7 @@
       "input": {
         "businessDefaultDays": 7,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "paid" }
         ]
@@ -77,6 +82,7 @@
       "input": {
         "businessDefaultDays": 7,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "draft" }
         ]
@@ -90,6 +96,7 @@
       "input": {
         "businessDefaultDays": 7,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "void" }
         ]
@@ -103,6 +110,7 @@
       "input": {
         "businessDefaultDays": 7,
         "cap": 50,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-late", "dueDate": "2026-09-10", "status": "overdue" },
           { "documentId": "doc-early", "dueDate": "2026-09-01", "status": "overdue" }
@@ -120,6 +128,7 @@
       "input": {
         "businessDefaultDays": 0,
         "cap": 2,
+        "from": "2026-09-01",
         "candidates": [
           { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "overdue" },
           { "documentId": "doc-2", "dueDate": "2026-09-02", "status": "overdue" },
@@ -130,6 +139,60 @@
         "scheduled": [
           { "documentId": "doc-1", "remindOn": "2026-09-01" },
           { "documentId": "doc-2", "remindOn": "2026-09-02" }
+        ]
+      }
+    },
+    {
+      "id": "reminder-before-from-dropped",
+      "input": {
+        "businessDefaultDays": 7,
+        "cap": 50,
+        "from": "2026-09-10",
+        "candidates": [
+          { "documentId": "doc-old", "dueDate": "2026-09-01", "status": "overdue" },
+          { "documentId": "doc-new", "dueDate": "2026-09-05", "status": "overdue" }
+        ]
+      },
+      "expected": {
+        "scheduled": [
+          { "documentId": "doc-new", "remindOn": "2026-09-12" }
+        ]
+      }
+    },
+    {
+      "id": "reminder-on-from-kept",
+      "input": {
+        "businessDefaultDays": 7,
+        "cap": 50,
+        "from": "2026-09-08",
+        "candidates": [
+          { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "overdue" }
+        ]
+      },
+      "expected": {
+        "scheduled": [
+          { "documentId": "doc-1", "remindOn": "2026-09-08" }
+        ]
+      }
+    },
+    {
+      "id": "reminder-past-dates-do-not-use-the-cap",
+      "input": {
+        "businessDefaultDays": 0,
+        "cap": 2,
+        "from": "2026-09-03",
+        "candidates": [
+          { "documentId": "doc-1", "dueDate": "2026-09-01", "status": "overdue" },
+          { "documentId": "doc-2", "dueDate": "2026-09-02", "status": "overdue" },
+          { "documentId": "doc-3", "dueDate": "2026-09-03", "status": "overdue" },
+          { "documentId": "doc-4", "dueDate": "2026-09-04", "status": "issued" },
+          { "documentId": "doc-5", "dueDate": "2026-09-05", "status": "issued" }
+        ]
+      },
+      "expected": {
+        "scheduled": [
+          { "documentId": "doc-3", "remindOn": "2026-09-03" },
+          { "documentId": "doc-4", "remindOn": "2026-09-04" }
         ]
       }
     }

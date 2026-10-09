@@ -29,20 +29,31 @@ Ineligible invoices are simply not scheduled; nothing is written for them.
 
 ## 3. Scheduling and reconciliation
 
-`ReminderScheduler.plan(businessDefaultDays, cap, candidates) → scheduled` is a pure function: for each eligible
-candidate (§2), `remindOn = candidate.dueDate + effectiveDays` (plain calendar-day addition, no timezone, as
-`documents.md` §2's date arithmetic); the result is every `{ documentId, remindOn }` pair, sorted by `remindOn`
-ascending (ties broken by `documentId`), truncated to the first `cap` entries.
+`ReminderScheduler.plan(businessDefaultDays, cap, candidates, from) → scheduled` is a pure function: for each
+eligible candidate (§2), `remindOn = candidate.dueDate + effectiveDays` (plain calendar-day addition, no timezone, as
+`documents.md` §2's date arithmetic); pairs with `remindOn` before `from` are dropped; the result is every remaining
+`{ documentId, remindOn }` pair, sorted by `remindOn` ascending (ties broken by `documentId`), truncated to the first
+`cap` entries. Dropping happens **before** truncation: a reminder date that has already passed never takes one of
+the `cap` places, however many invoices are long overdue.
 
 - iOS calls this with `cap = 50`, since iOS allows at most 64 pending local notifications system-wide and this
   app reserves the nearest 50 for reminders (ADR-0013); the far-future remainder is picked up on a later
-  reconciliation pass instead of being scheduled now.
+  reconciliation pass instead of being scheduled now. iOS passes `from = today`: a notification cannot be
+  scheduled in the past, so a reminder date that passed while the app was not running is skipped, not delivered
+  late.
+- Android's daily job posts the reminders dated on or before today that it has not posted yet. It passes `from` =
+  the day after its last completed run (today on its first run), so a day on which the OS did not run the job is
+  still covered, but turning reminders on does not post a backlog of old dates at once.
 - **Reconciliation** re-runs the plan and replaces every pending local reminder with the new result. It runs:
   on app launch; after a payment is recorded (§`documents.md` §10); after a document is voided (§`documents.md`
   §11); after a due date, the business default, or a per-invoice override changes. It is a callable unit, not
   inlined into launch-only code, so a future sync pass (Phase 4b) can invoke it after remote changes without a
   rewrite — this spec does not define sync-triggered reconciliation.
-- A reminder that fires shows the invoice number, the client name and the outstanding amount.
+- A reminder that fires shows the invoice number, the client name and the outstanding amount (total minus the
+  live payments, `ENGINE.md` §6; never below 0): title `Payment reminder`, body
+  `{number}: {formatMoney(outstanding, currency: document.currency)} from {buyerSnapshot.name} is due.` (without
+  ` from {name}` when there is no `buyerSnapshot`). The amount is the outstanding amount when the notification is
+  scheduled (iOS) or posted (Android); a payment recorded later re-plans it (reconciliation above).
 
 ## 4. "Send reminder"
 
@@ -59,11 +70,13 @@ Hi {buyerSnapshot.contactName ?? buyerSnapshot.name}, this is a reminder that in
 ```
 
 `{upiLine}` is `" Pay via UPI: {upiLink}"` when `ENGINE.md` §9's UPI link is defined for this document (INR,
-UPI ID present, outstanding > 0), otherwise empty. A document without a `buyerSnapshot` (no client) uses
-"Hi there," instead of the greeting clause.
+UPI ID present, outstanding > 0), otherwise empty. Like the PDF's QR code, the seller name and the UPI ID come from
+the issued document's `sellerSnapshot` (`name`, `upiVpa`), never from the current business: a business renamed or
+given a new UPI ID after issuing does not change what its issued invoices say. A document without a
+`buyerSnapshot` (no client) uses "Hi there," instead of the greeting clause.
 
 ## 5. Fixtures
 
 `fixtures/reminders/*.json` (kind `reminder`) proves `ReminderScheduler.plan`: eligibility per derived status,
-override-vs-default precedence, a `null` effective days producing no reminder, and the `cap` truncation ordering
-by `remindOn`.
+override-vs-default precedence, a `null` effective days producing no reminder, the `cap` truncation ordering
+by `remindOn`, and dates before `from` dropped before truncation.

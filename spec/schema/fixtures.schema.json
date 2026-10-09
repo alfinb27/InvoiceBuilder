@@ -454,10 +454,11 @@
       "type": "object", "required": ["id", "input", "expected"], "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/$defs/id" },
-        "input": { "type": "object", "required": ["businessDefaultDays", "cap", "candidates"], "additionalProperties": false,
+        "input": { "type": "object", "required": ["businessDefaultDays", "cap", "from", "candidates"], "additionalProperties": false,
           "properties": {
             "businessDefaultDays": { "type": ["integer", "null"], "minimum": 0 },
             "cap": { "type": "integer", "minimum": 1 },
+            "from": { "$ref": "#/$defs/date" },
             "candidates": { "type": "array", "items": { "type": "object", "required": ["documentId", "status"], "additionalProperties": false,
               "properties": {
                 "documentId": { "type": "string" },

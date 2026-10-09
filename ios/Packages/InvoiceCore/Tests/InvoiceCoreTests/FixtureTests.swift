@@ -342,6 +342,7 @@ struct FixtureTests {
     struct ReminderPlanInput: Decodable {
         let businessDefaultDays: Int?
         let cap: Int
+        let from: String
         let candidates: [ReminderCandidateInput]
     }
 
@@ -355,8 +356,9 @@ struct FixtureTests {
                                                 dueDate: candidate.dueDate.flatMap(LocalDate.init(iso:)),
                                                 overrideDays: candidate.overrideDays, status: status))
         }
+        let from = try #require(LocalDate(iso: input.from))
         let scheduled = ReminderScheduler.plan(businessDefaultDays: input.businessDefaultDays, cap: input.cap,
-                                               candidates: candidates)
+                                               candidates: candidates, from: from)
         expectFixture(fixture, .object([
             "scheduled": .array(scheduled.map { .object(["documentId": .string($0.documentId),
                                                           "remindOn": .string($0.remindOn.iso)]) }),
