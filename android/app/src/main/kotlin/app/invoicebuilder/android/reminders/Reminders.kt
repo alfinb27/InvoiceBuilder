@@ -115,39 +115,60 @@ class ReminderReconciler(private val container: AppContainer, private val posted
         if (container.notifications.isAuthorized()) container.notifications.startDailyCheck() else container.notifications.stopDailyCheck()
     }
 
-    /** The daily job: every reminder planned for today or earlier that has not been shown yet. */
+    /**
+     * The daily job: every reminder dated today or earlier that has not been shown yet, from the date of the last
+     * completed run (never more than [CATCH_UP_DAYS] back), so a day the OS skipped is still covered but turning
+     * reminders on doesn't post a backlog (`spec/reminders.md` §3).
+     */
     suspend fun postDue(today: LocalDate = container.time.today()) {
         val device = container.deviceState.loadOrCreate(Build.MODEL)
         val business = BusinessSetup.activeBusiness(device.preferences, container.businesses.fetchBusinesses()) ?: return
         val candidates = container.documents.fetchReminderCandidates(business.id)
-        val planned = ReminderScheduler.plan(business.reminderDaysAfterDue, CAP, candidates)
+        val earliest = today.minusDays(CATCH_UP_DAYS)
+        val from = posted.lastRun?.let { if (it.isBefore(earliest)) earliest else minOf(it, today) } ?: today
+        val planned = ReminderScheduler.plan(business.reminderDaysAfterDue, CAP, candidates, from)
+        val formatter = SpecFormatter(container.reference.currencies)
         for (reminder in planned) {
             if (reminder.remindOn.isAfter(today)) continue
             val key = "${reminder.documentId}@${reminder.remindOn}"
             if (posted.contains(key)) continue
             val document = container.documents.fetchDocument(reminder.documentId) ?: continue
-            container.notifications.post(document.id, "Payment reminder", body(document, SpecFormatter(container.reference.currencies)))
+            val paid = container.payments.fetchPayments(document.id).sumOf { it.amountMinor }
+            container.notifications.post(document.id, "Payment reminder", body(document, paid, formatter))
             posted.add(key)
         }
+        posted.lastRun = today
     }
 
     companion object {
         const val CAP = 50
+        const val CATCH_UP_DAYS = 7L
 
-        /** "INV/26-27/0001: ₹11,800.00 from Rao Traders is due." */
-        fun body(document: Document, formatter: SpecFormatter): String {
-            val amount = formatter.money(maxOf(document.totals.totalMinor, 0), document.currency, document.currency)
+        /** "INV/26-27/0001: ₹6,800.00 from Rao Traders is due." — the outstanding amount, not the total. */
+        fun body(document: Document, paidMinor: Long, formatter: SpecFormatter): String {
+            val amount = formatter.money(maxOf(document.totals.totalMinor - paidMinor, 0), document.currency, document.currency)
             val who = document.buyerSnapshot?.name?.let { " from $it" } ?: ""
             return "${document.number ?: ""}: $amount$who is due."
         }
     }
 }
 
-/** Which reminders were already shown, so the daily job posts each once (≈ iOS's one-shot calendar triggers). */
+/**
+ * Which reminders were already shown, so the daily job posts each once (≈ iOS's one-shot calendar triggers), and the
+ * date of its last completed run.
+ */
 class PostedReminders(context: Context) {
     private val prefs = context.getSharedPreferences("posted_reminders", Context.MODE_PRIVATE)
     fun contains(key: String) = prefs.getBoolean(key, false)
     fun add(key: String) = prefs.edit { putBoolean(key, true) }
+
+    var lastRun: LocalDate?
+        get() = prefs.getString(LAST_RUN, null)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        set(value) = prefs.edit { if (value == null) remove(LAST_RUN) else putString(LAST_RUN, value.toString()) }
+
+    private companion object {
+        const val LAST_RUN = "lastRun"
+    }
 }
 
 class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -158,17 +179,23 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
     }
 }
 
-/** "Send reminder"'s message (`spec/reminders.md` §4), shared as text. iOS: `ReminderMessage`. */
+/**
+ * "Send reminder"'s message (`spec/reminders.md` §4), shared as text. The seller's name and UPI ID come from the issued
+ * document's `sellerSnapshot`, as on its PDF, not from the current business. iOS: `ReminderMessage`.
+ */
 object ReminderMessage {
     fun text(document: Document, paidMinor: Long, business: Business, money: (Long, CurrencyCode) -> String, dueText: String?): String {
         val outstanding = maxOf(document.totals.totalMinor - paidMinor, 0)
         val name = document.buyerSnapshot?.let { it.contactName ?: it.name }
         val greeting = if (name != null) "Hi $name," else "Hi there,"
+        // Every issued document has a seller snapshot; the business is only a fallback for one that somehow lacks it.
+        val seller = document.sellerSnapshot
+        val sellerName = seller?.name ?: business.name
         var text = "$greeting this is a reminder that invoice ${document.number ?: ""} for ${money(outstanding, document.currency)} " +
-            "from ${business.name} was due on ${dueText ?: "the due date"}."
-        val vpa = business.upiVpa?.trim()?.takeIf { it.isNotEmpty() }
+            "from $sellerName was due on ${dueText ?: "the due date"}."
+        val vpa = (if (seller != null) seller.upiVpa else business.upiVpa)?.trim()?.takeIf { it.isNotEmpty() }
         if (document.currency == CurrencyCode.INR && outstanding > 0 && vpa != null) {
-            text += " Pay via UPI: " + UPIPaymentLink.url(vpa, business.name, outstanding, document.number ?: "")
+            text += " Pay via UPI: " + UPIPaymentLink.url(vpa, sellerName, outstanding, document.number ?: "")
         }
         return "$text Thank you!"
     }

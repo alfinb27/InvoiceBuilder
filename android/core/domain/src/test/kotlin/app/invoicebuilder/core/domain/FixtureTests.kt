@@ -233,6 +233,7 @@ class FixtureTests {
         val scheduled = ReminderScheduler.plan(
             businessDefaultDays = fixture.input["businessDefaultDays"]?.jsonPrimitive?.contentOrNull?.toInt(),
             cap = fixture.long("cap").toInt(), candidates = candidates,
+            from = parseIsoDate(fixture.input["from"]!!.jsonPrimitive.content)!!,
         )
         expectFixture(fixture, obj("scheduled" to scheduled.map { mapOf("documentId" to it.documentId, "remindOn" to it.remindOn.toString()) }))
     }

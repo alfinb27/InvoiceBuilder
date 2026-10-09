@@ -18,15 +18,17 @@ data class ScheduledReminder(val documentId: String, val remindOn: LocalDate)
 object ReminderScheduler {
     /**
      * For each eligible candidate, `remindOn = dueDate + effectiveDays`. Eligible: one of the "still owed" statuses,
-     * a due date, and a non-null effective days (`overrideDays ?: businessDefaultDays`). Sorted by `remindOn`
-     * ascending (ties by `documentId`), truncated to the first [cap].
+     * a due date, and a non-null effective days (`overrideDays ?: businessDefaultDays`). Dates before [from] are
+     * dropped, then the rest are sorted by `remindOn` ascending (ties by `documentId`) and truncated to the first
+     * [cap], so a date that has already passed never takes one of the [cap] places.
      */
-    fun plan(businessDefaultDays: Int?, cap: Int, candidates: List<ReminderCandidate>): List<ScheduledReminder> =
+    fun plan(businessDefaultDays: Int?, cap: Int, candidates: List<ReminderCandidate>, from: LocalDate): List<ScheduledReminder> =
         candidates.mapNotNull { candidate ->
             val dueDate = candidate.dueDate ?: return@mapNotNull null
             val days = candidate.overrideDays ?: businessDefaultDays ?: return@mapNotNull null
             if (!isEligible(candidate.status)) return@mapNotNull null
-            ScheduledReminder(candidate.documentId, dueDate.plusDays(days.toLong()))
+            val remindOn = dueDate.plusDays(days.toLong())
+            if (remindOn.isBefore(from)) null else ScheduledReminder(candidate.documentId, remindOn)
         }.sortedWith(compareBy<ScheduledReminder>({ it.remindOn }, { it.documentId })).take(maxOf(cap, 0))
 
     /** An invoice still owed: not a draft (never issued), not paid, not void. */
