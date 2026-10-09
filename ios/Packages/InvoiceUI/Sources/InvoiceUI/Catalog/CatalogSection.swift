@@ -56,6 +56,7 @@ private struct CatalogList: View {
                 }
             }
         }
+        .themedList()
         .overlay {
             if model.state.isLoading {
                 ProgressView()
@@ -129,7 +130,7 @@ private struct CatalogRow: View {
                 Text(item.name).foregroundStyle(.primary)
                 if let code = item.productCode {
                     Text("\(session.config.labels.productCodeName) \(code)")
-                        .font(.subheadline)
+                        .font(Theme.Fonts.subhead)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -139,7 +140,7 @@ private struct CatalogRow: View {
                     .monospacedDigit()
                     .foregroundStyle(.primary)
                 Text(session.rate(item.rateId)?.label ?? item.rateId)
-                    .font(.subheadline)
+                    .font(Theme.Fonts.subhead)
                     .foregroundStyle(.secondary)
             }
         }
@@ -158,10 +159,10 @@ struct CatalogItemDetailView: View {
     var body: some View {
         Group {
             if let item {
-                Form {
+                ThemedForm {
                     Section {
                         VStack(alignment: .leading, spacing: Theme.Space.s) {
-                            Text(item.name).font(.title2.weight(.semibold))
+                            Text(item.name).font(Theme.Fonts.title3.weight(.semibold))
                             HStack {
                                 Tag(text: item.kind == .goods ? "Goods" : "Service")
                                 if item.isArchived { Tag(text: "Archived", color: Theme.textSecondary) }

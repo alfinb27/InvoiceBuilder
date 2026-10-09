@@ -14,7 +14,9 @@ struct SettingsSection: View {
                     Label(page.title, systemImage: page.symbol)
                         .badge(page == .backup && backupDue ? Text("Due") : nil)
                 }
+                .listRowBackground(Theme.surface)
             }
+            .themedList()
             .navigationTitle("Settings")
         } detail: {
             if let page = router.selection {
@@ -109,7 +111,7 @@ private struct BusinessProfilePage: View {
     }
 
     var body: some View {
-        Form {
+        ThemedForm {
             if model.state.attemptedSave, !model.issues.isEmpty {
                 Section { IssueText(message: "Check the highlighted fields.") }
             }
@@ -178,7 +180,7 @@ private struct DefaultsPage: View {
     }
 
     var body: some View {
-        Form {
+        ThemedForm {
             Section {
                 Stepper(value: $model.state.draft.paymentTermsDays, in: BusinessRules.paymentTermsRange) {
                     LabeledContent("Payment due", value: dueText)
@@ -293,7 +295,7 @@ private struct BusinessImagesPage: View {
     }
 
     var body: some View {
-        Form {
+        ThemedForm {
             ImagesFormSections(
                 logo: model.state.logo, signature: model.state.signature, isBusy: model.state.isBusy,
                 signatureNote: session.config.family == "IN"
@@ -329,7 +331,7 @@ private struct NumberingPage: View {
     }
 
     var body: some View {
-        Form {
+        ThemedForm {
             ForEach(model.state.series) { series in
                 Section {
                     LabeledContent("Next number", value: model.nextNumber(series))
@@ -340,7 +342,7 @@ private struct NumberingPage: View {
                         Button("Change numbering") { model.edit(series) }
                     } else {
                         Text("Numbered on another device. Only that device changes it.")
-                            .font(.footnote)
+                            .font(Theme.Fonts.footnote)
                             .foregroundStyle(Theme.textSecondary)
                     }
                 } header: {
@@ -373,7 +375,7 @@ private struct NumberingEditor: View {
     var body: some View {
         NavigationStack {
             if let draft = Binding($model.state.draft) {
-                Form {
+                ThemedForm {
                     Section {
                         LabeledContent("Next number") {
                             Text(model.preview ?? "—").monospacedDigit().fontWeight(.semibold)
@@ -450,7 +452,7 @@ private struct TaxRatesPage: View {
     }
 
     var body: some View {
-        Form {
+        ThemedForm {
             Section {
                 ForEach(model.rates) { rate in
                     Button {
@@ -496,7 +498,7 @@ private struct TaxRateEditor: View {
     var body: some View {
         NavigationStack {
             if let draft = Binding($model.state.draft) {
-                Form {
+                ThemedForm {
                     Section {
                         FormTextField(title: "Tax name", text: draft.name, prompt: "Sales tax",
                                       issue: message(.name, "tax name"), capitalization: .words)
@@ -541,7 +543,7 @@ private struct AboutPage: View {
     let session: Session
 
     var body: some View {
-        Form {
+        ThemedForm {
             Section("App") {
                 LabeledContent("Version", value: Self.version)
                 LabeledContent("Your data", value: "On this device")
@@ -555,9 +557,12 @@ private struct AboutPage: View {
             } footer: {
                 Text("Tax rules are built into the app and updated with it. Check invoices with your accountant.")
             }
+            Section {
+                NavigationLink("Fonts and licences") { LicencesPage() }
+            }
             Section("This device") {
                 LabeledContent("Device ID") {
-                    Text(session.deviceID).font(.caption.monospaced()).textSelection(.enabled)
+                    Text(session.deviceID).font(Theme.Fonts.caption.monospaced()).textSelection(.enabled)
                 }
             }
             Section {
@@ -581,6 +586,34 @@ private struct AboutPage: View {
         let short = info?["CFBundleShortVersionString"] as? String ?? "–"
         let build = info?["CFBundleVersion"] as? String ?? "–"
         return "\(short) (\(build))"
+    }
+}
+
+/// The open-source fonts the app and its PDFs use, with their licences (SIL Open Font License 1.1).
+private struct LicencesPage: View {
+    private let fonts: [(name: String, use: String, file: String)] = [
+        ("Bricolage Grotesque", "Headings and amounts", "design/fonts/OFL-BricolageGrotesque.txt"),
+        ("Figtree", "Text", "design/fonts/OFL-Figtree.txt"),
+        ("Noto Sans", "Invoices and quotes (PDF)", "pdf/fonts/OFL.txt"),
+    ]
+
+    var body: some View {
+        ThemedForm {
+            ForEach(fonts, id: \.name) { font in
+                Section {
+                    Text((try? String(contentsOf: SpecResources.url(font.file), encoding: .utf8)) ?? "")
+                        .font(Theme.Fonts.caption.weight(.regular))
+                        .foregroundStyle(Theme.textSecondary)
+                        .textSelection(.enabled)
+                } header: {
+                    Text(font.name)
+                } footer: {
+                    Text(font.use)
+                }
+            }
+        }
+        .navigationTitle("Fonts and licences")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

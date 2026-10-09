@@ -41,16 +41,16 @@ struct TotalsView: View {
         }
         if totals.taxNotCharged != 0 {
             Text("\(config.labels.taxName) of \(money(totals.taxNotCharged)) is payable by the client under reverse charge.")
-                .font(.footnote)
+                .font(Theme.Fonts.footnote)
                 .foregroundStyle(Theme.textSecondary)
         }
         if totals.roundOff != 0 { amountRow(config.rounding.grandTotal?.label ?? "Round off", totals.roundOff) }
         Divider()
         AdaptiveRow {
-            Text("Total").font(.headline)
+            Text("Total").font(Theme.Fonts.headline)
         } value: {
             Text(money(totals.total))
-                .font(.title3.weight(.semibold).monospacedDigit())
+                .font(Theme.Fonts.title3.weight(.semibold).monospacedDigit())
                 .accessibilityIdentifier("totalAmount")
         }
         .accessibilityElement(children: .combine)
@@ -58,7 +58,7 @@ struct TotalsView: View {
             let rate = SpecFormatter.quantity(home.rate)
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                 Text("In \(home.currency.rawValue) at \(rate) per \(currency.rawValue)")
-                    .font(.footnote.weight(.semibold))
+                    .font(Theme.Fonts.footnote.weight(.semibold))
                 homeRow("Taxable value", home.taxable, home.currency)
                 if home.tax != 0 { homeRow(config.labels.taxName, home.tax, home.currency) }
                 homeRow("Total", home.total, home.currency)
@@ -68,7 +68,7 @@ struct TotalsView: View {
         if config.amountInWords, currency == .inr {
             Text(AmountInWords.text(minor: totals.total, currency: currency,
                                     currencies: session.dependencies.reference.currencies))
-                .font(.footnote)
+                .font(Theme.Fonts.footnote)
                 .foregroundStyle(Theme.textSecondary)
         }
     }
@@ -80,14 +80,14 @@ struct TotalsView: View {
         return AdaptiveRow {
             VStack(alignment: .leading, spacing: 0) {
                 Text(name)
-                Text(detail).font(.caption).foregroundStyle(Theme.textSecondary)
+                Text(detail).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
             }
         } value: {
             VStack(alignment: .trailing, spacing: 0) {
                 Text(line.component == nil ? "—" : money(line.tax)).monospacedDigit()
                 if let homeTax = line.homeTax, line.component != nil {
                     Text(session.money(homeTax, currency: session.business.homeCurrency))
-                        .font(.caption.monospacedDigit())
+                        .font(Theme.Fonts.caption.monospacedDigit())
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -106,9 +106,9 @@ struct TotalsView: View {
 
     private func homeRow(_ title: String, _ minor: Int64, _ homeCurrency: CurrencyCode) -> some View {
         AdaptiveRow {
-            Text(title).font(.footnote)
+            Text(title).font(Theme.Fonts.footnote)
         } value: {
-            Text(session.money(minor, currency: homeCurrency)).font(.footnote.monospacedDigit())
+            Text(session.money(minor, currency: homeCurrency)).font(Theme.Fonts.footnote.monospacedDigit())
         }
     }
 
@@ -131,7 +131,7 @@ struct DocumentBanner: View {
                     .foregroundStyle(Theme.warning)
             }
         }
-        .font(.subheadline)
+        .font(Theme.Fonts.subhead)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("documentBanner")
     }

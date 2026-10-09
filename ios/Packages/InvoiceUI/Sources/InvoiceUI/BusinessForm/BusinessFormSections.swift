@@ -23,7 +23,7 @@ struct RegistrationSections: View {
                         VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                             Text(registration.label).foregroundStyle(Theme.textPrimary)
                             Text(Self.help(family: rules.config.family, registration: registration.id))
-                                .font(.footnote)
+                                .font(Theme.Fonts.footnote)
                                 .foregroundStyle(Theme.textSecondary)
                         }
                         Spacer()
@@ -78,35 +78,9 @@ struct RegistrationSections: View {
         issue(field).map { IssueMessages.text($0, field: name) }
     }
 
-    private var tierFooter: String {
-        let digits = rules.turnoverTiers[safe: draft.turnoverTier].map { tier in
-            tier.b2bDigits == 0 ? "no HSN/SAC code" : "a \(tier.b2bDigits)-digit HSN/SAC code"
-        } ?? ""
-        return "Your B2B invoices then need \(digits) on every line. We only store the band, never the amount."
-    }
+    private var tierFooter: String { TurnoverText(rules: rules, formatter: formatter).footer(tier: draft.turnoverTier) }
 
-    /// "Up to ₹5 crore" / "More than ₹5 crore", from the config's tier bounds (`spec/setup.md` §3.1).
-    private func tierLabel(_ index: Int) -> String {
-        let tiers = rules.turnoverTiers
-        let upper = tiers[index].maxTurnoverMinor
-        let lower = index > 0 ? tiers[index - 1].maxTurnoverMinor : nil
-        switch (lower, upper) {
-        case (nil, let upper?): return "Up to \(amount(upper))"
-        case (let lower?, nil): return "More than \(amount(lower))"
-        case (let lower?, let upper?): return "\(amount(lower)) to \(amount(upper))"
-        case (nil, nil): return "Any turnover"
-        }
-    }
-
-    private func amount(_ minor: Int64) -> String {
-        let currency = rules.config.currency ?? "USD"
-        if currency == .inr {
-            let symbol = formatter.currencies[.inr]?.symbol ?? "₹"
-            if minor % 1_000_000_000 == 0 { return "\(symbol)\(minor / 1_000_000_000) crore" }
-            if minor % 10_000_000 == 0 { return "\(symbol)\(minor / 10_000_000) lakh" }
-        }
-        return formatter.money(minor, currency: currency, homeCurrency: currency)
-    }
+    private func tierLabel(_ index: Int) -> String { TurnoverText(rules: rules, formatter: formatter).label(index) }
 
     static func help(family: String, registration: String) -> String {
         switch "\(family).\(registration)" {
@@ -119,6 +93,42 @@ struct RegistrationSections: View {
         case "GENERIC.notRegistered": "Your invoices show no tax."
         default: ""
         }
+    }
+}
+
+/// India's turnover bands, worded from the config's tier bounds (`spec/setup.md` §3.1).
+struct TurnoverText {
+    let rules: BusinessRules
+    let formatter: SpecFormatter
+
+    /// "Up to ₹5 crore" / "More than ₹5 crore".
+    func label(_ index: Int) -> String {
+        let tiers = rules.turnoverTiers
+        let upper = tiers[index].maxTurnoverMinor
+        let lower = index > 0 ? tiers[index - 1].maxTurnoverMinor : nil
+        switch (lower, upper) {
+        case (nil, let upper?): return "Up to \(amount(upper))"
+        case (let lower?, nil): return "More than \(amount(lower))"
+        case (let lower?, let upper?): return "\(amount(lower)) to \(amount(upper))"
+        case (nil, nil): return "Any turnover"
+        }
+    }
+
+    func footer(tier: Int) -> String {
+        let digits = rules.turnoverTiers[safe: tier].map { tier in
+            tier.b2bDigits == 0 ? "no HSN/SAC code" : "a \(tier.b2bDigits)-digit HSN/SAC code"
+        } ?? ""
+        return "Your B2B invoices then need \(digits) on every line. We only store the band, never the amount."
+    }
+
+    private func amount(_ minor: Int64) -> String {
+        let currency = rules.config.currency ?? "USD"
+        if currency == .inr {
+            let symbol = formatter.currencies[.inr]?.symbol ?? "₹"
+            if minor % 1_000_000_000 == 0 { return "\(symbol)\(minor / 1_000_000_000) crore" }
+            if minor % 10_000_000 == 0 { return "\(symbol)\(minor / 10_000_000) lakh" }
+        }
+        return formatter.money(minor, currency: currency, homeCurrency: currency)
     }
 }
 
@@ -295,7 +305,7 @@ struct RegionPicker: View {
                 VStack(alignment: .trailing) {
                     Text(regions.first { $0.code == lockedTo }?.name ?? lockedTo)
                     if let lockedReason {
-                        Text(lockedReason).font(.caption).foregroundStyle(Theme.textSecondary)
+                        Text(lockedReason).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
                     }
                 }
             }

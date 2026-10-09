@@ -91,7 +91,7 @@ struct ImageWell: View {
                     .background(Color.white) // images are shown on white, as on paper
             } else {
                 Image(systemName: placeholder)
-                    .font(.title2)
+                    .font(Theme.Fonts.title3)
                     .foregroundStyle(Theme.textTertiary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Theme.surfaceMuted)

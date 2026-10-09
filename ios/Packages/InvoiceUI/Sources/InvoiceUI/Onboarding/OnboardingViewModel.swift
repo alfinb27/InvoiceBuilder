@@ -2,15 +2,19 @@ import Foundation
 import InvoiceCore
 import Observation
 
-/// Onboarding (`spec/setup.md` §3): five steps over one `BusinessDraft`. Nothing is written until Finish, which
-/// creates the business, its images, its numbering series and the active-business preference in one transaction.
+/// Onboarding (`spec/setup.md` §3): a Welcome screen, then five steps over one `BusinessDraft` shown as three stages.
+/// Nothing is written until Finish, which creates the business, its images, its numbering series and the
+/// active-business preference in one transaction.
 @MainActor @Observable
 public final class OnboardingViewModel {
     public struct State: Equatable {
-        public var step: OnboardingStep = .country
+        public var showsWelcome = true
+        public var stage: OnboardingStage = .whereYouWork
         public var draft = BusinessDraft()
-        /// Steps where Continue was pressed: their missing-field problems are now shown.
+        /// Steps whose stage had Continue (or Finish) pressed: their missing-field problems are now shown.
         public var attempted: Set<OnboardingStep> = []
+        /// "Somewhere else" was chosen: the country search and home currency show.
+        public var picksOtherCountry = false
         public var countrySearch = ""
         public var logo: ImagePayload?
         public var signature: ImagePayload?
@@ -67,23 +71,30 @@ public final class OnboardingViewModel {
         if draft != state.draft { state.draft = draft }
     }
 
-    // MARK: Steps
+    // MARK: Stages
 
-    public var stepNumber: Int { state.step.rawValue + 1 }
+    public var stageNumber: Int { state.stage.rawValue + 1 }
+    public var stageCount: Int { OnboardingStage.allCases.count }
+    public var isLastStage: Bool { state.stage == OnboardingStage.allCases.last }
 
-    /// Step titles; the bank step mentions UPI only in India.
-    public func title(for step: OnboardingStep) -> String {
-        step == .bank && rules?.isIndia != true ? "Bank details" : step.title
+    public func title(for stage: OnboardingStage) -> String {
+        switch stage {
+        case .whereYouWork: "Where you work"
+        case .yourBusiness: "Your business"
+        case .gettingPaid: "Getting paid"
+        }
     }
-    public var stepCount: Int { OnboardingStep.allCases.count }
-    public var isLastStep: Bool { state.step == OnboardingStep.allCases.last }
 
     public func issues(for step: OnboardingStep) -> [BusinessField: FieldIssue] {
         guard let rules else { return step == .country ? [.country: .required] : [:] }
         return rules.issues(state.draft, steps: [step])
     }
 
-    /// The problem to show under a field: every problem once Continue was pressed on its step, none before.
+    public func issues(for stage: OnboardingStage) -> [BusinessField: FieldIssue] {
+        stage.steps.reduce(into: [:]) { all, step in all.merge(issues(for: step)) { first, _ in first } }
+    }
+
+    /// The problem to show under a field: every problem once Continue was pressed on its stage, none before.
     public func visibleIssue(_ field: BusinessField) -> FieldIssue? {
         guard let step = field.step, state.attempted.contains(step) else { return nil }
         return issues(for: step)[field]
@@ -101,30 +112,57 @@ public final class OnboardingViewModel {
         return .invalid(IssueMessages.text(.invalidTaxID(error), field: "", taxIDName: rules.config.labels.taxIdName))
     }
 
-    /// A step can be opened from the sidebar once every step before it is complete.
-    public func canVisit(_ step: OnboardingStep) -> Bool {
-        OnboardingStep.allCases.filter { $0 < step }.allSatisfy { issues(for: $0).isEmpty }
+    /// A stage can be opened from the sidebar once every stage before it is complete.
+    public func canVisit(_ stage: OnboardingStage) -> Bool {
+        OnboardingStage.allCases.filter { $0 < stage }.allSatisfy { issues(for: $0).isEmpty }
     }
 
-    public func go(to step: OnboardingStep) {
-        if canVisit(step) { state.step = step }
+    public func go(to stage: OnboardingStage) {
+        if canVisit(stage) { state.stage = stage }
+    }
+
+    /// "Let's get started" on the Welcome screen.
+    public func start() {
+        state.showsWelcome = false
     }
 
     public func continueTapped() {
-        state.attempted.insert(state.step)
-        guard issues(for: state.step).isEmpty,
-              let next = OnboardingStep(rawValue: state.step.rawValue + 1) else { return }
-        state.step = next
+        state.attempted.formUnion(state.stage.steps)
+        guard issues(for: state.stage).isEmpty,
+              let next = OnboardingStage(rawValue: state.stage.rawValue + 1) else { return }
+        state.stage = next
     }
 
+    /// Back: the previous stage; from the first one, the Welcome screen. Answers are kept.
     public func back() {
-        if let previous = OnboardingStep(rawValue: state.step.rawValue - 1) { state.step = previous }
+        if let previous = OnboardingStage(rawValue: state.stage.rawValue - 1) {
+            state.stage = previous
+        } else {
+            state.showsWelcome = true
+        }
     }
 
     // MARK: Country step
 
     public func selectCountry(_ code: String) {
         state.draft.countryCode = code
+        state.picksOtherCountry = !["IN", "GB"].contains(code)
+    }
+
+    /// "Somewhere else": clears India or the UK and shows the country search.
+    public func pickOtherCountry() {
+        state.picksOtherCountry = true
+        if let code = state.draft.countryCode, ["IN", "GB"].contains(code) { state.draft.countryCode = nil }
+    }
+
+    /// The country card that is selected: "IN", "GB", "other" or none.
+    public var countryCard: String? {
+        if let code = state.draft.countryCode, ["IN", "GB"].contains(code) { return code }
+        return state.picksOtherCountry || state.draft.countryCode != nil ? "other" : nil
+    }
+
+    public var countryName: String? {
+        state.draft.countryCode.flatMap { dependencies.reference.country(code: $0)?.name }
     }
 
     /// India and the UK first, then every country, filtered by the search text.
@@ -161,11 +199,19 @@ public final class OnboardingViewModel {
 
     // MARK: Finish
 
+    /// "Skip for now": finish without anything typed on the Getting paid stage.
+    public func skipAndFinish() async {
+        state.draft.clearGettingPaid()
+        state.logo = nil
+        state.signature = nil
+        await finish()
+    }
+
     public func finish() async {
         guard let rules else { return }
-        for step in OnboardingStep.allCases where !issues(for: step).isEmpty {
-            state.attempted.insert(step)
-            state.step = step
+        for stage in OnboardingStage.allCases where !issues(for: stage).isEmpty {
+            state.attempted.formUnion(stage.steps)
+            state.stage = stage
             return
         }
         state.isFinishing = true

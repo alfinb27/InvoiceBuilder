@@ -19,7 +19,7 @@ struct PaywallView: View {
                         .foregroundStyle(Theme.brand)
                         .frame(maxWidth: .infinity)
                     Text(headline)
-                        .font(.title2.weight(.semibold))
+                        .font(Theme.Fonts.title3.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
                     Text(detail)
@@ -27,7 +27,7 @@ struct PaywallView: View {
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
                     VStack(alignment: .leading, spacing: Theme.Space.s) {
-                        benefit("Issue as many invoices as you need", symbol: "doc.badge.plus")
+                        benefit("Send as many invoices as you need", symbol: "doc.badge.plus")
                         benefit("One payment, no subscription", symbol: "creditcard")
                         benefit("On every device with your Apple ID, family included", symbol: "person.2")
                         benefit("Your invoices, quotes and backups were never locked", symbol: "lock.open")
@@ -35,7 +35,7 @@ struct PaywallView: View {
                     .padding(.vertical, Theme.Space.s)
                     actions
                     Text("A one-time purchase. Payment is charged to your Apple ID account at confirmation.")
-                        .font(.footnote)
+                        .font(Theme.Fonts.footnote)
                         .foregroundStyle(Theme.textTertiary)
                 }
                 .padding(Theme.Space.l)
@@ -73,7 +73,7 @@ struct PaywallView: View {
             .accessibilityIdentifier("paywall.buy")
             if status.displayPrice == nil {
                 Text("The App Store can't be reached right now.")
-                    .font(.footnote)
+                    .font(Theme.Fonts.footnote)
                     .foregroundStyle(Theme.textSecondary)
             }
         }
@@ -102,7 +102,7 @@ struct PaywallView: View {
 
     private var detail: String {
         status.isUnlocked
-            ? "Thank you. Issue as many invoices as you need."
+            ? "Thank you. Send as many invoices as you need."
             : "Unlock unlimited invoices once, on every device you use."
     }
 
@@ -117,7 +117,7 @@ struct UnlockPage: View {
     @State private var showsPaywall = false
 
     var body: some View {
-        Form {
+        ThemedForm {
             Section {
                 LabeledContent("Status", value: statusText)
                     .accessibilityIdentifier("unlock.status")

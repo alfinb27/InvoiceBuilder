@@ -16,6 +16,8 @@ public final class Session {
     public let formatter: SpecFormatter
     /// Renders and caches the PDFs the preview, sharing and printing use (`spec/pdf/RENDERING.md`).
     let pdfLibrary: PDFLibrary
+    /// The "Add an item" sheet's rate chips (`spec/design/rate-chips.json`).
+    let rateChips = (try? RateChips.bundled()) ?? RateChips(maxChips: 4, families: [:])
     /// The unlock and the free-tier count, kept current by `observeEntitlements()` (`spec/billing.md`).
     public internal(set) var entitlement = EntitlementStatus(state: .unknown, count: 0)
     /// A sample business in an in-memory database (onboarding's "Try it with a sample business"); nothing is saved.

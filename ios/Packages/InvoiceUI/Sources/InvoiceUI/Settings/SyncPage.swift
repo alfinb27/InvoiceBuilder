@@ -80,7 +80,7 @@ struct SyncPage: View {
     }
 
     var body: some View {
-        Form {
+        ThemedForm {
             Section {
                 Label(model.statusText, systemImage: model.symbol)
                     .accessibilityIdentifier("sync.status")
