@@ -53,6 +53,7 @@ const DATA_SCHEMAS = [
   [/^pdf\/labels\/[a-z]{2,3}(-[A-Z]{2})?\.json$/, "pdf-labels.schema.json"],
   [/^pdf\/layout\/[a-z]+\.json$/, "pdf-layout.schema.json"],
   [/^design\/tokens\.json$/, "design-tokens.schema.json"],
+  [/^design\/rate-chips\.json$/, "rate-chips.schema.json"],
 ];
 const CHECKED_BELOW = [/^schema\//, /^tax\//, /^fixtures\//, /^samples\//, /^tools\//];
 for (const f of walk(SPEC)) {
@@ -117,6 +118,68 @@ for (const [f, layout] of layouts) {
 }
 for (const id of templateIDs) {
   if (!layouts.some(([, layout]) => layout.id === id)) fail(layoutDir, `no layout file for template "${id}"`);
+}
+
+// ---------- design tokens: contrast and font files (docs/design/design.md §8, ADR-0020) ----------
+const tokensFile = join(SPEC, "design/tokens.json");
+const tokens = readJSON(tokensFile);
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const luminance = (hex) => {
+  const [r, g, b] = rgb(hex).map((v) => v / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+const tint = (fg, bg, alpha) => `#${rgb(fg).map((f, i) => Math.round(alpha * f + (1 - alpha) * rgb(bg)[i])
+  .toString(16).padStart(2, "0")).join("")}`;
+// Text drawn on a fill; each pair must reach 4.5:1 in both themes.
+const TEXT_PAIRS = [
+  ["textPrimary", "background"], ["textPrimary", "surface"], ["textPrimary", "brandTint"], ["textPrimary", "tip"],
+  ["textPrimary", "surfaceSubtle"], ["textPrimary", "surfaceMuted"], ["textSecondary", "background"],
+  ["textSecondary", "surface"], ["textSecondary", "surfaceMuted"], ["textSecondary", "surfaceSubtle"],
+  ["textSecondary", "brandTint"], ["brand", "background"], ["brand", "surface"], ["brandOn", "brand"],
+  ["brandPressed", "brandTint"], ["tipOn", "tip"], ["success", "background"], ["warning", "background"],
+  ["danger", "background"], ["info", "background"], ["success", "surface"], ["warning", "surface"],
+  ["danger", "surface"], ["info", "surface"],
+];
+if (tokens?.color) {
+  for (const theme of ["light", "dark"]) {
+    const palette = tokens.color[theme] ?? {};
+    for (const [fg, bg] of TEXT_PAIRS) {
+      if (!palette[fg] || !palette[bg]) continue; // the schema reports missing keys
+      const ratio = contrast(palette[fg], palette[bg]);
+      if (ratio < 4.5) fail(tokensFile, `${theme}: ${fg} on ${bg} is ${ratio.toFixed(2)}:1, below 4.5:1`);
+    }
+    for (const [status, pair] of Object.entries(tokens.status ?? {})) {
+      if (!Array.isArray(pair)) continue;
+      const color = pair[theme === "light" ? 0 : 1];
+      for (const ground of ["background", "surface"]) {
+        if (!palette[ground]) continue;
+        const ratio = contrast(color, tint(color, palette[ground], 0.12));
+        if (ratio < 4.5) fail(tokensFile, `${theme}: status ${status} on its chip over ${ground} is ${ratio.toFixed(2)}:1, below 4.5:1`);
+      }
+    }
+  }
+  for (const role of Object.values(tokens.fonts ?? {})) {
+    if (typeof role !== "object") continue;
+    for (const name of Object.values(role.files ?? {}))
+      if (!statSync(join(SPEC, "design/fonts", `${name}.ttf`), { throwIfNoEntry: false }))
+        fail(tokensFile, `font file design/fonts/${name}.ttf is missing`);
+  }
+  for (const [name, style] of Object.entries(tokens.type ?? {}))
+    if (!tokens.fonts?.[style.font]) fail(tokensFile, `type.${name}: unknown font "${style.font}"`);
+}
+
+// ---------- rate chips: every id is a rate of its config family ----------
+const chipsFile = join(SPEC, "design/rate-chips.json");
+const chips = readJSON(chipsFile);
+for (const [family, entry] of Object.entries(chips?.families ?? {})) {
+  const familyConfigs = Object.entries(configs).filter(([key]) => key.split("@")[0] === family).map(([, c]) => c);
+  if (!familyConfigs.length) { fail(chipsFile, `unknown config family ${family}`); continue; }
+  for (const id of entry.rates ?? [])
+    if (!familyConfigs.some((c) => c.rates.some((r) => r.id === id))) fail(chipsFile, `${family}: rate "${id}" is not in its config`);
 }
 
 const countries = readJSON(join(SPEC, "reference/countries.json"))?.countries ?? [];

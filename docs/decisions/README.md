@@ -20,5 +20,6 @@
 | [0017](ADR-0017-ios-release-and-lessons-for-android.md) | iOS 1.0 scope; lessons the Android port inherits | Accepted |
 | [0018](ADR-0018-android-ui-architecture.md) | Android UI as iOS: routers + snapshot state; compile/target SDK 37 | Accepted |
 | [0019](ADR-0019-device-identity-across-os-backups.md) | A device marker outside OS backups; a copied database takes a new device id | Accepted |
+| [0020](ADR-0020-friendly-first-run-and-visual-design.md) | Friendly first run (welcome, 3-stage setup, guided builder, Review & send) and the coral/peach theme with bundled UI fonts | Accepted |
 
 New decisions: copy [`TEMPLATE.md`](TEMPLATE.md) to the next number.
