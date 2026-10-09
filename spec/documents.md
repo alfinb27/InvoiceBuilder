@@ -104,8 +104,9 @@ Lines are added and edited in one sheet (ADR-0020, `docs/design/design.md` §6.5
   force, at most `maxChips`. Every other rate in force is under "Other rates" (`rateChoices`). The line's rate starts
   as `oneOffRateID` (§3). Not shown when the seller's registration does not charge tax.
 - **"My price already includes {taxName}"** (shown only when the registration charges tax) says how the typed price
-  is read. It starts as `document.pricesIncludeTax`. When the draft has **no lines yet**, the switch sets
-  `document.pricesIncludeTax` and the typed price is the line's `unitPriceMinor` as typed. Otherwise, when the switch
+  is read. It starts as `document.pricesIncludeTax`. When the draft has **no other line** (the first line, or the only
+  line being edited), the switch sets `document.pricesIncludeTax` and the typed price is the line's `unitPriceMinor` as
+  typed. Otherwise, when the switch
   differs from `document.pricesIncludeTax`, the typed price is converted to the document's basis with the §3.1 basis
   factor `b` of the chosen rate and one rounding (`round(price × b, amountMode)`), exactly as a catalogue item with
   `priceIncludesTax` = the switch.
@@ -202,7 +203,8 @@ Channels: **WhatsApp** (Android: WhatsApp with the PDF when it is installed, els
 sheet, where WhatsApp is one tap, as iOS can't hand a PDF to one chosen app), **Email** (a new
 email to the buyer snapshot's `email` with the PDF attached, else the share sheet), **Print** (the system print
 dialog) and **Save PDF** (the system "save to files" picker); the share sheet is also always available from the
-preview.
+preview. The shared file is named "{Invoice|Quote} {number}.pdf" with each `/` of the number as `-`
+("Invoice INV-26-27-0001.pdf"); a draft's is "{Invoice|Quote} draft.pdf".
 
 Sharing, printing or saving an issued document's PDF offers to mark it as **sent**: `sentAt` is set to the moment
 the user accepts, and the derived status becomes `sent` (`ENGINE.md` §6). The prompt appears whenever an issued
