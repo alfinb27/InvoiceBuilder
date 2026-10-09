@@ -18,8 +18,10 @@ import app.invoicebuilder.core.domain.repositories.NumberingService
 import app.invoicebuilder.core.domain.support.IDGenerator
 import app.invoicebuilder.core.domain.support.TimeSource
 import app.invoicebuilder.core.domain.tax.TaxConfigStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /** Export and "replace all" restore (`spec/backup.md`). iOS: `GRDBBackupService`. */
@@ -39,7 +41,9 @@ class RoomBackupService(
     }
 
     override suspend fun writeSafetySnapshot() {
-        snapshots.write(makeBackup(BackupFile.AppInfo("android", "snapshot")), time.now())
+        val file = makeBackup(BackupFile.AppInfo("android", "snapshot"))
+        // Encoding every row to JSON and writing it is seconds of work on a large database: never on the main thread.
+        withContext(Dispatchers.IO) { snapshots.write(file, time.now()) }
     }
 
     override suspend fun restore(file: BackupFile, deviceID: String) {

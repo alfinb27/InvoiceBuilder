@@ -89,16 +89,23 @@ class BackupViewModel(
 
     // Restore (§4)
 
-    /** A file picked or opened from another app (§6). */
+    /** A file picked or opened from another app (§6): read and validated off the main thread, then previewed. */
     fun open(uri: Uri, resolver: ContentResolver) {
         scope.launch {
-            val bytes = withContext(Dispatchers.IO) { runCatching { resolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() }
-            if (bytes == null) errorMessage = BackupText.unreadable else load(bytes)
+            isWorking = true
+            try {
+                val bytes = withContext(Dispatchers.IO) { runCatching { resolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() }
+                if (bytes == null) errorMessage = BackupText.unreadable else load(bytes)
+            } finally {
+                isWorking = false
+            }
         }
     }
 
-    fun load(bytes: ByteArray) {
-        when (val result = BackupCodec.validate(bytes, container.backup.schemaVersion)) {
+    /** Decoding and checking a whole backup is heavy JSON work: on a background thread (≈ a detached task on iOS). */
+    private suspend fun load(bytes: ByteArray) {
+        val schemaVersion = container.backup.schemaVersion
+        when (val result = withContext(Dispatchers.Default) { BackupCodec.validate(bytes, schemaVersion) }) {
             is Outcome.Success -> pendingRestore = result.value
             is Outcome.Failure -> errorMessage = BackupText.message(result.error.code)
         }
