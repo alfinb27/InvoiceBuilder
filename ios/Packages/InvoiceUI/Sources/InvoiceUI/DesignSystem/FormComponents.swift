@@ -3,7 +3,10 @@ import SwiftUI
 
 /// A form row: a caption label above a text field, with the field's problem underneath. VoiceOver reads the label,
 /// the value and the problem as one element.
-struct FormTextField: View {
+///
+/// `focus`/`focusValue` put `.focused` on the text field itself: on the container it only works from iOS 27, so
+/// Return-to-next-field (`onSubmit { focus = … }`) did nothing on iOS 18–26.
+struct FormTextField<Focus: Hashable>: View {
     let title: String
     @Binding var text: String
     var prompt: String?
@@ -13,6 +16,8 @@ struct FormTextField: View {
     var contentType: UITextContentType?
     var autocorrect = true
     var axis: Axis = .horizontal
+    var focus: FocusState<Focus?>.Binding?
+    var focusValue: Focus?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xxs) {
@@ -27,6 +32,7 @@ struct FormTextField: View {
                 .textContentType(contentType)
                 .autocorrectionDisabled(!autocorrect)
                 .lineLimit(axis == .vertical ? 1...6 : 1...1)
+                .modifier(FieldFocus(focus: focus, value: focusValue))
                 .accessibilityLabel(title)
                 .accessibilityHint(issue ?? "")
             if let issue {
@@ -34,6 +40,31 @@ struct FormTextField: View {
             }
         }
         .padding(.vertical, Theme.Space.xxs)
+    }
+}
+
+extension FormTextField where Focus == Never {
+    /// A field nothing moves focus to.
+    init(title: String, text: Binding<String>, prompt: String? = nil, issue: String? = nil,
+         keyboard: UIKeyboardType = .default, capitalization: TextInputAutocapitalization = .sentences,
+         contentType: UITextContentType? = nil, autocorrect: Bool = true, axis: Axis = .horizontal) {
+        self.init(title: title, text: text, prompt: prompt, issue: issue, keyboard: keyboard,
+                  capitalization: capitalization, contentType: contentType, autocorrect: autocorrect, axis: axis,
+                  focus: nil, focusValue: nil)
+    }
+}
+
+/// `.focused(_:equals:)` when there is a binding to focus with.
+private struct FieldFocus<Focus: Hashable>: ViewModifier {
+    let focus: FocusState<Focus?>.Binding?
+    let value: Focus?
+
+    func body(content: Content) -> some View {
+        if let focus, let value {
+            content.focused(focus, equals: value)
+        } else {
+            content
+        }
     }
 }
 

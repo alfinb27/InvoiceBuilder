@@ -25,15 +25,14 @@ struct LineEditorView: View {
                 }
                 Section {
                     FormTextField(title: "Description", text: text(\.description), prompt: "What you're charging for",
-                                  issue: message(.description, "description"))
-                        .focused($focus, equals: .description)
+                                  issue: message(.description, "description"), focus: $focus, focusValue: .description)
                         .submitLabel(.next)
                         .onSubmit { focus = .quantity }
                         .accessibilityIdentifier("lineDescription")
                     HStack(alignment: .top) {
                         FormTextField(title: "Quantity", text: text(\.quantityText),
-                                      issue: message(.quantity, "quantity"), keyboard: .decimalPad)
-                            .focused($focus, equals: .quantity)
+                                      issue: message(.quantity, "quantity"), keyboard: .decimalPad,
+                                      focus: $focus, focusValue: .quantity)
                             .submitLabel(.next)
                             .onSubmit { focus = .price }
                             .accessibilityIdentifier("lineQuantity")
@@ -46,8 +45,8 @@ struct LineEditorView: View {
                         .labelsHidden()
                     }
                     FormTextField(title: priceTitle, text: text(\.priceText), prompt: "0.00",
-                                  issue: message(.price, "price"), keyboard: .decimalPad)
-                        .focused($focus, equals: .price)
+                                  issue: message(.price, "price"), keyboard: .decimalPad,
+                                  focus: $focus, focusValue: .price)
                         .submitLabel(.next)
                         .onSubmit { focus = .discount }
                         .accessibilityIdentifier("linePrice")

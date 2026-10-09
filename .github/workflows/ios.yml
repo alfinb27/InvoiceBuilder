@@ -37,6 +37,9 @@ jobs:
           name=$(xcrun simctl list devices available | grep -m1 -oE 'iPhone [0-9]+( Pro)?' || true)
           echo "Using simulator: $name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
+          # Boot it now and wait: a cold first boot during the UI tests drops taps and measures half-drawn screens.
+          xcrun simctl boot "$name" || true
+          xcrun simctl bootstatus "$name" -b
       - name: PDF renderer tests
         run: make test-pdf-ios SIM="${{ steps.sim.outputs.name }}"
       - name: InvoiceUI view-model tests
