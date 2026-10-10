@@ -12,6 +12,8 @@ struct ReviewSendView: View {
     @State private var thumbnail: UIImage?
     @State private var fullPreview: DocumentPreviewViewModel?
     @Environment(\.dynamicTypeSize) private var typeSize
+    /// The channel icon's circle grows with the label under it.
+    @ScaledMetric(relativeTo: .body) private var channelIcon: CGFloat = 36
 
     private var document: InvoiceCore.Document { model.state.document }
     private var noun: String { DocumentText.noun(document.docType) }
@@ -66,16 +68,19 @@ struct ReviewSendView: View {
         HStack(alignment: .center, spacing: Theme.Space.m + 2) {
             page
             VStack(alignment: .leading, spacing: 3) {
-                Text(recipientLine).font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
-                Text(model.computed.map { session.money($0.totals.total, currency: document.currency) } ?? "—")
-                    .font(Theme.Fonts.amountLarge)
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text(itemsLine).font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
-                if let dateLine {
-                    Text(dateLine).font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
+                // One element for VoiceOver: who, how much, how many and when.
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(recipientLine).font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
+                    Text(model.computed.map { session.money($0.totals.total, currency: document.currency) } ?? "—")
+                        .font(Theme.Fonts.amountLarge)
+                        .foregroundStyle(Theme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(itemsLine).font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
+                    if let dateLine {
+                        Text(dateLine).font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
+                    }
                 }
+                .accessibilityElement(children: .combine)
                 Button("See full \(noun)") { openFullPreview() }
                     .buttonStyle(.textLink)
                     .accessibilityIdentifier("review.seeFull")
@@ -144,27 +149,33 @@ struct ReviewSendView: View {
     // MARK: Channel
 
     private var channels: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Space.s),
-                            count: typeSize.isAccessibilitySize ? 2 : 4)
-        return LazyVGrid(columns: columns, spacing: Theme.Space.s) {
+        // Four tiles in a row; one row each, icon then label, at accessibility text sizes.
+        let stacked = typeSize.isAccessibilitySize
+        let rowLayout = stacked ? AnyLayout(VStackLayout(spacing: Theme.Space.s))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: Theme.Space.s))
+        let tileLayout = stacked ? AnyLayout(HStackLayout(spacing: Theme.Space.m))
+            : AnyLayout(VStackLayout(spacing: 6))
+        return rowLayout {
             ForEach(SendChannel.allCases) { option in
                 Button {
                     channel = option
                 } label: {
-                    VStack(spacing: 6) {
+                    tileLayout {
                         Image(systemName: option.symbol)
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.body.weight(.semibold))
                             .foregroundStyle(channel == option ? Theme.brandOn : Theme.textPrimary)
-                            .frame(width: 36, height: 36)
+                            .frame(width: channelIcon, height: channelIcon)
                             .background(channel == option ? Theme.brand : Theme.surfaceMuted, in: Circle())
                         Text(option.label)
                             .font(Theme.Fonts.caption)
                             .foregroundStyle(Theme.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .multilineTextAlignment(stacked ? .leading : .center)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if stacked { Spacer(minLength: 0) }
                     }
-                    .frame(maxWidth: .infinity, minHeight: 76)
+                    .frame(maxWidth: .infinity, minHeight: stacked ? nil : 76)
                     .padding(.vertical, Theme.Space.xs)
+                    .padding(.horizontal, stacked ? Theme.Space.m : 0)
                     .background(channel == option ? Theme.brandTint : Theme.surface,
                                 in: RoundedRectangle(cornerRadius: Theme.Radius.l))
                     .overlay(RoundedRectangle(cornerRadius: Theme.Radius.l)

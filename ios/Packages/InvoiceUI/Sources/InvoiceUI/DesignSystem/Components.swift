@@ -293,8 +293,8 @@ struct Overline: View {
     var body: some View {
         Text(text.uppercased())
             .font(Theme.Fonts.overline)
-            .tracking(Theme.Fonts.tracking("overline"))
             .foregroundStyle(Theme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
     }
 }
@@ -341,7 +341,6 @@ struct SteppedProgress: View {
                     Text(stage)
                         .font(Theme.Fonts.caption.weight(index == current ? .bold : .medium))
                         .foregroundStyle(index == current ? Theme.textPrimary : Theme.textSecondary)
-                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -430,6 +429,8 @@ struct Avatar: View {
     let name: String
     var size: CGFloat = 40
     var style: Style = .brand
+    /// The circle grows with Dynamic Type, like the initials inside it.
+    @ScaledMetric(relativeTo: .subheadline) private var scale: CGFloat = 1
 
     enum Style { case brand, tip }
 
@@ -437,7 +438,7 @@ struct Avatar: View {
         Text(Self.initials(name))
             .font(Theme.Fonts.subhead.weight(.bold))
             .foregroundStyle(style == .brand ? Theme.brandPressed : Theme.tipOn)
-            .frame(width: size, height: size)
+            .frame(width: size * scale, height: size * scale)
             .background(style == .brand ? Theme.brandTint : Theme.tip, in: Circle())
             .accessibilityHidden(true)
     }
@@ -533,16 +534,18 @@ struct QuantityStepper: View {
     var body: some View {
         HStack(spacing: 0) {
             stepButton("minus", label: "Fewer", action: decrement)
-            TextField(accessibilityName, text: $text.decimalPadInput())
+            TextField(accessibilityName, text: $text.decimalPadInput(),
+                      prompt: Text("0").foregroundStyle(Theme.textSecondary)) // the name would not fit between the buttons
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
                 .font(Theme.Fonts.button)
                 .foregroundStyle(Theme.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: Theme.Layout.minTouchTarget)
                 .accessibilityLabel(accessibilityName)
             stepButton("plus", label: "More", action: increment)
         }
         .padding(.horizontal, 3)
-        .frame(height: Theme.Layout.inputHeight)
+        .frame(minHeight: Theme.Layout.inputHeight)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.input))
         .overlay(RoundedRectangle(cornerRadius: Theme.Radius.input).strokeBorder(Theme.borderStrong, lineWidth: 1.5))
     }
@@ -586,7 +589,6 @@ struct FieldLabel: View {
 
     var body: some View {
         Text(text).font(Theme.Fonts.subhead.weight(.bold)).foregroundStyle(Theme.textPrimary)
-            .accessibilityHidden(true)
     }
 }
 
@@ -597,8 +599,8 @@ struct EmptyStatTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xs) {
-            Text(amount).font(Theme.Fonts.title3).foregroundStyle(Theme.textPrimary).lineLimit(1)
-                .minimumScaleFactor(0.6)
+            Text(amount).font(Theme.Fonts.title3).foregroundStyle(Theme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
             Text(label).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -620,7 +622,7 @@ struct StatTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xs) {
             Text(amount).font(Theme.Fonts.title3.monospacedDigit()).foregroundStyle(emphasis ?? Theme.textPrimary)
-                .lineLimit(1).minimumScaleFactor(0.5)
+                .fixedSize(horizontal: false, vertical: true)
             Text(label).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

@@ -705,6 +705,7 @@ private struct TotalsBar: View {
     @Bindable var model: DocumentViewModel
     let session: Session
     @Binding var showsBreakdown: Bool
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var currency: CurrencyCode { model.state.document.currency }
 
@@ -737,30 +738,32 @@ private struct TotalsBar: View {
             } label: {
                 VStack(spacing: 6) {
                     let totals = computed.totals
-                    row("Subtotal", totals.subtotal)
-                    if totals.discount != 0 { row("Discount", -totals.discount) }
-                    if totals.shipping != 0 { row("Shipping", totals.shipping) }
-                    if computed.chargesTax, totals.tax != 0 {
+                    // At accessibility text sizes the pinned bar keeps only the total; the breakdown is a tap away.
+                    let showsParts = !typeSize.isAccessibilitySize
+                    if showsParts { row("Subtotal", totals.subtotal) }
+                    if showsParts, totals.discount != 0 { row("Discount", -totals.discount) }
+                    if showsParts, totals.shipping != 0 { row("Shipping", totals.shipping) }
+                    if showsParts, computed.chargesTax, totals.tax != 0 {
                         HStack(spacing: 6) {
                             Text(taxLabel(computed))
                             Badge(text: computed.inclusive ? "included" : "added for you")
-                            Spacer()
+                                .fixedSize()
+                            Spacer(minLength: Theme.Space.s)
                             Text(money(totals.tax)).monospacedDigit()
+                                .fixedSize()
                         }
                         .font(Theme.Fonts.subhead)
                         .foregroundStyle(Theme.textSecondary)
                     }
-                    if totals.roundOff != 0 {
+                    if showsParts, totals.roundOff != 0 {
                         row(model.config.rounding.grandTotal?.label ?? "Round off", totals.roundOff)
                     }
-                    HStack(alignment: .firstTextBaseline) {
+                    AdaptiveRow { // stacked at accessibility text sizes, so the amount never shrinks or wraps
                         Text("Total").font(Theme.Fonts.headline).foregroundStyle(Theme.textPrimary)
-                        Spacer()
+                    } value: {
                         Text(money(totals.total))
                             .font(Theme.Fonts.amountLarge)
                             .foregroundStyle(Theme.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
                             .accessibilityIdentifier("totalAmount")
                     }
                     .padding(.top, 2)
@@ -793,8 +796,9 @@ private struct TotalsBar: View {
     private func row(_ title: String, _ minor: Int64) -> some View {
         HStack {
             Text(title)
-            Spacer()
+            Spacer(minLength: Theme.Space.s)
             Text(money(minor)).monospacedDigit()
+                .fixedSize()
         }
         .font(Theme.Fonts.subhead)
         .foregroundStyle(Theme.textSecondary)

@@ -143,7 +143,7 @@ final class ScreenshotTour: XCTestCase {
         app.buttons["homeNewInvoice"].tap()
         app.chooseClient("Rao Traders")
         app.openAddItem().tap()
-        app.buttons["Something new"].tap()
+        app.segmentedControls["addItemTabs"].buttons["New"].tap() // the short tab names at accessibility sizes
         snapshot("51-add-item-large-text", app)
         app.buttons["Cancel"].firstMatch.tap()
         snapshot("52-builder-large-text", app)

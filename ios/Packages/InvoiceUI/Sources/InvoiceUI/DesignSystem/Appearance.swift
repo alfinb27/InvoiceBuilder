@@ -39,6 +39,7 @@ enum ThemeAppearance {
 
         let tabFont = AppFonts.uiFont(family: text, weight: .semibold, size: 11, relativeTo: .caption2)
         UITabBarItem.appearance().setTitleTextAttributes([.font: tabFont], for: .normal)
+        UITabBar.appearance().unselectedItemTintColor = Theme.uiColor(\.textSecondary) // `design.md` §5: inactive tabs
 
         let segment = UISegmentedControl.appearance()
         segment.setTitleTextAttributes(

@@ -6,6 +6,8 @@ private enum AddItemTab: String, CaseIterable {
     case saved, new
 
     var label: String { self == .saved ? "My saved items" : "Something new" }
+    /// At accessibility text sizes, so the segments never truncate.
+    var shortLabel: String { self == .saved ? "Saved" : "New" }
 }
 
 /// Adding and editing a line (`spec/documents.md` §3.2, `docs/design/design.md` §6.5): "My saved items" adds
@@ -36,7 +38,9 @@ struct AddItemSheet: View {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
                     if isNew {
                         Picker("Add from", selection: $tab) {
-                            ForEach(AddItemTab.allCases, id: \.self) { Text($0.label).tag($0) }
+                            ForEach(AddItemTab.allCases, id: \.self) {
+                                Text(typeSize.isAccessibilitySize ? $0.shortLabel : $0.label).tag($0)
+                            }
                         }
                         .pickerStyle(.segmented)
                         .accessibilityIdentifier("addItemTabs")
@@ -122,8 +126,10 @@ struct AddItemSheet: View {
         } else {
             HStack(spacing: Theme.Space.s) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
-                TextField("Search by name or \(config.labels.productCodeName)", text: $query)
+                TextField("Search your saved items", text: $query,
+                          prompt: Text("Name or \(config.labels.productCodeName)").foregroundStyle(Theme.textSecondary))
                     .autocorrectionDisabled()
+                    .accessibilityAddTraits(.isSearchField)
             }
             .inputBox()
             VStack(spacing: 0) {
@@ -226,7 +232,7 @@ struct AddItemSheet: View {
             VStack(alignment: .leading, spacing: 6) {
                 FieldLabel(text: "Price for one")
                 HStack(spacing: 6) {
-                    Text(currencySymbol).foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
+                    Text(currencySymbol).foregroundStyle(Theme.textSecondary)
                     TextField("Price for one", text: text(\.priceText).decimalPadInput(),
                               prompt: Text("0").foregroundStyle(Theme.textSecondary))
                         .keyboardType(.decimalPad)
@@ -279,11 +285,13 @@ struct AddItemSheet: View {
                         }
                     } label: {
                         Text("Other rates").font(Theme.Fonts.footnote.weight(.semibold))
+                            .frame(minWidth: Theme.Layout.minTouchTarget, minHeight: Theme.Layout.minTouchTarget)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityIdentifier("lineOtherRates")
                 }
             }
-            if chips.count <= 4 {
+            if chips.count <= 4, !typeSize.isAccessibilitySize {
                 HStack(spacing: Theme.Space.s) { rateChips(chips, selected: selected, fills: true) }
             } else {
                 FlowLayout { rateChips(chips, selected: selected, fills: false) }

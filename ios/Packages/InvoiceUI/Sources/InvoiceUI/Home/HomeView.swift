@@ -81,6 +81,7 @@ final class HomeViewModel {
 struct HomeView: View {
     let session: Session
     @State private var model: HomeViewModel
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     init(session: Session) {
         self.session = session
@@ -127,12 +128,16 @@ struct HomeView: View {
         let checklist = model.state.checklist
         SurfaceCard(padding: Theme.Space.l + 2) {
             VStack(alignment: .leading, spacing: Theme.Space.s) {
-                Text("Get ready to send your first invoice")
-                    .font(Theme.Fonts.title3)
-                    .foregroundStyle(Theme.textPrimary)
-                    .accessibilityAddTraits(.isHeader)
-                ProgressBar(value: checklist.doneCount, total: FirstRunChecklist.Item.allCases.count)
-                    .padding(.bottom, Theme.Space.xs)
+                // One element for VoiceOver: the heading and how far along it is.
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
+                    Text("Get ready to send your first invoice")
+                        .font(Theme.Fonts.title3)
+                        .foregroundStyle(Theme.textPrimary)
+                    ProgressBar(value: checklist.doneCount, total: FirstRunChecklist.Item.allCases.count)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.bottom, Theme.Space.xs)
                 VStack(spacing: 0) {
                     ForEach(FirstRunChecklist.Item.allCases, id: \.self) { item in
                         ChecklistRow(title: title(item), hint: hint(item), isDone: checklist.isDone(item),
@@ -143,6 +148,7 @@ struct HomeView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.checklist")
         VStack(spacing: Theme.Space.s) {
             PrimaryButton(title: "Create an invoice", systemImage: "plus") { session.startNewDocument(.invoice) }
@@ -225,10 +231,9 @@ struct HomeView: View {
             ("Past due date", totals.overdueMinor, totals.overdueMinor > 0),
             ("Paid this month", totals.paidThisMonthMinor, false),
         ]
-        return ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: Theme.Space.s) { tileViews(tiles, empty: empty) }
-            VStack(spacing: Theme.Space.s) { tileViews(tiles, empty: empty) }
-        }
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: Theme.Space.s))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: Theme.Space.s))
+        return layout { tileViews(tiles, empty: empty) }
     }
 
     @ViewBuilder
