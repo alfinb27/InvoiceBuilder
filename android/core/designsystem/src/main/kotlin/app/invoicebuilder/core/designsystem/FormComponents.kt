@@ -123,9 +123,13 @@ fun ReadableColumn(modifier: Modifier = Modifier, content: @Composable () -> Uni
     }
 }
 
-/** A label and a value side by side (iOS: `AdaptiveRow`). */
+/** A label and a value side by side, stacked at accessibility text sizes (iOS: `AdaptiveRow`). */
 @Composable
 fun AdaptiveRow(label: @Composable () -> Unit, value: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    if (isAccessibilityTextSize()) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Theme.Space.xxs)) { label(); value() }
+        return
+    }
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) { label() }
         Spacer(Modifier.size(Theme.Space.s))

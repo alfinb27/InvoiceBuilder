@@ -26,7 +26,7 @@ iOS engineer, so explanations and code comments should map Android concepts to t
 | `:core:data` | `InvoiceData` | Room entities/DAOs matching `spec/schema/db/schema.sql`; `exportSchema = true`. |
 | `:core:pdf` | `InvoicePDF` | Same templates / layout spec as iOS. |
 | `:core:billing` | `InvoiceBilling` | Same state machine (`spec/billing.md`). |
-| `:core:designsystem` | `InvoiceUI` (design system) | Theme from `spec/design/tokens.json`. |
+| `:core:designsystem` | `InvoiceUI` (design system) | Theme from `spec/design/tokens.json`; UI fonts in `res/font` (copied from `spec/design/fonts` by `make sync-spec`); `Components.kt` with the iOS component names. |
 | `:app` | app target + `InvoiceUI` screens | Screens, routers, `AppContainer`, `Session`. Folders match InvoiceUI's. |
 
 ## Kotlin rules that differ from Swift

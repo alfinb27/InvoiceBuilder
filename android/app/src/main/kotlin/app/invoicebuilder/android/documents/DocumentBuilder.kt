@@ -73,6 +73,7 @@ import app.invoicebuilder.android.app.Session
 import app.invoicebuilder.android.billing.PaywallDialog
 import app.invoicebuilder.android.common.ConfirmDialog
 import app.invoicebuilder.core.designsystem.Avatar
+import app.invoicebuilder.core.designsystem.isAccessibilityTextSize
 import app.invoicebuilder.core.designsystem.Badge
 import app.invoicebuilder.core.designsystem.ChipFlow
 import app.invoicebuilder.core.designsystem.ChoiceChip
@@ -435,12 +436,15 @@ private fun Summary(model: DocumentViewModel, session: Session, computed: Comput
         verticalArrangement = Arrangement.spacedBy(6.dp)) {
         @Composable fun row(title: String, minor: Long) {
             Row { Text(title, Modifier.weight(1f), style = Theme.Fonts.subhead, color = Theme.colors.textSecondary)
-                Text(money(minor), style = Theme.Fonts.subhead.copy(fontFeatureSettings = "tnum"), color = Theme.colors.textSecondary) }
+                Text(money(minor), style = Theme.Fonts.subhead.copy(fontFeatureSettings = "tnum"), color = Theme.colors.textSecondary,
+                    softWrap = false) }
         }
-        row("Subtotal", totals.subtotal)
-        if (totals.discount != 0L) row("Discount", -totals.discount)
-        if (totals.shipping != 0L) row("Shipping", totals.shipping)
-        if (computed.chargesTax && totals.tax != 0L) {
+        // At accessibility text sizes the pinned bar keeps only the total; the breakdown is a tap away.
+        val showsParts = !isAccessibilityTextSize()
+        if (showsParts) row("Subtotal", totals.subtotal)
+        if (showsParts && totals.discount != 0L) row("Discount", -totals.discount)
+        if (showsParts && totals.shipping != 0L) row("Shipping", totals.shipping)
+        if (showsParts && computed.chargesTax && totals.tax != 0L) {
             val rates = computed.lines.map { it.rate }.toSet()
             val name = model.config.labels.taxName
             val label = if (rates.size == 1) "$name ${SpecFormatter.percent(rates.first())}" else name
@@ -448,10 +452,11 @@ private fun Summary(model: DocumentViewModel, session: Session, computed: Comput
                 Text(label, style = Theme.Fonts.subhead, color = Theme.colors.textSecondary)
                 Badge(if (computed.inclusive) "included" else "added for you")
                 Box(Modifier.weight(1f))
-                Text(money(totals.tax), style = Theme.Fonts.subhead.copy(fontFeatureSettings = "tnum"), color = Theme.colors.textSecondary)
+                Text(money(totals.tax), style = Theme.Fonts.subhead.copy(fontFeatureSettings = "tnum"), color = Theme.colors.textSecondary,
+                    softWrap = false)
             }
         }
-        if (totals.roundOff != 0L) row(model.config.rounding.grandTotal?.label ?: "Round off", totals.roundOff)
+        if (showsParts && totals.roundOff != 0L) row(model.config.rounding.grandTotal?.label ?: "Round off", totals.roundOff)
         Row(verticalAlignment = Alignment.Bottom) {
             Text("Total", Modifier.weight(1f), style = Theme.Fonts.headline, color = Theme.colors.textPrimary)
             Text(money(totals.total), Modifier.testTag("totalAmount"), style = Theme.Fonts.amountLarge.copy(fontFeatureSettings = "tnum"),

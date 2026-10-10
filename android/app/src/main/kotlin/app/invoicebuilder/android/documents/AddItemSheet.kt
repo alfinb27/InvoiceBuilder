@@ -55,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.invoicebuilder.android.app.Session
 import app.invoicebuilder.android.common.SearchField
 import app.invoicebuilder.core.designsystem.BoxedTextField
+import app.invoicebuilder.core.designsystem.isAccessibilityTextSize
 import app.invoicebuilder.core.designsystem.CheckboxRow
 import app.invoicebuilder.core.designsystem.ChipFlow
 import app.invoicebuilder.core.designsystem.ChoiceChip
@@ -78,7 +79,8 @@ import app.invoicebuilder.core.domain.setup.SetupSearch
 import app.invoicebuilder.core.domain.tax.TaxCategory
 import app.invoicebuilder.core.domain.tax.TaxRate
 
-private enum class AddItemTab(val label: String) { saved("My saved items"), new("Something new") }
+/** [shortLabel] is for accessibility text sizes, so the segments never truncate. */
+private enum class AddItemTab(val label: String, val shortLabel: String) { saved("My saved items", "Saved"), new("Something new", "New") }
 
 /**
  * Adding and editing a line (`spec/documents.md` §3.2, `docs/design/design.md` §6.5): "My saved items" adds
@@ -113,7 +115,7 @@ fun AddItemSheet(model: DocumentViewModel, session: Session) {
                 .padding(horizontal = Theme.Layout.screenGutter, vertical = Theme.Space.s),
                 verticalArrangement = Arrangement.spacedBy(Theme.Space.l)) {
                 if (editor.isNew) {
-                    SegmentedChoice(AddItemTab.entries.map { it to it.label }, current, { tab = it }, tagPrefix = "addItemTab")
+                    SegmentedChoice(AddItemTab.entries.map { it to if (isAccessibilityTextSize()) it.shortLabel else it.label }, current, { tab = it }, tagPrefix = "addItemTab")
                 }
                 if (current == AddItemTab.saved) SavedItems(model, session, live.orEmpty(), added) { tab = it }
                 else NewItemForm(model, session, noun)
@@ -159,7 +161,7 @@ private fun SavedItems(
         }
         return
     }
-    SearchField(query, { query = it }, "Search by name or ${model.config.labels.productCodeName}")
+    SearchField(query, { query = it }, "Name or ${model.config.labels.productCodeName}")
     Column {
         for (item in SetupSearch.items(items, query)) {
             Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable {
@@ -198,7 +200,7 @@ private fun NewItemForm(model: DocumentViewModel, session: Session, noun: String
     BoxedTextField("What did you sell?", draft.description, { v -> update { it.copy(description = v) } }, prompt = "Website design",
         issue = message(LineItemField.Description, "description"), hint = "This is what your client sees on the $noun.", tag = "lineDescription")
     BoxWithConstraints {
-        val stacked = maxWidth < 320.dp
+        val stacked = maxWidth < 320.dp || isAccessibilityTextSize()
         val quantity: @Composable (Modifier) -> Unit = { modifier ->
             Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 FieldLabel("How many?")
@@ -257,7 +259,7 @@ private fun RateSection(model: DocumentViewModel, draft: LineItemDraft, taxName:
                 }
             }
         }
-        if (chips.size <= 4) {
+        if (chips.size <= 4 && !isAccessibilityTextSize()) {
             Row(horizontalArrangement = Arrangement.spacedBy(Theme.Space.s)) {
                 for (rate in chips) {
                     ChoiceChip(chipTitle(rate), rate.id == draft.rateId, { onPick(rate.id) }, Modifier.weight(1f), fillsWidth = true,

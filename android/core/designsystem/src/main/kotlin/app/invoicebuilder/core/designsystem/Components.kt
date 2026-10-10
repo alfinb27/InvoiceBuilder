@@ -515,7 +515,7 @@ fun EmptyStatTile(amount: String, label: String, modifier: Modifier = Modifier) 
             .padding(horizontal = 10.dp, vertical = Theme.Space.m),
         verticalArrangement = Arrangement.spacedBy(Theme.Space.xs),
     ) {
-        Text(amount, style = Theme.Fonts.title3, color = Theme.colors.textPrimary, maxLines = 1)
+        Text(amount, style = Theme.Fonts.title3, color = Theme.colors.textPrimary)
         Text(label, style = Theme.Fonts.caption.copy(fontWeight = FontWeight.Normal), color = Theme.colors.textSecondary)
     }
 }
@@ -529,7 +529,7 @@ fun StatTile(amount: String, label: String, modifier: Modifier = Modifier, empha
             .semantics(mergeDescendants = true) {}.padding(horizontal = 10.dp, vertical = Theme.Space.m),
         verticalArrangement = Arrangement.spacedBy(Theme.Space.xs),
     ) {
-        Text(amount, style = Theme.Fonts.title3.copy(fontFeatureSettings = "tnum"), color = emphasis ?: Theme.colors.textPrimary, maxLines = 1)
+        Text(amount, style = Theme.Fonts.title3.copy(fontFeatureSettings = "tnum"), color = emphasis ?: Theme.colors.textPrimary)
         Text(label, style = Theme.Fonts.caption.copy(fontWeight = FontWeight.Normal), color = Theme.colors.textSecondary)
     }
 }
@@ -546,3 +546,11 @@ private fun Modifier.drawDashedBorder(color: Color, radius: Dp): Modifier = this
 fun MutedDivider(modifier: Modifier = Modifier) = HorizontalDivider(modifier, color = Theme.colors.surfaceMuted)
 
 // endregion
+
+/**
+ * Text at an accessibility size (font scale 150 % or more; iOS: `DynamicTypeSize.isAccessibilitySize`). Side-by-side
+ * layouts stack then, so words never break mid-word.
+ */
+@Composable
+@androidx.compose.runtime.ReadOnlyComposable
+fun isAccessibilityTextSize(): Boolean = androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.5f

@@ -58,6 +58,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.invoicebuilder.android.app.Session
 import app.invoicebuilder.core.designsystem.PrimaryButton
+import app.invoicebuilder.core.designsystem.isAccessibilityTextSize
 import app.invoicebuilder.core.designsystem.TextLinkButton
 import app.invoicebuilder.core.designsystem.Theme
 import app.invoicebuilder.core.designsystem.TipCallout
@@ -185,24 +186,38 @@ private fun Summary(model: DocumentViewModel, session: Session, noun: String, on
 @Composable
 private fun Channels(selected: SendChannel, onSelect: (SendChannel) -> Unit) {
     BoxWithConstraints {
-        val columns = if (maxWidth < 300.dp) 2 else 4
+        // Four tiles in a row; one row each, icon then label, at accessibility text sizes.
+        val rows = isAccessibilityTextSize()
+        val columns = if (rows) 1 else if (maxWidth < 300.dp) 2 else 4
         Column(verticalArrangement = Arrangement.spacedBy(Theme.Space.s)) {
             SendChannel.entries.chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Theme.Space.s)) {
                     for (option in row) {
                         val on = option == selected
                         val shape = RoundedCornerShape(Theme.Radius.l)
-                        Column(Modifier.weight(1f).heightIn(min = 76.dp).clip(shape)
+                        val tile = Modifier.weight(1f).heightIn(min = if (rows) Theme.Layout.minTouchTarget else 76.dp).clip(shape)
                             .background(if (on) Theme.colors.brandTint else Theme.colors.surface)
                             .border(if (on) 2.dp else 1.dp, if (on) Theme.colors.brand else Theme.colors.border, shape)
                             .selectable(on, role = Role.RadioButton) { onSelect(option) }.testTag("channel-${option.name}")
-                            .padding(vertical = Theme.Space.s), horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)) {
+                            .padding(vertical = Theme.Space.s, horizontal = if (rows) Theme.Space.m else 0.dp)
+                        val icon = @Composable {
                             Box(Modifier.size(36.dp).clip(CircleShape).background(if (on) Theme.colors.brand else Theme.colors.surfaceMuted),
                                 contentAlignment = Alignment.Center) {
                                 Icon(option.icon, null, tint = if (on) Theme.colors.brandOn else Theme.colors.textPrimary, modifier = Modifier.size(20.dp))
                             }
-                            Text(option.label, style = Theme.Fonts.caption, color = Theme.colors.textPrimary, maxLines = 1)
+                        }
+                        if (rows) {
+                            Row(tile, horizontalArrangement = Arrangement.spacedBy(Theme.Space.m), verticalAlignment = Alignment.CenterVertically) {
+                                icon()
+                                Text(option.label, style = Theme.Fonts.caption, color = Theme.colors.textPrimary)
+                            }
+                        } else {
+                            Column(tile, horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically)) {
+                                icon()
+                                Text(option.label, style = Theme.Fonts.caption, color = Theme.colors.textPrimary,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            }
                         }
                     }
                 }

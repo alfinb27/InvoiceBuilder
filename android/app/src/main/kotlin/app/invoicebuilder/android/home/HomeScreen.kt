@@ -56,6 +56,7 @@ import app.invoicebuilder.android.app.SettingsPage
 import app.invoicebuilder.android.billing.PaywallDialog
 import app.invoicebuilder.android.documents.DocumentText
 import app.invoicebuilder.core.designsystem.Avatar
+import app.invoicebuilder.core.designsystem.isAccessibilityTextSize
 import app.invoicebuilder.core.designsystem.ChecklistRow
 import app.invoicebuilder.core.designsystem.EmptyStatTile
 import app.invoicebuilder.core.designsystem.MutedDivider
@@ -183,7 +184,7 @@ private fun MoneyTiles(session: Session, dashboard: DashboardTotals, empty: Bool
         Triple("Paid this month", dashboard.paidThisMonthMinor, false),
     )
     BoxWithConstraints {
-        val stacked = maxWidth < 300.dp
+        val stacked = maxWidth < 300.dp || isAccessibilityTextSize()
         val content: @Composable (Modifier) -> Unit = { tileModifier ->
             for ((label, minor, alert) in tiles) {
                 if (empty) EmptyStatTile(session.money(0), label, tileModifier)

@@ -93,6 +93,8 @@ fun MainShell(session: Session) {
     // The builder has the phone screen to itself (`docs/design/design.md` §6.4); rails and drawers stay.
     val layout = if (adaptive == NavigationSuiteType.NavigationBar && router.selectedTab == AppTab.documents &&
         router.documents.isEditingDraft) NavigationSuiteType.None else adaptive
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val labelStyle = MaterialTheme.typography.labelMedium
     CompositionLocalProvider(LocalSession provides session) {
         NavigationSuiteScaffold(
             layoutType = layout,
@@ -103,12 +105,15 @@ fun MainShell(session: Session) {
                 true
             },
             navigationSuiteItems = {
+                // Labels grow to 130 % at most, so "Invoices" and "Settings" never break mid-word in the bar.
+                val fontScale = density.fontScale
+                val labelSize = labelStyle.fontSize * (kotlin.math.min(fontScale, 1.3f) / fontScale)
                 for (item in tabs) {
                     item(
                         selected = router.selectedTab == item.tab,
                         onClick = { router.selectedTab = item.tab },
                         icon = { Icon(item.icon, null) },
-                        label = { Text(item.title) },
+                        label = { Text(item.title, fontSize = labelSize, maxLines = 1, softWrap = false) },
                         modifier = Modifier.testTag("tab-${item.tab}"),
                     )
                 }
