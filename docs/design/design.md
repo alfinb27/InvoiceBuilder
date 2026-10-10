@@ -216,6 +216,10 @@ exclamation marks, no jargon without a hint.
 - Use real controls with accessibility traits/roles: radio group for country, toggle buttons for chips, a switch,
   a stepper with "Fewer"/"More" labels, and labelled icon-only buttons (Close, Back).
 - Touch targets are ≥ 44 pt and layouts scale with Dynamic Type.
+- At accessibility text sizes (iOS `isAccessibilitySize`, Android font scale ≥ 150 %) side-by-side layouts stack:
+  money tiles one per row, send channels as rows (icon then label), rate chips flow onto more lines, label/value rows
+  stack. The builder's pinned bar keeps only the total (the breakdown opens on tap) and the Add an item tabs read
+  "Saved" / "New". Text never shrinks to fit or breaks mid-word; icons that sit with text grow with it.
 
 ## 9. Open items
 
