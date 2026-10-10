@@ -97,16 +97,32 @@ class PDFLibrary(
 
     /** Keeps the cache to [limit] files, oldest first. */
     private fun trim(keeping: File, limit: Int = 240) {
-        val files = directory.listFiles()?.toList() ?: return
+        val files = directory.listFiles()?.filter { it.isFile } ?: return // not the shared copies' folder
         if (files.size <= limit) return
         files.filter { it != keeping }.sortedBy { it.lastModified() }.take(files.size - limit).forEach { it.delete() }
     }
 
     /** Removes every cached file (after a restore replaced the data). */
-    suspend fun forgetAll() = lock.withLock { directory.listFiles()?.forEach { it.delete() }; Unit }
+    suspend fun forgetAll() = lock.withLock { directory.listFiles()?.forEach { it.delete() }; sharedDirectory.deleteRecursively(); Unit }
+
+    /** Shared copies under readable names (`DocumentText.pdfFileName`), inside `pdfs/` so the FileProvider serves them. */
+    private val sharedDirectory = File(directory, "shared")
+
+    /**
+     * A copy of a cached PDF under the name people see when it is shared; one folder per cached file, so each render
+     * (template, edit) has its own path. iOS: `PDFLibrary.shareableCopy`.
+     */
+    fun shareableCopy(file: File, name: String, documentID: String): File {
+        val target = File(File(File(sharedDirectory, documentID), file.nameWithoutExtension), name)
+        if (target.exists()) return target
+        target.parentFile?.mkdirs()
+        file.copyTo(target, overwrite = true)
+        return target
+    }
 
     /** Removes the cached files of one document (a deleted draft). */
     suspend fun forget(documentID: String) = lock.withLock {
-        directory.listFiles()?.filter { it.name.startsWith(documentID) }?.forEach { it.delete() }; Unit
+        directory.listFiles()?.filter { it.name.startsWith(documentID) }?.forEach { it.delete() }
+        File(sharedDirectory, documentID).deleteRecursively(); Unit
     }
 }

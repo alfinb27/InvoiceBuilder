@@ -28,6 +28,19 @@ object SystemSheets {
         context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
+    /** An ACTION_SEND for a PDF with read access granted (the share sheet, WhatsApp and email use it). */
+    fun pdfIntent(context: Context, file: File, subject: String?, text: String?): Intent {
+        val uri = uri(context, file)
+        return Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+            text?.let { putExtra(Intent.EXTRA_TEXT, it) }
+            clipData = ClipData.newRawUri(file.name, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
     fun shareText(context: Context, text: String) {
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"

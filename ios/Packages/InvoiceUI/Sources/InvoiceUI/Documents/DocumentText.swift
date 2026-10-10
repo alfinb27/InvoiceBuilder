@@ -7,6 +7,13 @@ enum DocumentText {
         docType == .quote ? "quote" : "invoice"
     }
 
+    /// The name of the shared PDF (`spec/documents.md` §8): "Invoice INV-26-27-0001.pdf", "Quote draft.pdf".
+    static func pdfFileName(_ document: InvoiceCore.Document) -> String {
+        let noun = noun(document.docType).capitalized
+        guard let number = document.number else { return "\(noun) draft.pdf" }
+        return "\(noun) \(number.replacingOccurrences(of: "/", with: "-")).pdf"
+    }
+
     /// The navigation title of a document: its number once issued, else "New invoice" / "Quote draft".
     static func title(_ document: InvoiceCore.Document, isPersisted: Bool) -> String {
         if let number = document.number { return number }
@@ -17,11 +24,11 @@ enum DocumentText {
     static func status(_ status: DocumentStatus) -> String {
         switch status {
         case .draft: "Draft"
-        case .issued: "Issued"
+        case .issued: "Not sent"
         case .sent: "Sent"
         case .partiallyPaid: "Part paid"
         case .paid: "Paid"
-        case .overdue: "Overdue"
+        case .overdue: "Past due"
         case .void: "Void"
         case .open: "Open"
         case .accepted: "Accepted"
@@ -41,17 +48,17 @@ enum DocumentText {
         }
     }
 
-    /// "Line 2", "Lines 1 and 3", "Lines 1, 2 and 5" (1-based for people).
+    /// "Item 2", "Items 1 and 3", "Items 1, 2 and 5" (1-based for people; the screens call lines items).
     static func lines(_ indexes: [Int]) -> String {
         let numbers = indexes.map { String($0 + 1) }
-        guard numbers.count > 1, let last = numbers.last else { return "Line \(numbers.first ?? "")" }
-        return "Lines " + numbers.dropLast().joined(separator: ", ") + " and " + last
+        guard numbers.count > 1, let last = numbers.last else { return "Item \(numbers.first ?? "")" }
+        return "Items " + numbers.dropLast().joined(separator: ", ") + " and " + last
     }
 
     /// A compliance check or rate warning from the engine (`ENGINE.md` Step 12).
     static func message(_ issue: EngineIssue, config: TaxConfig, homeCurrency: CurrencyCode) -> String {
         let labels = config.labels
-        let lines = issue.lines.map(lines) ?? "Some lines"
+        let lines = issue.lines.map(lines) ?? "Some items"
         switch issue.code {
         case "rate_not_effective":
             return "\(lines): the \(labels.taxName) rate isn't in force on this date. Check the rate or the dates."
@@ -78,7 +85,7 @@ enum DocumentText {
 
     /// Why the engine could not compute the document (`ENGINE.md` §3, errors).
     static func message(_ error: TaxEngineError, config: TaxConfig) -> String {
-        let line = error.line.map { "Line \($0 + 1): " } ?? ""
+        let line = error.line.map { "Item \($0 + 1): " } ?? ""
         switch error.code {
         case .noComponentRule:
             return "This supply type can't be used with your registration."
@@ -89,7 +96,7 @@ enum DocumentText {
         case .discountExceedsSubtotal:
             return "The discount is more than the subtotal."
         case .lineDiscountExceedsAmount:
-            return line + "the discount is more than the line amount."
+            return line + "the discount is more than the item's amount."
         case .inclusiveCompoundUnsupported:
             return line + "compound taxes can't be used with tax-inclusive prices."
         case .invalidInput:
@@ -97,12 +104,12 @@ enum DocumentText {
         }
     }
 
-    /// What blocks issuing (`spec/documents.md` §6).
+    /// What blocks sending (`spec/documents.md` §6).
     static func message(_ problem: IssueProblem, config: TaxConfig, homeCurrency: CurrencyCode,
                         docType: DocumentType) -> String {
         switch problem {
         case .noLines:
-            "Add at least one line."
+            "Add at least one item."
         case .lineDescriptionMissing(let indexes):
             "\(lines(indexes)): add a description."
         case .lineRateMissing(let indexes):

@@ -112,17 +112,6 @@ fun Tag(text: String, color: Color = Theme.colors.info, modifier: Modifier = Mod
     )
 }
 
-/** The large full-width button at the bottom of onboarding steps. */
-@Composable
-fun PrimaryButton(title: String, onClick: () -> Unit, modifier: Modifier = Modifier, isBusy: Boolean = false, enabled: Boolean = true, tag: String? = null) {
-    Button(onClick, modifier.fillMaxWidth().heightIn(min = Theme.Layout.minTouchTarget + 4.dp).let { if (tag != null) it.testTag(tag) else it }, enabled = enabled && !isBusy) {
-        Box(contentAlignment = Alignment.Center) {
-            if (isBusy) CircularProgressIndicator(Modifier.size(20.dp), color = Theme.colors.brandOn, strokeWidth = 2.dp)
-            else Text(title, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
 /** Caps the width for readable forms on wide windows, centred (≈ `.readableWidth()`). */
 fun Modifier.readableWidth(): Modifier = this.widthIn(max = Theme.Layout.maxReadableWidth)
 
@@ -134,9 +123,13 @@ fun ReadableColumn(modifier: Modifier = Modifier, content: @Composable () -> Uni
     }
 }
 
-/** A label and a value side by side (iOS: `AdaptiveRow`). */
+/** A label and a value side by side, stacked at accessibility text sizes (iOS: `AdaptiveRow`). */
 @Composable
 fun AdaptiveRow(label: @Composable () -> Unit, value: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    if (isAccessibilityTextSize()) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Theme.Space.xxs)) { label(); value() }
+        return
+    }
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) { label() }
         Spacer(Modifier.size(Theme.Space.s))

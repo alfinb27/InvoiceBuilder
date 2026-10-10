@@ -124,11 +124,12 @@ private struct DocumentList: View {
                 }
             }
             if !rows.issued.isEmpty {
-                Section(router.docType == .quote ? "Quotes" : "Issued") {
+                Section(router.docType == .quote ? "Sent quotes" : "Sent invoices") {
                     ForEach(rows.issued) { row($0) }
                 }
             }
         }
+        .themedList()
         .safeAreaInset(edge: .top) {
             VStack(spacing: Theme.Space.s) {
                 Picker("Show", selection: $router.docType) {
@@ -269,10 +270,10 @@ private struct DocumentRow: View {
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                 // Hierarchical styles, so the text stays readable on a selected (highlighted) row.
                 Text(summary.number ?? "Draft")
-                    .font(.body.weight(.semibold))
+                    .font(Theme.Fonts.body.weight(.semibold))
                     .foregroundStyle(summary.number == nil ? .secondary : .primary)
-                Text(summary.buyerName ?? "No client").font(.subheadline).foregroundStyle(.secondary)
-                Text(summary.issueDate.displayText).font(.caption).foregroundStyle(.tertiary)
+                Text(summary.buyerName ?? "No client").font(Theme.Fonts.subhead).foregroundStyle(.secondary)
+                Text(summary.issueDate.displayText).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(.tertiary)
             }
         } value: {
             VStack(alignment: .trailing, spacing: Theme.Space.xxs) {

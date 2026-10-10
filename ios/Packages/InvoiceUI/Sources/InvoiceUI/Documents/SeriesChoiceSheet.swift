@@ -13,14 +13,14 @@ struct SeriesChoiceSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            ThemedForm {
                 if let first = choice.ownFirstNumber {
                     Section {
                         Button(action: startOwn) {
                             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                                 Text("Start numbering on this device")
                                 Text("The first will be \(first)")
-                                    .font(.subheadline).foregroundStyle(Theme.textSecondary)
+                                    .font(Theme.Fonts.subhead).foregroundStyle(Theme.textSecondary)
                             }
                         }
                         .accessibilityIdentifier("series.startOwn")
@@ -38,7 +38,7 @@ struct SeriesChoiceSheet: View {
                                     Text(option.series.label)
                                     if let next = option.nextNumber {
                                         Text("Continues with \(next)")
-                                            .font(.subheadline).foregroundStyle(Theme.textSecondary)
+                                            .font(Theme.Fonts.subhead).foregroundStyle(Theme.textSecondary)
                                     }
                                 }
                             }

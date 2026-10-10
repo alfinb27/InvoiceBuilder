@@ -111,8 +111,8 @@ public enum InvoiceStatusFilter: String, CaseIterable, Hashable, Sendable {
     public var label: String {
         switch self {
         case .all: "All"
-        case .unpaid: "Unpaid"
-        case .overdue: "Overdue"
+        case .unpaid: "Waiting"
+        case .overdue: "Past due"
         case .paid: "Paid"
         }
     }

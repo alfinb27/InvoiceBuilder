@@ -91,6 +91,40 @@ one rounding (`round(x, config.rounding.amountMode)`, `ENGINE.md` §2.2):
   `exchange_rate_missing` (the builder adds the line with price 0 and asks for the price).
 - `unitPriceMinor = round(item.unitPriceMinor × b × c, amountMode)`.
 
+### 3.2 The "Add an item" sheet (`OneOffLine`)
+Lines are added and edited in one sheet (ADR-0020, `docs/design/design.md` §6.5) with two tabs: **My saved items**
+(each tap adds a catalogue line, as above) and **Something new** (a one-off line).
+
+- **Fields:** "What did you sell?" (`description`), "How many?" (`quantity`, a stepper that also takes typed decimals),
+  "Price for one" (typed in the document currency, §11 of `setup.md`), the rate, and, folded under "More details",
+  unit, product code and line discount. The product code is shown unfolded when the config needs it on this
+  document (IN: a B2B invoice, `ENGINE.md` Step 12).
+- **Rate chips** (`RateChips`): the ids of the config family in `design/rate-chips.json`, in that order, that are in
+  force on `supplyDate ?? issueDate`; a family that is not listed shows the business's own rates (`customRates`) in
+  force, at most `maxChips`. Every other rate in force is under "Other rates" (`rateChoices`). The line's rate starts
+  as `oneOffRateID` (§3). Not shown when the seller's registration does not charge tax.
+- **"My price already includes {taxName}"** (shown only when the registration charges tax) says how the typed price
+  is read. It starts as `document.pricesIncludeTax`. When the draft has **no other line** (the first line, or the only
+  line being edited), the switch sets `document.pricesIncludeTax` and the typed price is the line's `unitPriceMinor` as
+  typed. Otherwise, when the switch
+  differs from `document.pricesIncludeTax`, the typed price is converted to the document's basis with the §3.1 basis
+  factor `b` of the chosen rate and one rounding (`round(price × b, amountMode)`), exactly as a catalogue item with
+  `priceIncludesTax` = the switch.
+- **The live line total** is the engine's result for this line alone (taxable amount, tax and total, ENGINE.md), so
+  it matches what the document will show.
+- **"Save to my items so I can reuse it"** (on by default; offered only when the document currency is the home
+  currency): Add also creates a catalogue item (§10 of `setup.md`) with `name` = the description, `kind` = `service`,
+  `unit` = the line's unit or the kind's default, `unitPriceMinor` = the typed price, `priceIncludesTax` = the switch
+  (`false` when tax isn't charged), `rateId` and `productCode` of the line; the line's `catalogItemId` is that item.
+- **Editing** an existing line opens the same sheet without tabs, with Duplicate and Delete. The switch then starts
+  as `document.pricesIncludeTax` and the price as stored.
+
+### 3.3 Payment-term chips
+Invoices: "When should they pay?" offers chips for 0 ("Right away"), 7, 15 and 30 days, plus
+`business.paymentTermsDays` when it is not one of those; a chip sets `dueDate = issueDate + n` days. The selected chip
+is the one matching `dueDate − issueDate`, if any; any other due date is picked under More options. Quotes: "How long
+is this quote valid?" with 7, 15, 30 and 60 days setting `validUntil` the same way.
+
 ## 4. Snapshots
 
 `sellerSnapshot` and `buyerSnapshot` are the engine's `seller` / `buyer` (`ENGINE.md` §1) plus display fields, in one
@@ -141,6 +175,14 @@ One write transaction; any failure leaves the database unchanged.
 The next number offered in Settings (`setup.md` §6) must stay above the highest `sequence` already issued in that
 series and period.
 
+### 6.1 Review & send (the screens)
+The screens call issuing **Send** (ADR-0020). "Review & send" in the builder first runs the checks of step 3 (and the
+free-tier and series checks, `billing.md`, `sync.md` §3); any problem is shown in the builder and nothing else
+happens. Otherwise the review screen shows the client, total, item count and due date, the number the document will
+get (the preview of step 5; the number is allocated only when it is sent), that sending locks it, the channel
+(WhatsApp, Email, Print, Save PDF) and what happens next. Its button issues the document and then opens the chosen
+channel with the PDF (§8). "Keep as draft" closes the review and leaves the draft as it is.
+
 ## 7. Duplicate and convert
 
 - **Duplicate** (any live document) → a new draft of the same type: new ids for it and its lines; `issueDate` =
@@ -156,6 +198,13 @@ series and period.
   never changes. Otherwise the error is `not_convertible`.
 
 ## 8. Sharing
+
+Channels: **WhatsApp** (Android: WhatsApp with the PDF when it is installed, else the share sheet; iOS: the share
+sheet, where WhatsApp is one tap, as iOS can't hand a PDF to one chosen app), **Email** (a new
+email to the buyer snapshot's `email` with the PDF attached, else the share sheet), **Print** (the system print
+dialog) and **Save PDF** (the system "save to files" picker); the share sheet is also always available from the
+preview. The shared file is named "{Invoice|Quote} {number}.pdf" with each `/` of the number as `-`
+("Invoice INV-26-27-0001.pdf"); a draft's is "{Invoice|Quote} draft.pdf".
 
 Sharing, printing or saving an issued document's PDF offers to mark it as **sent**: `sentAt` is set to the moment
 the user accepts, and the derived status becomes `sent` (`ENGINE.md` §6). The prompt appears whenever an issued

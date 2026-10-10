@@ -74,8 +74,20 @@ class DocumentPreviewViewModel(
     private val computed: ComputedDocument,
     /** Set only when opened from "Send reminder" (`spec/reminders.md` §4): shared alongside the PDF. */
     val reminderMessage: String?,
+    /** Set when opened by Review & send: the channel opens as soon as the PDF is ready (`documents.md` §6.1). */
+    channel: SendChannel? = null,
     private val onSent: (Long) -> Unit,
 ) {
+    var pendingChannel by mutableStateOf(channel)
+        private set
+
+    /** The Review & send channel, once. */
+    fun takePendingChannel(): SendChannel? = pendingChannel.also { pendingChannel = null }
+
+    /** The client's email, for "Send by email". */
+    val recipient: String? get() = document.buyerSnapshot?.email
+    val emailSubject: String get() = "${DocumentText.noun(document.docType).replaceFirstChar { it.uppercase() }} ${document.number ?: ""} from ${session.business.name}"
+
     @set:JvmName("assignTemplate")
     var template by mutableStateOf(document.templateId)
         private set
@@ -96,7 +108,8 @@ class DocumentPreviewViewModel(
     suspend fun render() {
         isRendering = true
         try {
-            file = session.pdfLibrary.file(document, session.business, computed, template).file
+            val cached = session.pdfLibrary.file(document, session.business, computed, template).file
+            file = session.pdfLibrary.shareableCopy(cached, DocumentText.pdfFileName(document), document.id)
         } catch (error: Exception) {
             errorMessage = "The PDF couldn't be created."
         } finally {
@@ -136,7 +149,41 @@ fun DocumentPreviewScreen(model: DocumentPreviewViewModel, onDone: () -> Unit) {
     val context = LocalContext.current
     // The chooser returns when the user comes back, whatever they did (Android does not report a completed share).
     val shareLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { model.didShare() }
-    LaunchedEffect(model) { if (model.file == null) model.render() }
+    // "Save PDF": the system file picker (≈ the iOS export picker); a chosen place gets a copy of the file.
+    val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        val file = model.file
+        if (uri != null && file != null) {
+            runCatching { context.contentResolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } } }
+                .onSuccess { model.didShare() }
+        }
+    }
+    LaunchedEffect(model) {
+        if (model.file == null) model.render()
+        val file = model.file
+        val channel = model.takePendingChannel()
+        if (channel != null && file != null) {
+            delay(300) // let the preview appear first
+            when (channel) {
+                SendChannel.whatsApp -> {
+                    val send = SystemSheets.pdfIntent(context, file, model.title, null)
+                    val direct = listOf("com.whatsapp", "com.whatsapp.w4b").firstNotNullOfOrNull { pkg ->
+                        android.content.Intent(send).setPackage(pkg).takeIf { it.resolveActivity(context.packageManager) != null }
+                    }
+                    shareLauncher.launch(direct ?: android.content.Intent.createChooser(send, null))
+                }
+                SendChannel.email -> {
+                    val send = SystemSheets.pdfIntent(context, file, model.emailSubject, null).apply {
+                        model.recipient?.let { putExtra(android.content.Intent.EXTRA_EMAIL, arrayOf(it)) }
+                        selector = android.content.Intent(android.content.Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:"))
+                    }
+                    runCatching { shareLauncher.launch(android.content.Intent.createChooser(send, null)) }
+                        .onFailure { shareLauncher.launch(android.content.Intent.createChooser(SystemSheets.pdfIntent(context, file, model.emailSubject, null), null)) }
+                }
+                SendChannel.print -> { SystemSheets.print(context, file, model.title, model.paperSize); model.didShare() }
+                SendChannel.savePDF -> saveLauncher.launch(file.name)
+            }
+        }
+    }
     Dialog(onDone, DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize(), color = Theme.colors.background) {
             Scaffold(

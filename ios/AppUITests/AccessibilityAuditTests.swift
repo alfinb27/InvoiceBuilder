@@ -41,6 +41,18 @@ final class AccessibilityAuditTests: XCTestCase {
         app.buttons["homeNewInvoice"].tap()
         XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
         try audit("builder", app)
+        app.chooseClient("Rao Traders")
+        app.openAddItem()
+        try audit("add-item-saved", app)
+        app.buttons["Something new"].tap()
+        try audit("add-item-new", app)
+        app.buttons["Cancel"].firstMatch.tap()
+        app.openAddItem().tap()
+        app.buttons["catalogDone"].tap()
+        try audit("builder-with-items", app)
+        app.buttons["reviewAndSend"].tap()
+        XCTAssertTrue(app.buttons["review.send"].waitForExistence(timeout: 10))
+        try audit("review-and-send", app)
     }
 
     @MainActor
@@ -48,8 +60,12 @@ final class AccessibilityAuditTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemory"]
         app.launch()
-        XCTAssertTrue(app.buttons["Continue"].waitForExistence(timeout: 10))
-        try audit("onboarding", app)
+        XCTAssertTrue(app.buttons["onboarding.start"].waitForExistence(timeout: 10))
+        try audit("welcome", app)
+        app.buttons["onboarding.start"].tap()
+        XCTAssertTrue(app.buttons["country-IN"].waitForExistence(timeout: 5))
+        app.buttons["country-IN"].tap()
+        try audit("where-you-work", app)
     }
 
     /// Labels drawn by system components the app only fills in, which the audit flags on any app: the empty-state
@@ -57,16 +73,12 @@ final class AccessibilityAuditTests: XCTestCase {
     /// Re-check them in the manual VoiceOver and Dynamic Type pass on a device (docs/phase-6-status.md).
     static let systemDrawn: Set<String> = [
         "No invoices yet", "Create an invoice: pick a client, add items and issue it.", "New invoice",
-        "Remind me", "Business default", "Add line", "Save backup to Files", "Share backup…",
-        "Start from an InvoiceBuilder backup file instead of setting up again.",
-        // Plain buttons the audit flags for Dynamic Type at the bottom edge of the screen; they wrap at the
-        // accessibility sizes in the large-text screenshot tour.
-        "New quote", "Try it with a sample UK business", "Try it with a sample Indian business",
+        "Remind me", "Business default", "Save backup to Files", "Share backup…",
+        // The segmented control of the Add an item sheet (a system control the app only labels).
+        "My saved items", "Something new",
     ]
-    /// What onboarding's bottom bar itself shows (everything else that low on screen is behind the bar).
-    static let bottomBarContent: Set<String> = ["Continue", "Finish", "You can change all of this later in Settings."]
     /// Toolbar buttons: iOS draws them on glass and serves large text through the Large Content Viewer.
-    static let toolbarItems: Set<String> = ["issueButton"]
+    static let toolbarItems: Set<String> = ["previewButton"]
 
     /// Runs the audit once the screen has settled (a fading view measures as low contrast). Fails on contrast below
     /// 4.5:1 (confirmed on the element's own pixels), clipped text and missing Dynamic Type support in what the app
@@ -124,13 +136,12 @@ final class AccessibilityAuditTests: XCTestCase {
         if tabBar.exists, element.frame.maxY > tabBar.frame.minY { return nil }
         let navigationBar = app.navigationBars.firstMatch
         if navigationBar.exists, element.frame.minY < navigationBar.frame.maxY { return nil }
-        // Rows scrolled under onboarding's bottom bar (`.bar` behind Continue / Finish, `Theme.Space.l` padding) —
-        // but never the bar's own button and footnote, which are audited like everything else.
-        if !Self.bottomBarContent.contains(element.label) {
-            for title in ["Continue", "Finish"] {
-                let button = app.buttons[title].firstMatch
-                if button.exists, element.frame.maxY > button.frame.minY - 16 { return nil }
-            }
+        // Rows scrolled under a pinned bottom bar (onboarding's Continue, the builder's totals, Review & send; each is
+        // an accessibility container named "bottomBar") — but never the bar's own content, which is audited like
+        // everything else.
+        let bar = app.otherElements["bottomBar"].firstMatch
+        if bar.exists, element.frame.maxY > bar.frame.minY, !bar.frame.insetBy(dx: -1, dy: -1).contains(element.frame) {
+            return nil
         }
         return "\(description) — \"\(element.label)\" [\(element.identifier)]"
     }

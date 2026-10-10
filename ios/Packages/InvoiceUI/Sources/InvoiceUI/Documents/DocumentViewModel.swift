@@ -33,8 +33,11 @@ final class DocumentViewModel {
         var saveFailed = false
         /// Shown after Issue was tapped and something blocks it.
         var issueProblems: [IssueProblem] = []
+        /// The Review & send screen is open (`documents.md` §6.1): the checks passed and `numberPreview` is set.
         var confirmingIssue = false
         var numberPreview: String?
+        /// Chosen on Review & send: once the review closes, the document is issued and the PDF goes out this way.
+        var pendingSend: SendChannel?
         /// This device owns no series of the document's type: start one or take one over (`spec/sync.md` §3).
         var seriesChoice: SeriesChoice?
         /// The free tier is used up and this is an invoice (`spec/billing.md`): only Issue is locked.
@@ -68,8 +71,18 @@ final class DocumentViewModel {
         var attemptedDone = false
         /// The catalogue price could not be converted to the document currency.
         var needsPrice = false
+        /// "My price already includes {tax}": how the typed price is read (`documents.md` §3.2).
+        var includesTax = false
+        /// "Save to my items so I can reuse it": new lines in the home currency only.
+        var saveToItems = false
 
         var id: String { lineID }
+    }
+
+    /// The live total of the line being edited: "2 × ₹2,500 + ₹900 GST" and "₹5,900".
+    struct LinePreview: Equatable {
+        let text: String
+        let total: String
     }
 
     var state: State
@@ -81,6 +94,8 @@ final class DocumentViewModel {
     /// The last save started; each save waits for the one before, so writes land in order and `flush()` returns
     /// only when everything is written.
     private var lastSave: Task<Void, Never>?
+    /// "Save to my items": the catalogue item is written first, then the line is linked to it.
+    private var itemSave: Task<Void, Never>?
     private var isDirty = false
 
     init(session: Session, route: DocumentRoute, autosaveDelay: Duration = .milliseconds(500)) {
@@ -232,6 +247,7 @@ final class DocumentViewModel {
 
     /// Saves now if anything changed (before issuing, leaving the screen or going to the background).
     func flush() async {
+        await itemSave?.value
         saveTask?.cancel()
         saveTask = nil
         await save()
@@ -344,6 +360,31 @@ final class DocumentViewModel {
     }
 
     /// Nil defers to `business.reminderDaysAfterDue` (`spec/reminders.md` §1).
+    /// The "When should they pay?" chips (`documents.md` §3.3): invoices 0, 7, 15, 30 days plus the business's
+    /// own terms; quotes 7, 15, 30, 60 days of validity.
+    var termChoices: [Int] {
+        if state.document.docType == .quote { return [7, 15, 30, 60] }
+        let terms = session.business.paymentTermsDays
+        return Set([0, 7, 15, 30, terms]).sorted()
+    }
+
+    /// The chip matching the due date (validity for quotes), if any.
+    var selectedTermDays: Int? {
+        let document = state.document
+        let target = document.docType == .quote ? document.validUntil : document.dueDate
+        guard let days = target.map({ $0.daysSinceEpoch - document.issueDate.daysSinceEpoch }),
+              termChoices.contains(days) else { return nil }
+        return days
+    }
+
+    func setTerm(days: Int) {
+        if state.document.docType == .quote {
+            setValidUntil(state.document.issueDate.adding(days: days))
+        } else {
+            setDue(daysAfterIssue: days)
+        }
+    }
+
     func setReminderOverride(_ days: Int?) {
         mutate { $0.reminderDaysAfterDueOverride = days }
     }
@@ -450,6 +491,11 @@ final class DocumentViewModel {
         let (line, needsPrice) = rules.line(from: item, for: state.document, id: session.dependencies.ids.make())
         mutate { $0.lines.append(line) }
         state.selectedLineID = line.id
+        // "Something new" was prepared before this line existed: give it this line's rate (`documents.md` §3).
+        if state.lineEditor?.isNew == true, state.lineEditor?.draft.rateId.isEmpty == true {
+            let rateID = rules.oneOffRateID(for: state.document) // read before writing: one access to `state` at a time
+            state.lineEditor?.draft.rateId = rateID
+        }
         if needsPrice {
             editLine(line.id)
             state.lineEditor?.needsPrice = true
@@ -461,14 +507,97 @@ final class DocumentViewModel {
         guard isDraft else { return }
         var draft = LineItemDraft()
         draft.rateId = rules.oneOffRateID(for: state.document)
-        state.lineEditor = LineEditorState(lineID: session.dependencies.ids.make(), isNew: true, draft: draft)
+        state.lineEditor = LineEditorState(lineID: session.dependencies.ids.make(), isNew: true, draft: draft,
+                                           includesTax: state.document.pricesIncludeTax,
+                                           saveToItems: !isForeignCurrency)
     }
 
     func editLine(_ id: String) {
         guard isDraft, let line = state.document.lines.first(where: { $0.id == id }) else { return }
         state.lineEditor = LineEditorState(lineID: id, isNew: false,
-                                           draft: LineItemDraft(line: line, exponent: exponent))
+                                           draft: LineItemDraft(line: line, exponent: exponent),
+                                           includesTax: state.document.pricesIncludeTax)
         state.selectedLineID = id
+    }
+
+    /// "Save to my items" is offered for a new line in the home currency (`documents.md` §3.2).
+    var canSaveLineToItems: Bool { state.lineEditor?.isNew == true && !isForeignCurrency }
+
+    /// The rate chips, the other rates in force and the hint under the chips.
+    var lineRateChoices: (chips: [TaxRate], others: [TaxRate], hint: String?) {
+        let choices = session.rateChips.choices(config: config, customRates: session.business.customRates,
+                                                on: state.document.effectiveDate)
+        guard let selected = state.lineEditor?.draft.rateId, !selected.isEmpty,
+              !(choices.chips + choices.others).contains(where: { $0.id == selected }),
+              let saved = config.rate(selected, customRates: session.business.customRates) else { return choices }
+        return (choices.chips, choices.others + [saved], choices.hint) // a saved rate no longer in force stays
+    }
+
+    /// − / + on "How many?": whole steps, never below 1 (a typed 0.5 can still go up).
+    func stepLineQuantity(by delta: Int) {
+        guard let text = state.lineEditor?.draft.quantityText,
+              case .success(let value) = DecimalInput.parse(text), let quantity = DecimalString.parse(value) else {
+            state.lineEditor?.draft.quantityText = "1"
+            return
+        }
+        let next = quantity + Decimal(delta)
+        guard next >= 1 || delta > 0 else { return }
+        state.lineEditor?.draft.quantityText = SpecFormatter.quantity("\(next)")
+    }
+
+    /// The price the line gets: as typed when the switch matches the document's basis (or sets it), otherwise
+    /// converted (`documents.md` §3.2). Nil while the typed price is not a valid amount.
+    private func linePrice(for editor: LineEditorState) -> (minor: Int64, typed: Int64, setsBasis: Bool)? {
+        guard case .success(let typed) = MoneyInput.parse(editor.draft.priceText, exponent: exponent) else {
+            return nil
+        }
+        let setsBasis = chargesTax && OneOffLine.setsDocumentBasis(state.document,
+                                                                    editing: editor.isNew ? nil : editor.lineID)
+        guard !setsBasis else { return (typed, typed, true) }
+        let price = OneOffLine.unitPrice(
+            typedMinor: typed, includesTax: editor.includesTax,
+            rate: config.rate(editor.draft.rateId, customRates: session.business.customRates),
+            document: state.document, chargesTax: chargesTax,
+            currencies: session.dependencies.reference.currencies, mode: config.rounding.amountMode)
+        return (price, typed, false)
+    }
+
+    /// The engine's result for this line alone, as the sheet shows it under the fields.
+    var lineEditorPreview: LinePreview? {
+        guard let editor = state.lineEditor, let price = linePrice(for: editor),
+              case .success(let quantity) = DecimalInput.parse(editor.draft.quantityText),
+              !chargesTax || !editor.draft.rateId.isEmpty else { return nil }
+        var line = LineItem(id: editor.lineID, description: "–", quantity: quantity, unitPriceMinor: price.minor,
+                            rateId: editor.draft.rateId)
+        if case .success(let discount) = DocumentInput.discount(editor.draft.discountText,
+                                                                 isPercent: editor.draft.discountIsPercent,
+                                                                 exponent: exponent) {
+            line.discount = discount
+        }
+        var document = state.document
+        document.lines = [line]
+        document.discount = nil
+        document.shippingMinor = 0
+        if price.setsBasis { document.pricesIncludeTax = editor.includesTax }
+        let seller = rules.sellerSnapshot(config: config)
+        guard case .success(let computed) = rules.compute(document, seller: seller,
+                                                          buyer: rules.buyerSnapshot(for: document,
+                                                                                     client: state.client)),
+              let result = computed.lines.first else { return nil }
+        let currency = document.currency
+        let tax = result.tax
+        var text = "\(SpecFormatter.quantity(quantity)) × \(session.money(price.typed, currency: currency))"
+        let taxName = config.labels.taxName
+        if chargesTax {
+            if tax == 0 {
+                text += " · no \(taxName)"
+            } else if document.pricesIncludeTax || editor.includesTax {
+                text += " incl. \(session.money(tax, currency: currency)) \(taxName)"
+            } else {
+                text += " + \(session.money(tax, currency: currency)) \(taxName)"
+            }
+        }
+        return LinePreview(text: text, total: session.money(result.taxable + tax, currency: currency))
     }
 
     /// Done in the line editor: applies the line, or shows its problems. True when the editor can close.
@@ -478,19 +607,58 @@ final class DocumentViewModel {
         editor.attemptedDone = true
         state.lineEditor = editor
         let rules = lineRules
-        guard rules.issues(editor.draft).isEmpty else { return false }
+        guard rules.issues(editor.draft).isEmpty, let price = linePrice(for: editor) else { return false }
         mutate { document in
+            if price.setsBasis { document.pricesIncludeTax = editor.includesTax }
             if let index = document.lines.firstIndex(where: { $0.id == editor.lineID }) {
                 rules.apply(editor.draft, to: &document.lines[index])
+                document.lines[index].unitPriceMinor = price.minor
             } else {
                 var line = LineItem(id: editor.lineID, position: document.lines.count)
                 rules.apply(editor.draft, to: &line)
+                line.unitPriceMinor = price.minor
                 document.lines.append(line)
             }
+        }
+        if editor.isNew, editor.saveToItems, !isForeignCurrency {
+            saveToMyItems(lineID: editor.lineID, typedMinor: price.typed, includesTax: editor.includesTax)
         }
         state.selectedLineID = editor.lineID
         state.lineEditor = nil
         return true
+    }
+
+    /// Writes the catalogue item, then links the line to it (the line's foreign key needs the item first).
+    private func saveToMyItems(lineID: String, typedMinor: Int64, includesTax: Bool) {
+        guard let line = state.document.lines.first(where: { $0.id == lineID }) else { return }
+        let dependencies = session.dependencies
+        let item = OneOffLine.catalogItem(for: line, typedMinor: typedMinor, includesTax: includesTax,
+                                          chargesTax: chargesTax, businessID: state.document.businessId,
+                                          currency: homeCurrency, id: dependencies.ids.make(),
+                                          now: dependencies.time.now())
+        let previous = itemSave
+        itemSave = Task { [weak self] in
+            await previous?.value
+            do {
+                try await dependencies.catalog.save(item)
+                self?.link(lineID: lineID, toItem: item.id)
+            } catch {
+                self?.state.errorMessage = "The item was added, but it couldn't be saved to your items."
+            }
+        }
+    }
+
+    private func link(lineID: String, toItem itemID: String) {
+        mutate { document in
+            if let index = document.lines.firstIndex(where: { $0.id == lineID }) {
+                document.lines[index].catalogItemId = itemID
+            }
+        }
+    }
+
+    /// Waits until "Save to my items" has written its catalogue items (tests, and before saving).
+    func waitForItemSaves() async {
+        await itemSave?.value
     }
 
     func cancelLineEditor() {
@@ -638,7 +806,33 @@ final class DocumentViewModel {
         } catch DocumentServiceError.blocked(let problems) {
             state.issueProblems = problems
         } catch {
-            state.errorMessage = "The \(DocumentText.noun(state.document.docType)) couldn't be issued."
+            state.errorMessage = "The \(DocumentText.noun(state.document.docType)) couldn't be sent."
+        }
+    }
+
+    // MARK: Review & send (§6.1, §8)
+
+    /// "Send on WhatsApp" etc.: closes the review; `sendAfterReview()` then issues and opens the channel.
+    func send(via channel: SendChannel) {
+        state.pendingSend = channel
+        state.confirmingIssue = false
+    }
+
+    /// "Keep as draft": closes the review and leaves the draft as it is.
+    func keepAsDraft() {
+        state.pendingSend = nil
+        state.confirmingIssue = false
+    }
+
+    /// Runs once the review sheet has gone: issues the document, then shows the PDF and opens the channel.
+    func sendAfterReview() async {
+        guard let channel = state.pendingSend else { return }
+        state.pendingSend = nil
+        await confirmIssue()
+        guard !isDraft, let computed else { return }
+        preview = DocumentPreviewViewModel(session: session, document: state.document, computed: computed,
+                                           channel: channel) { [weak self] sentAt in
+            self?.state.document.sentAt = sentAt
         }
     }
 

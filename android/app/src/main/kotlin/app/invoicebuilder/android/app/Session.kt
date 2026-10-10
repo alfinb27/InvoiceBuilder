@@ -9,6 +9,7 @@ import app.invoicebuilder.android.reminders.ReminderReconciler
 import app.invoicebuilder.core.domain.billing.EntitlementState
 import app.invoicebuilder.core.domain.billing.EntitlementStatus
 import app.invoicebuilder.core.domain.documents.DocumentRules
+import app.invoicebuilder.core.domain.documents.RateChips
 import app.invoicebuilder.core.domain.models.Business
 import app.invoicebuilder.core.domain.models.DocumentType
 import app.invoicebuilder.core.domain.money.CurrencyCode
@@ -97,6 +98,9 @@ class Session(
     val catalogRules get() = CatalogItemRules(config, business, container.reference.currencies, container.reference.units, today)
     val numberingRules get() = NumberingSeriesRules(config, today, deviceID)
     val documentRules get() = DocumentRules(container.taxConfigs, business, container.reference.currencies, config)
+
+    /** The "Add an item" sheet's rate chips (`spec/design/rate-chips.json`). */
+    val rateChips: RateChips by lazy { runCatching { RateChips.bundled() }.getOrElse { RateChips(4, emptyMap()) } }
 
     // Navigation
 

@@ -13,7 +13,7 @@ final class ScreenshotTour: XCTestCase {
         app.launchArguments = ["-seed", "IN"]
         app.launch()
         XCTAssertTrue(app.staticTexts["Bharat Web Studio"].waitForExistence(timeout: 10))
-        snapshot("01-home", app)
+        snapshot("01-home-first-run", app)
 
         openTab("Clients", app)
         XCTAssertTrue(app.staticTexts["Rao Traders"].waitForExistence(timeout: 5))
@@ -51,35 +51,53 @@ final class ScreenshotTour: XCTestCase {
         XCTAssertTrue(app.buttons["homeNewInvoice"].waitForExistence(timeout: 10))
         app.buttons["homeNewInvoice"].tap()
         XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
+        snapshot("20-builder-empty", app)
         app.buttons["chooseClient"].tap()
-        snapshot("20-client-picker", app)
+        snapshot("21-client-picker", app)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Umesh Foods")).firstMatch.tap()
-        app.openCatalogue().tap()
+        app.openAddItem().tap()
         app.buttons["catalogItem-Tea leaves"].tap()
-        snapshot("21-catalog-picker", app)
-        app.buttons["catalogDone"].tap()
-        snapshot("22-builder", app)
+        snapshot("22-add-item-saved", app)
+        app.buttons["Something new"].tap()
+        let description = app.textFields["lineDescription"]
+        if description.waitForExistence(timeout: 5) {
+            description.tap()
+            description.typeText("Delivery\n")
+            app.typeText("250")
+        }
+        snapshot("23-add-item-new", app)
+        app.buttons["lineDone"].tap()
+        snapshot("24-builder", app)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Tea leaves")).firstMatch.tap()
         XCTAssertTrue(app.buttons["lineDone"].waitForExistence(timeout: 5))
-        snapshot("23-line-editor", app)
+        snapshot("25-edit-item", app)
         app.buttons["lineDone"].tap()
-        app.swipeUp(velocity: .slow)
-        snapshot("24-builder-totals", app)
-        app.buttons["issueButton"].tap()
-        if app.buttons["Issue invoice"].waitForExistence(timeout: 5) { app.buttons["Issue invoice"].tap() }
+        app.buttons["moreOptions"].tap()
+        snapshot("26-more-options", app)
+        app.buttons["reviewAndSend"].tap()
+        XCTAssertTrue(app.buttons["review.send"].waitForExistence(timeout: 10))
+        snapshot("27-review-and-send", app)
+        app.buttons["channel-email"].tap()
+        snapshot("28-review-email", app)
+        app.buttons["channel-whatsApp"].tap()
+        app.buttons["review.keepDraft"].tap()
+        app.reviewAndSend()
         XCTAssertTrue(app.staticTexts.matching(identifier: "issuedTotal").firstMatch.waitForExistence(timeout: 10))
-        snapshot("25-issued-invoice", app)
+        snapshot("29-sent-invoice", app)
         // The PDF, and each template it can be drawn with.
         app.buttons["previewButton"].firstMatch.tap()
         XCTAssertTrue(app.buttons["template-classic"].waitForExistence(timeout: 10))
-        snapshot("27-preview-modern", app)
+        snapshot("30-preview-modern", app)
         for template in ["classic", "compact", "minimal"] {
             app.buttons["template-\(template)"].tap()
-            snapshot("28-preview-\(template)", app)
+            snapshot("31-preview-\(template)", app)
         }
         app.buttons["Done"].firstMatch.tap()
         openTab("Invoices", app)
-        snapshot("26-invoices-list", app)
+        Thread.sleep(forTimeInterval: 1) // the large title fades in after the tab switch
+        snapshot("32-invoices-list", app)
+        openTab("Home", app)
+        snapshot("33-home-dashboard", app)
     }
 
     /// iPad, landscape: the builder's right pane renders the draft as it is edited (Phase 3). Skipped on iPhone,
@@ -96,10 +114,8 @@ final class ScreenshotTour: XCTestCase {
         let pane = app.descendants(matching: .any).matching(identifier: "builderPane").firstMatch
         try XCTSkipUnless(pane.waitForExistence(timeout: 5), "no side pane at this width")
 
-        XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
-        app.buttons["chooseClient"].tap()
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Umesh Foods")).firstMatch.tap()
-        app.openCatalogue().tap()
+        app.chooseClient("Umesh Foods")
+        app.openAddItem().tap()
         app.buttons["catalogDone"].tap()
 
         // The pane shows the document itself, redrawn after each edit.
@@ -123,16 +139,17 @@ final class ScreenshotTour: XCTestCase {
                                "UICTContentSizeCategoryAccessibilityXL"]
         app.launch()
         XCTAssertTrue(app.buttons["homeNewInvoice"].waitForExistence(timeout: 10))
+        snapshot("50-home-large-text", app)
         app.buttons["homeNewInvoice"].tap()
-        XCTAssertTrue(app.buttons["chooseClient"].waitForExistence(timeout: 5))
-        app.buttons["chooseClient"].tap()
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Rao Traders")).firstMatch.tap()
-        app.openCatalogue().tap()
-        app.buttons["catalogDone"].tap()
-        snapshot("30-builder-large-text", app)
+        app.chooseClient("Rao Traders")
+        app.openAddItem().tap()
+        app.segmentedControls["addItemTabs"].buttons["New"].tap() // the short tab names at accessibility sizes
+        snapshot("51-add-item-large-text", app)
+        app.buttons["Cancel"].firstMatch.tap()
+        snapshot("52-builder-large-text", app)
         app.swipeUp(velocity: .slow)
         app.swipeUp(velocity: .slow)
-        snapshot("31-builder-large-text-totals", app)
+        snapshot("53-builder-large-text-scrolled", app)
     }
 
     @MainActor
@@ -140,18 +157,25 @@ final class ScreenshotTour: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemory"]
         app.launch()
-        XCTAssertTrue(app.buttons["India"].firstMatch.waitForExistence(timeout: 10))
-        snapshot("10-onboarding-country", app)
-        app.buttons["India"].firstMatch.tap()
-        app.buttons["Continue"].tap()
-        snapshot("11-onboarding-registration", app)
-        app.buttons["Continue"].tap()
+        XCTAssertTrue(app.buttons["onboarding.start"].waitForExistence(timeout: 10))
+        snapshot("10-welcome", app)
+        app.buttons["onboarding.start"].tap()
+        XCTAssertTrue(app.buttons["country-IN"].waitForExistence(timeout: 5))
+        snapshot("11-where-you-work", app)
+        app.buttons["country-IN"].tap()
+        snapshot("12-where-you-work-india", app)
+        app.buttons["country-other"].tap()
+        snapshot("13-somewhere-else", app)
+        app.buttons["country-IN"].tap()
+        app.buttons["onboarding.continue"].tap()
         let gstin = app.textFields["GSTIN"]
         if gstin.waitForExistence(timeout: 5) {
             gstin.tap()
             gstin.typeText("29AAGCB7383J1Z4\n")
         }
-        snapshot("12-onboarding-business", app)
+        snapshot("14-your-business", app)
+        app.buttons["onboarding.continue"].tap()
+        snapshot("15-business-problems", app)
     }
 
     @MainActor

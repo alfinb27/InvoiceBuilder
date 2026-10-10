@@ -14,7 +14,7 @@ struct IssuedDocumentView: View {
     private var config: TaxConfig { model.config }
 
     var body: some View {
-        Form {
+        ThemedForm {
             header
             if document.lifecycle == .void { voidSection }
             if let buyer = document.buyerSnapshot { clientSection(buyer) }
@@ -34,7 +34,7 @@ struct IssuedDocumentView: View {
             if let terms = document.terms { Section("Terms") { Text(terms) } }
             if let computed = document.computed, !computed.notes.isEmpty {
                 Section("Printed notes") {
-                    ForEach(computed.notes, id: \.id) { note in Text(note.text).font(.footnote) }
+                    ForEach(computed.notes, id: \.id) { note in Text(note.text).font(Theme.Fonts.footnote) }
                 }
             }
         }
@@ -124,21 +124,21 @@ struct IssuedDocumentView: View {
         Section {
             VStack(alignment: .leading, spacing: Theme.Space.s) {
                 Text(document.computed?.title ?? DocumentText.noun(document.docType).capitalized)
-                    .font(.subheadline)
+                    .font(Theme.Fonts.subhead)
                     .foregroundStyle(Theme.textSecondary)
                 HStack(alignment: .firstTextBaseline) {
-                    Text(document.number ?? "").font(.title2.weight(.semibold)).textSelection(.enabled)
+                    Text(document.number ?? "").font(Theme.Fonts.title3.weight(.semibold)).textSelection(.enabled)
                     Spacer()
                     StatusTag(status: document.status(today: session.today, paid: model.paidMinor))
                 }
                 Text(session.money(document.totals.totalMinor, currency: document.currency))
-                    .font(.title3.monospacedDigit())
+                    .font(Theme.Fonts.title3.monospacedDigit())
                     .accessibilityIdentifier("issuedTotal")
                 if document.docType == .invoice, model.paidMinor > 0 {
                     let outstanding = max(document.totals.totalMinor - model.paidMinor, 0)
                     Text("\(session.money(model.paidMinor, currency: document.currency)) paid · "
                          + "\(session.money(outstanding, currency: document.currency)) outstanding")
-                        .font(.footnote)
+                        .font(Theme.Fonts.footnote)
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -162,9 +162,9 @@ struct IssuedDocumentView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                         Text(PaymentMethodText.label(payment.method))
-                        Text(payment.date.displayText).font(.caption).foregroundStyle(.secondary)
+                        Text(payment.date.displayText).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(.secondary)
                         if let reference = payment.reference {
-                            Text(reference).font(.caption).foregroundStyle(.tertiary)
+                            Text(reference).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(.tertiary)
                         }
                     }
                     Spacer()
@@ -182,11 +182,11 @@ struct IssuedDocumentView: View {
     private func clientSection(_ buyer: BuyerSnapshot) -> some View {
         Section("Client") {
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
-                Text(buyer.name ?? "").font(.body.weight(.medium))
+                Text(buyer.name ?? "").font(Theme.Fonts.body.weight(.medium))
                 if let address = buyer.address { Text(address) }
                 if let taxId = buyer.taxId {
                     Text(buyer.country == session.business.countryCode ? "\(config.labels.taxIdName) \(taxId)" : taxId)
-                        .font(.subheadline.monospaced())
+                        .font(Theme.Fonts.subhead.monospaced())
                 }
             }
             .textSelection(.enabled)
@@ -196,7 +196,7 @@ struct IssuedDocumentView: View {
 
     private var datesSection: some View {
         Section("Dates") {
-            LabeledContent("Issued", value: document.issueDate.displayText)
+            LabeledContent("\(DocumentText.noun(document.docType).capitalized) date", value: document.issueDate.displayText)
             if let supplyDate = document.supplyDate {
                 LabeledContent("Supply date", value: supplyDate.displayText)
             }

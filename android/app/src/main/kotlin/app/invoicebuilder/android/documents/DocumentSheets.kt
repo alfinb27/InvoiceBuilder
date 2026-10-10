@@ -89,39 +89,6 @@ private fun PickerRow(title: String, detail: String?, selected: Boolean, tag: St
     }
 }
 
-/** Adding catalogue items: each tap adds a line; Done closes. iOS: `CatalogPickerSheet`. */
-@Composable
-fun CatalogPickerSheet(session: Session, onAdd: (CatalogItem) -> Boolean, onDismiss: () -> Unit) {
-    val items by remember(session.business.id) { session.container.catalog.observeItems(session.business.id) }.collectAsStateWithLifecycle(emptyList())
-    var query by rememberSaveable { mutableStateOf("") }
-    val added = remember { mutableStateMapOf<String, Int>() }
-    val live = items.filter { !it.isArchived }
-    EditorSheet("Add items", onCancel = onDismiss, onSave = onDismiss, saveTitle = "Done", saveTag = "catalogDone") {
-        SearchField(query, { query = it }, "Name or ${session.config.labels.productCodeName}")
-        if (live.isEmpty()) {
-            Text("No items yet. Add goods and services in the Items tab, or add a one-off line.", color = Theme.colors.textSecondary,
-                modifier = Modifier.padding(vertical = Theme.Space.l))
-        }
-        for (item in SetupSearch.items(live, query)) {
-            Row(Modifier.fillMaxWidth().clickable {
-                val needsPrice = onAdd(item)
-                added[item.id] = (added[item.id] ?: 0) + 1
-                if (needsPrice) onDismiss()
-            }.testTag("catalogItem-${item.name}").padding(vertical = Theme.Space.s), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(item.name)
-                    Text(session.money(item.unitPriceMinor, item.currency) + if (item.priceIncludesTax) " incl. ${session.config.labels.taxName}" else "",
-                        style = MaterialTheme.typography.bodySmall, color = Theme.colors.textSecondary)
-                }
-                val count = added[item.id]
-                if (count != null) Tag(if (count == 1) "Added" else "Added ×$count", Theme.colors.success)
-                else Icon(Icons.Filled.AddCircleOutline, "Add", tint = Theme.colors.brand)
-            }
-            HorizontalDivider(color = Theme.colors.border.copy(alpha = 0.5f))
-        }
-    }
-}
-
 /** The first issue on a device that owns no series of this type (`spec/sync.md` §3). iOS: `SeriesChoiceSheet`. */
 @Composable
 fun SeriesChoiceSheet(choice: DocumentViewModel.SeriesChoice, docType: DocumentType, startOwn: () -> Unit, takeOver: (String) -> Unit, cancel: () -> Unit) {

@@ -6,6 +6,7 @@ public struct AppRootView: View {
     @State private var model: AppModel
 
     public init(model: AppModel) {
+        ThemeAppearance.apply()
         _model = State(initialValue: model)
     }
 
@@ -34,7 +35,7 @@ public struct AppRootView: View {
                 }
             }
         }
-        .tint(Theme.brand)
+        .themedRoot()
         .task { await model.start() }
         .onOpenURL { url in
             guard url.isFileURL else { return }

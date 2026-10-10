@@ -19,7 +19,7 @@ struct BackupPage: View {
 
     var body: some View {
         @Bindable var router = session.router.settings
-        Form {
+        ThemedForm {
             Section {
                 Label {
                     Text(model.lastBackupText)
@@ -126,7 +126,7 @@ struct RestoreConfirmationView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            ThemedForm {
                 Section {
                     LabeledContent("Made", value: Self.date(preview.file.createdAt))
                     LabeledContent("On", value: preview.file.app.platform == "android" ? "Android" : "iPhone or iPad")
