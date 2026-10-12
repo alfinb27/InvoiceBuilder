@@ -66,7 +66,9 @@ the chosen brand everywhere below before submitting.
 
 - **Data collection:** "Data Not Collected". The app has no server, no analytics and no third-party SDKs
   (ADR-0011). iCloud sync stores the user's data in *their own* private iCloud database, which Apple does not count
-  as collection by the developer; the privacy policy says so explicitly.
+  as collection by the developer; the privacy policy says so explicitly. Optional Google Drive backup (ADR-0021) sends
+  backup files straight from the device to the user's own Google Drive; the developer receives nothing, so the label
+  stays "Data Not Collected".
 - **Tracking:** none (`PrivacyInfo.xcprivacy`: `NSPrivacyTracking` false, no tracking domains).
 - **Required-reason APIs:** system boot time (35F9.1, elapsed time on device). GRDB and SQLiteData ship their own
   manifests.
