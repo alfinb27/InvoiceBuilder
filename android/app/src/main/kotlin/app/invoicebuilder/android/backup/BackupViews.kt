@@ -22,7 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +48,11 @@ fun BackupPage(session: Session, model: BackupViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val flows = rememberBackupFlows(model)
+    // Google Drive backup (§7), when this build has it.
+    val drive = androidx.compose.runtime.remember(session) {
+        session.autoBackup?.let { DriveBackupModel(it, session.container.cloudBackupState, session.container.time, session.scope) }
+    }
+    var showsDrive by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     val incoming = session.router.settings.incomingBackup
     LaunchedEffect(incoming) {
         if (incoming != null) {
@@ -56,6 +63,7 @@ fun BackupPage(session: Session, model: BackupViewModel) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             ReadableColumn(Modifier.fillMaxWidth()) {
+                if (drive != null) FormSection { DriveBackupRow(drive) { showsDrive = true } }
                 FormSection(
                     "Back up",
                     if (model.isDue) "You haven't backed up in a while. Save a backup somewhere other than this device."
@@ -77,10 +85,15 @@ fun BackupPage(session: Session, model: BackupViewModel) {
                 }
                 FormSection("Restore", "Replaces all the data on this device with the backup. A copy of the current data is kept first.") {
                     NavRow("Restore from a backup…", { flows.pickFile() }, icon = Icons.Filled.History, tag = "backup.restore", tint = Theme.colors.danger)
+                    if (drive != null) DriveRestoreRow(drive)
                 }
             }
         }
-        if (model.isWorking) CircularProgressIndicator(Modifier.align(Alignment.Center))
+        if (model.isWorking || drive?.isWorking == true) CircularProgressIndicator(Modifier.align(Alignment.Center))
+    }
+    if (drive != null) {
+        if (showsDrive) DriveBackupPage(drive) { showsDrive = false }
+        DriveRestoreFlow(drive, model)
     }
 }
 

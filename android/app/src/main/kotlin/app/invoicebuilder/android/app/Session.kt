@@ -9,6 +9,7 @@ import app.invoicebuilder.android.reminders.ReminderReconciler
 import app.invoicebuilder.core.domain.billing.EntitlementState
 import app.invoicebuilder.core.domain.billing.EntitlementStatus
 import app.invoicebuilder.core.domain.documents.DocumentRules
+import app.invoicebuilder.core.domain.documents.RateChips
 import app.invoicebuilder.core.domain.models.Business
 import app.invoicebuilder.core.domain.models.DocumentType
 import app.invoicebuilder.core.domain.money.CurrencyCode
@@ -50,6 +51,8 @@ class Session(
         internal set
     /** Rebuilds the app from the database (set by `AppModel`); a restore calls it. */
     var reloadApp: suspend () -> Unit = {}
+    /** Automatic Google Drive backup (`spec/backup.md` §7); null without Drive in this build. iOS: `autoBackup`. */
+    var autoBackup: app.invoicebuilder.core.domain.backup.AutoBackupRunner? = null
     /** Asks for the notification permission (set by `MainActivity`, which owns the permission launcher). */
     var requestNotificationPermission: () -> Unit = {}
 
@@ -97,6 +100,9 @@ class Session(
     val catalogRules get() = CatalogItemRules(config, business, container.reference.currencies, container.reference.units, today)
     val numberingRules get() = NumberingSeriesRules(config, today, deviceID)
     val documentRules get() = DocumentRules(container.taxConfigs, business, container.reference.currencies, config)
+
+    /** The "Add an item" sheet's rate chips (`spec/design/rate-chips.json`). */
+    val rateChips: RateChips by lazy { runCatching { RateChips.bundled() }.getOrElse { RateChips(4, emptyMap()) } }
 
     // Navigation
 

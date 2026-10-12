@@ -9,6 +9,8 @@ public final class Session {
     public let dependencies: AppDependencies
     /// This device's id (owner of the numbering series it creates).
     public let deviceID: String
+    /// Automatic Google Drive backup (`spec/backup.md` §7), shared with the app; nil without Drive in this build.
+    public var autoBackup: AutoBackupRunner?
     /// The active business, kept current by `observeBusiness()`.
     public private(set) var business: Business
     public let config: TaxConfig
@@ -16,6 +18,8 @@ public final class Session {
     public let formatter: SpecFormatter
     /// Renders and caches the PDFs the preview, sharing and printing use (`spec/pdf/RENDERING.md`).
     let pdfLibrary: PDFLibrary
+    /// The "Add an item" sheet's rate chips (`spec/design/rate-chips.json`).
+    let rateChips = (try? RateChips.bundled()) ?? RateChips(maxChips: 4, families: [:])
     /// The unlock and the free-tier count, kept current by `observeEntitlements()` (`spec/billing.md`).
     public internal(set) var entitlement = EntitlementStatus(state: .unknown, count: 0)
     /// A sample business in an in-memory database (onboarding's "Try it with a sample business"); nothing is saved.

@@ -21,7 +21,7 @@ struct PaymentEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            ThemedForm {
                 Section {
                     VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                         LabeledContent("Amount") {

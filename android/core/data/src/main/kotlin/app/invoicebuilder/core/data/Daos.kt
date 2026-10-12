@@ -96,6 +96,18 @@ interface AppStateDao {
     suspend fun set(key: String, value: String)
     @Query("INSERT INTO app_state (`key`, value) VALUES (:key, '1') ON CONFLICT(`key`) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)")
     suspend fun increment(key: String)
+    @Query("SELECT * FROM app_state WHERE `key` IN (:keys)") suspend fun entries(keys: List<String>): List<AppStateEntity>
+    @Query("SELECT * FROM app_state WHERE `key` IN (:keys)") fun observeEntries(keys: List<String>): Flow<List<AppStateEntity>>
+    @Query("DELETE FROM app_state WHERE `key` = :key") suspend fun delete(key: String)
+
+    /** `spec/backup.md` §7.2: the highest `updated_at` over the synced tables (a tombstone bumps it). */
+    @Query("""SELECT MAX(changed) FROM (
+        SELECT MAX(updated_at) AS changed FROM business UNION ALL SELECT MAX(updated_at) FROM asset
+        UNION ALL SELECT MAX(updated_at) FROM client UNION ALL SELECT MAX(updated_at) FROM catalog_item
+        UNION ALL SELECT MAX(updated_at) FROM numbering_series UNION ALL SELECT MAX(updated_at) FROM document
+        UNION ALL SELECT MAX(updated_at) FROM line_item UNION ALL SELECT MAX(updated_at) FROM tax_line
+        UNION ALL SELECT MAX(updated_at) FROM payment)""")
+    suspend fun latestChangeAt(): Long?
 }
 
 /** One documents-list row (iOS: `GRDBDocumentRepository.summaries`). */

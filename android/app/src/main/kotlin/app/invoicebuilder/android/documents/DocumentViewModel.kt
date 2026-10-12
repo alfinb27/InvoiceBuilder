@@ -18,6 +18,12 @@ import app.invoicebuilder.core.domain.documents.LineItem
 import app.invoicebuilder.core.domain.documents.LineItemDraft
 import app.invoicebuilder.core.domain.documents.LineItemField
 import app.invoicebuilder.core.domain.documents.LineItemRules
+import app.invoicebuilder.core.domain.documents.OneOffLine
+import app.invoicebuilder.core.domain.documents.RateChips
+import app.invoicebuilder.core.domain.decimal.DecimalInput
+import app.invoicebuilder.core.domain.decimal.DecimalString
+import app.invoicebuilder.core.domain.decimal.MoneyInput
+import app.invoicebuilder.core.domain.money.SpecFormatter
 import app.invoicebuilder.core.domain.documents.Payment
 import app.invoicebuilder.core.domain.documents.QuoteOutcome
 import app.invoicebuilder.core.domain.models.CatalogItem
@@ -61,7 +67,14 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
         val attemptedDone: Boolean = false,
         /** The catalogue price could not be converted to the document currency. */
         val needsPrice: Boolean = false,
+        /** "My price already includes {tax}": how the typed price is read (`documents.md` §3.2). */
+        val includesTax: Boolean = false,
+        /** "Save to my items so I can reuse it": new lines in the home currency only. */
+        val saveToItems: Boolean = false,
     )
+
+    /** The live total of the line being edited: "2 × ₹2,500 + ₹900 GST" and "₹5,900". */
+    data class LinePreview(val text: String, val total: String)
 
     var document by mutableStateOf(
         session.documentRules.newDocument((route as? DocumentRoute.New)?.docType ?: DocumentType.invoice, route.id,
@@ -112,8 +125,12 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
         private set
     var issueProblems by mutableStateOf(emptyList<IssueProblem>())
         private set
+    /** The Review & send screen is open (`documents.md` §6.1): the checks passed and `numberPreview` is set. */
     var confirmingIssue by mutableStateOf(false)
     var numberPreview by mutableStateOf<String?>(null)
+        private set
+    /** Chosen on Review & send: once the review closes, the document is issued and the PDF goes out this way. */
+    var pendingSend by mutableStateOf<SendChannel?>(null)
         private set
     var seriesChoice by mutableStateOf<SeriesChoice?>(null)
     var showsPaywall by mutableStateOf(false)
@@ -126,6 +143,8 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
     var preview by mutableStateOf<DocumentPreviewViewModel?>(null)
 
     private var saveJob: Job? = null
+    /** "Save to my items": the catalogue item is written first, then the line is linked to it. */
+    private var itemSave: Job? = null
     private val saveLock = Mutex()
     private var isDirty = false
     private var loadStarted = false
@@ -229,6 +248,7 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
 
     /** Saves now if anything changed (before issuing, leaving the screen or going to the background). */
     suspend fun flush() {
+        itemSave?.join()
         saveJob?.cancel()
         saveJob = null
         save()
@@ -316,6 +336,27 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
     /** Null defers to `business.reminderDaysAfterDue` (`spec/reminders.md` §1). */
     fun setReminderOverride(days: Int?) = mutate { it.copy(reminderDaysAfterDueOverride = days) }
     fun setValidUntil(date: LocalDate) = mutate { it.copy(validUntil = date) }
+
+    /**
+     * The "When should they pay?" chips (`documents.md` §3.3): invoices 0, 7, 15, 30 days plus the business's own
+     * terms; quotes 7, 15, 30, 60 days of validity.
+     */
+    val termChoices: List<Int>
+        get() = if (document.docType == DocumentType.quote) listOf(7, 15, 30, 60)
+        else (setOf(0, 7, 15, 30, session.business.paymentTermsDays)).sorted()
+
+    /** The chip matching the due date (validity for quotes), if any. */
+    val selectedTermDays: Int?
+        get() {
+            val target = (if (document.docType == DocumentType.quote) document.validUntil else document.dueDate) ?: return null
+            val days = java.time.temporal.ChronoUnit.DAYS.between(document.issueDate, target).toInt()
+            return days.takeIf { it in termChoices }
+        }
+
+    fun setTerm(days: Int) {
+        if (document.docType == DocumentType.quote) setValidUntil(document.issueDate.plusDays(days.toLong()))
+        else setDue(days.toLong())
+    }
     fun setSupplyDate(date: LocalDate?) = mutate { it.copy(supplyDate = date) }
 
     fun chooseClient(client: Client?) {
@@ -374,6 +415,10 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
         val (line, needsPrice) = rules.line(item, document, session.container.ids.make())
         mutate { it.copy(lines = it.lines + line) }
         selectedLineID = line.id
+        // "Something new" was prepared before this line existed: give it this line's rate (`documents.md` §3).
+        lineEditor?.takeIf { it.isNew && it.draft.rateId.isEmpty() }?.let { editor ->
+            lineEditor = editor.copy(draft = editor.draft.copy(rateId = rules.oneOffRateID(document)))
+        }
         if (needsPrice) {
             editLine(line.id)
             lineEditor = lineEditor?.copy(needsPrice = true)
@@ -383,17 +428,87 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
 
     fun addLine() {
         if (!isDraft) return
-        lineEditor = LineEditorState(session.container.ids.make(), true, LineItemDraft(rateId = rules.oneOffRateID(document)))
+        lineEditor = LineEditorState(session.container.ids.make(), true, LineItemDraft(rateId = rules.oneOffRateID(document)),
+            includesTax = document.pricesIncludeTax, saveToItems = !isForeignCurrency)
     }
 
     fun editLine(id: String) {
         if (!isDraft) return
         val line = document.lines.firstOrNull { it.id == id } ?: return
-        lineEditor = LineEditorState(id, false, LineItemDraft.of(line, exponent))
+        lineEditor = LineEditorState(id, false, LineItemDraft.of(line, exponent), includesTax = document.pricesIncludeTax)
         selectedLineID = id
     }
 
     fun updateLineDraft(draft: LineItemDraft) { lineEditor = lineEditor?.copy(draft = draft) }
+    fun setLineIncludesTax(on: Boolean) { lineEditor = lineEditor?.copy(includesTax = on) }
+    fun setLineSaveToItems(on: Boolean) { lineEditor = lineEditor?.copy(saveToItems = on) }
+
+    /** "Save to my items" is offered for a new line in the home currency (`documents.md` §3.2). */
+    val canSaveLineToItems: Boolean get() = lineEditor?.isNew == true && !isForeignCurrency
+
+    /** The rate chips, the other rates in force and the hint under the chips. */
+    val lineRateChoices: RateChips.Choices
+        get() {
+            val choices = session.rateChips.choices(config, session.business.customRates, document.effectiveDate)
+            val selected = lineEditor?.draft?.rateId?.takeIf { it.isNotEmpty() } ?: return choices
+            if ((choices.chips + choices.others).any { it.id == selected }) return choices
+            val saved = config.rate(selected, session.business.customRates) ?: return choices
+            return choices.copy(others = choices.others + saved) // a saved rate no longer in force stays
+        }
+
+    /** − / + on "How many?": whole steps, never below 1 (a typed 0.5 can still go up). */
+    fun stepLineQuantity(by: Int) {
+        val editor = lineEditor ?: return
+        val parsed = (DecimalInput.parse(editor.draft.quantityText) as? Outcome.Success)?.value?.let(DecimalString::parse)
+        if (parsed == null) {
+            updateLineDraft(editor.draft.copy(quantityText = "1"))
+            return
+        }
+        val next = parsed + java.math.BigDecimal(by)
+        if (next < java.math.BigDecimal.ONE && by < 0) return
+        updateLineDraft(editor.draft.copy(quantityText = SpecFormatter.quantity(next.toPlainString())))
+    }
+
+    private data class LinePrice(val minor: Long, val typed: Long, val setsBasis: Boolean)
+
+    /** The price the line gets: as typed when the switch matches the document's basis (or sets it), else converted. */
+    private fun linePrice(editor: LineEditorState): LinePrice? {
+        val typed = (MoneyInput.parse(editor.draft.priceText, exponent) as? Outcome.Success)?.value ?: return null
+        val setsBasis = chargesTax && OneOffLine.setsDocumentBasis(document, if (editor.isNew) null else editor.lineID)
+        if (setsBasis) return LinePrice(typed, typed, true)
+        val price = OneOffLine.unitPrice(typed, editor.includesTax, config.rate(editor.draft.rateId, session.business.customRates),
+            document, chargesTax, session.container.reference.currencies, config.rounding.amountMode)
+        return LinePrice(price, typed, false)
+    }
+
+    /** The engine's result for this line alone, as the sheet shows it under the fields. */
+    val lineEditorPreview: LinePreview?
+        get() {
+            val editor = lineEditor ?: return null
+            val price = linePrice(editor) ?: return null
+            val quantity = (DecimalInput.parse(editor.draft.quantityText) as? Outcome.Success)?.value ?: return null
+            if (chargesTax && editor.draft.rateId.isEmpty()) return null
+            val discount = (DocumentInput.discount(editor.draft.discountText, editor.draft.discountIsPercent, exponent) as? Outcome.Success)?.value
+            val line = LineItem(editor.lineID, description = "–", quantity = quantity, unitPriceMinor = price.minor,
+                rateId = editor.draft.rateId, discount = discount)
+            var preview = document.copy(lines = listOf(line), discount = null, shippingMinor = 0)
+            if (price.setsBasis) preview = preview.copy(pricesIncludeTax = editor.includesTax)
+            val computed = (rules.compute(preview, rules.sellerSnapshot(config), rules.buyerSnapshot(preview, client)) as? Outcome.Success)?.value
+                ?: return null
+            val result = computed.lines.firstOrNull() ?: return null
+            val currency = preview.currency
+            val tax = result.tax
+            val taxName = config.labels.taxName
+            var text = "${SpecFormatter.quantity(quantity)} × ${session.money(price.typed, currency)}"
+            if (chargesTax) {
+                text += when {
+                    tax == 0L -> " · no $taxName"
+                    preview.pricesIncludeTax || editor.includesTax -> " incl. ${session.money(tax, currency)} $taxName"
+                    else -> " + ${session.money(tax, currency)} $taxName"
+                }
+            }
+            return LinePreview(text, session.money(result.taxable + tax, currency))
+        }
 
     /** Done in the line editor: applies the line, or shows its problems. True when the editor can close. */
     fun commitLineEditor(): Boolean {
@@ -401,18 +516,47 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
         lineEditor = editor
         val rules = lineRules
         if (rules.issues(editor.draft).isNotEmpty()) return false
-        mutate { document ->
+        val price = linePrice(editor) ?: return false
+        mutate { current ->
+            val document = if (price.setsBasis) current.copy(pricesIncludeTax = editor.includesTax) else current
             val index = document.lines.indexOfFirst { it.id == editor.lineID }
             if (index >= 0) {
-                document.copy(lines = document.lines.toMutableList().also { it[index] = rules.apply(editor.draft, it[index]) })
+                document.copy(lines = document.lines.toMutableList().also {
+                    it[index] = rules.apply(editor.draft, it[index]).copy(unitPriceMinor = price.minor)
+                })
             } else {
-                document.copy(lines = document.lines + rules.apply(editor.draft, LineItem(editor.lineID, position = document.lines.size)))
+                val line = rules.apply(editor.draft, LineItem(editor.lineID, position = document.lines.size)).copy(unitPriceMinor = price.minor)
+                document.copy(lines = document.lines + line)
             }
         }
+        if (editor.isNew && editor.saveToItems && !isForeignCurrency) saveToMyItems(editor.lineID, price.typed, editor.includesTax)
         selectedLineID = editor.lineID
         lineEditor = null
         return true
     }
+
+    /** Writes the catalogue item, then links the line to it (the line's foreign key needs the item first). */
+    private fun saveToMyItems(lineID: String, typedMinor: Long, includesTax: Boolean) {
+        val line = document.lines.firstOrNull { it.id == lineID } ?: return
+        val container = session.container
+        val item = OneOffLine.catalogItem(line, typedMinor, includesTax, chargesTax, document.businessId, homeCurrency,
+            container.ids.make(), container.time.now())
+        val previous = itemSave
+        itemSave = session.scope.launch {
+            previous?.join()
+            try {
+                container.catalog.save(item)
+                mutate { document ->
+                    document.copy(lines = document.lines.map { if (it.id == lineID) it.copy(catalogItemId = item.id) else it })
+                }
+            } catch (error: Exception) {
+                errorMessage = "The item was added, but it couldn't be saved to your items."
+            }
+        }
+    }
+
+    /** Waits until "Save to my items" has written its catalogue items (tests, and before saving). */
+    suspend fun waitForItemSaves() { itemSave?.join() }
 
     fun cancelLineEditor() { lineEditor = null }
 
@@ -515,27 +659,59 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
     fun confirmIssue() {
         confirmingIssue = false
         if (!canRequestIssue) return
-        session.scope.launch {
-            isWorking = true
-            try {
-                if (!saveBeforeAction()) return@launch
-                val issued = session.container.documentService.issue(document.id, session.deviceID)
-                document = issued
-                issueProblems = emptyList()
-                lineEditor = null
-                recompute()
-                if (issued.docType == DocumentType.invoice) {
-                    session.container.entitlements.refreshCount()
-                    session.askForRemindersIfNeeded()
-                }
-            } catch (error: DocumentServiceError.Blocked) {
-                issueProblems = error.problems
-            } catch (error: Exception) {
-                errorMessage = "The ${DocumentText.noun(document.docType)} couldn't be issued."
-            } finally {
-                isWorking = false
+        session.scope.launch { issueNow() }
+    }
+
+    /** Issues the draft (`documents.md` §6); the document is issued when this returns without problems. */
+    private suspend fun issueNow() {
+        if (!canRequestIssue) return
+        isWorking = true
+        try {
+            if (!saveBeforeAction()) return
+            val issued = session.container.documentService.issue(document.id, session.deviceID)
+            document = issued
+            issueProblems = emptyList()
+            lineEditor = null
+            recompute()
+            if (issued.docType == DocumentType.invoice) {
+                session.container.entitlements.refreshCount()
+                session.askForRemindersIfNeeded()
             }
+        } catch (error: DocumentServiceError.Blocked) {
+            issueProblems = error.problems
+        } catch (error: Exception) {
+            errorMessage = "The ${DocumentText.noun(document.docType)} couldn't be sent."
+        } finally {
+            isWorking = false
         }
+    }
+
+    // Review & send (§6.1, §8)
+
+    /**
+     * "Send on WhatsApp" etc.: closes the review and starts [sendAfterReview], which issues and opens the channel.
+     * (iOS waits for its sheet to finish closing first; a Compose dialog can open while another closes.)
+     */
+    fun send(via: SendChannel) {
+        pendingSend = via
+        confirmingIssue = false
+        session.scope.launch { sendAfterReview() }
+    }
+
+    /** "Keep as draft": closes the review and leaves the draft as it is. */
+    fun keepAsDraft() {
+        pendingSend = null
+        confirmingIssue = false
+    }
+
+    /** Runs once the review has gone: issues the document, then shows the PDF and opens the channel. */
+    suspend fun sendAfterReview() {
+        val channel = pendingSend ?: return
+        pendingSend = null
+        issueNow()
+        val computed = computed ?: return
+        if (isDraft) return
+        preview = DocumentPreviewViewModel(session, document, computed, null, channel) { sentAt -> document = document.copy(sentAt = sentAt) }
     }
 
     fun duplicate() {

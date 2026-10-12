@@ -10,6 +10,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import app.invoicebuilder.android.InvoiceApplication
+import app.invoicebuilder.android.backup.DemoCloudBackup
 import app.invoicebuilder.android.backup.appVersion
 import app.invoicebuilder.android.onboarding.OnboardingViewModel
 import app.invoicebuilder.android.reminders.PostedReminders
@@ -38,6 +39,10 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
     private val app get() = getApplication<InvoiceApplication>()
     private var container: AppContainer? = null
     private var seed: SampleData.Country? = null
+    private var fakeDrive = false
+    /** Automatic Google Drive backup for this device (`spec/backup.md` §7); null without Drive in this build. */
+    var autoBackup: app.invoicebuilder.core.domain.backup.AutoBackupRunner? = null
+        private set
     private var sessionScope = newScope()
 
     private fun newScope() = kotlinx.coroutines.CoroutineScope(viewModelScope.coroutineContext + kotlinx.coroutines.SupervisorJob())
@@ -46,11 +51,14 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
      * Picks the container for this launch: the on-disk database, or an in-memory one for UI tests
      * (`inMemory` / `seed IN` intent extras ≈ the iOS `-inMemory` / `-seed IN` launch arguments).
      */
-    fun launch(inMemory: Boolean, seed: String?) {
+    fun launch(inMemory: Boolean, seed: String?, fakeDrive: Boolean = false) {
         if (container != null) return
         this.seed = SampleData.Country.of(seed)
+        this.fakeDrive = fakeDrive
         container = runCatching {
-            if (inMemory || this.seed != null) AppContainer.inMemory(app) else app.container
+            if (inMemory || this.seed != null) {
+                AppContainer.inMemory(app, cloudBackup = if (fakeDrive) DemoCloudBackup() else null)
+            } else app.container
         }.getOrElse {
             phase = Phase.Failed(it.toString())
             return
@@ -73,6 +81,7 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
                 // for many seconds. Until it answers the state is `unknown`, which still lets anyone under the free
                 // limit issue (`spec/billing.md`).
                 container.scope.launch { container.entitlements.start() }
+                if (autoBackup == null) autoBackup = container.autoBackupRunner(device.id)
                 val businesses = container.businesses.fetchBusinesses()
                 val business = BusinessSetup.activeBusiness(device.preferences, businesses)
                 phase = if (business != null) {
@@ -83,6 +92,7 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
                         container, deviceID, sessionScope, appVersion(app),
                         onRestored = { reload() },
                         onTryDemo = { startDemo(it) },
+                        autoBackup = autoBackup,
                         onFinished = { finishOnboarding(container, it, deviceID) },
                     ))
                 }
@@ -153,6 +163,7 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
         val posted = if (container === app.containerIfCreated) PostedReminders(app) else null
         return Session(container, business, deviceID, sessionScope, posted).also {
             it.reloadApp = { reload() }
+            it.autoBackup = autoBackup
             it.start()
             RouterState.restore(it.router, savedState)
             RouterState.save(it.router, savedState, sessionScope)

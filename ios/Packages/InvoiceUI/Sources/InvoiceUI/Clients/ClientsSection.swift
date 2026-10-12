@@ -57,6 +57,7 @@ private struct ClientList: View {
                 }
             }
         }
+        .themedList()
         .overlay {
             if model.state.isLoading {
                 ProgressView()
@@ -127,11 +128,11 @@ private struct ClientRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xxs) {
             HStack(spacing: Theme.Space.s) {
-                Text(client.name).font(.body).foregroundStyle(.primary)
+                Text(client.name).font(Theme.Fonts.body).foregroundStyle(.primary)
                 if client.isBusiness { Tag(text: "B2B") }
             }
             if let detail {
-                Text(detail).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                Text(detail).font(Theme.Fonts.subhead).foregroundStyle(.secondary).lineLimit(1)
             }
         }
         .padding(.vertical, Theme.Space.xxs)
@@ -211,10 +212,10 @@ private struct ClientDetailContent: View {
     }
 
     var body: some View {
-        Form {
+        ThemedForm {
             Section {
                 VStack(alignment: .leading, spacing: Theme.Space.s) {
-                    Text(client.name).font(.title2.weight(.semibold))
+                    Text(client.name).font(Theme.Fonts.title3.weight(.semibold))
                     HStack {
                         Tag(text: client.isBusiness ? "Business (B2B)" : "Consumer (B2C)")
                         if client.isArchived { Tag(text: "Archived", color: Theme.textSecondary) }
@@ -251,7 +252,7 @@ private struct ClientDetailContent: View {
                 Section("Notes") { Text(notes) }
             }
             if !outstandingByCurrency.isEmpty {
-                Section("Outstanding") {
+                Section("Waiting to be paid") {
                     ForEach(outstandingByCurrency, id: \.currency) { entry in
                         LabeledContent(entry.currency.rawValue, value: session.money(entry.minor, currency: entry.currency))
                             .monospacedDigit()
@@ -286,7 +287,7 @@ private struct ClientDocumentRow: View {
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                 Text(summary.number ?? "Draft \(DocumentText.noun(summary.docType))")
                     .foregroundStyle(summary.number == nil ? .secondary : .primary)
-                Text(summary.issueDate.displayText).font(.caption).foregroundStyle(.tertiary)
+                Text(summary.issueDate.displayText).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(.tertiary)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: Theme.Space.xxs) {

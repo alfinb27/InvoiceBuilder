@@ -230,7 +230,7 @@ private fun ClientDetail(session: Session, clientID: String, showsBack: Boolean)
             current.notes?.let { FormSection("Notes") { Text(it) } }
             val outstanding = documents.outstandingByCurrency(session.today)
             if (outstanding.isNotEmpty()) {
-                FormSection("Outstanding") {
+                FormSection("Waiting to be paid") {
                     for ((currency, minor) in outstanding) LabeledValue(currency.rawValue, session.money(minor, currency))
                 }
             }

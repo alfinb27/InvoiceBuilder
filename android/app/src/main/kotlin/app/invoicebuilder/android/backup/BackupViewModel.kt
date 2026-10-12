@@ -103,6 +103,9 @@ class BackupViewModel(
     }
 
     /** Decoding and checking a whole backup is heavy JSON work: on a background thread (≈ a detached task on iOS). */
+    /** Bytes from elsewhere (a Google Drive download, `spec/backup.md` §7.6) into the usual validation (§4 step 1). */
+    suspend fun loadBytes(bytes: ByteArray) = load(bytes)
+
     private suspend fun load(bytes: ByteArray) {
         val schemaVersion = container.backup.schemaVersion
         when (val result = withContext(Dispatchers.Default) { BackupCodec.validate(bytes, schemaVersion) }) {

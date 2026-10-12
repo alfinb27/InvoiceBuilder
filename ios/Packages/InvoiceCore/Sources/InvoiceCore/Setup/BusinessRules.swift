@@ -9,6 +9,30 @@ public enum OnboardingStep: Int, CaseIterable, Comparable, Sendable {
     public static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
 }
 
+/// The three screens onboarding shows the five steps on (`spec/setup.md` §3, ADR-0020).
+public enum OnboardingStage: Int, CaseIterable, Comparable, Sendable {
+    case whereYouWork
+    case yourBusiness
+    case gettingPaid
+
+    public var steps: [OnboardingStep] {
+        switch self {
+        case .whereYouWork: [.country, .registration]
+        case .yourBusiness: [.business]
+        case .gettingPaid: [.bank, .images]
+        }
+    }
+
+    public init(step: OnboardingStep) {
+        self = Self.allCases.first { $0.steps.contains(step) } ?? .whereYouWork
+    }
+
+    /// Bank details, UPI, logo and signature: "Skip for now" finishes without them.
+    public var isOptional: Bool { self == .gettingPaid }
+
+    public static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
+}
+
 public enum BusinessField: Hashable, Sendable {
     case country, homeCurrency
     case registration, genericTaxName, genericTaxPercent
@@ -71,6 +95,18 @@ public struct BusinessDraft: Equatable, Sendable {
     public var reminderDaysAfterDue: Int?
 
     public init() {}
+
+    /// "Skip for now" on the Getting paid stage: nothing typed there is kept.
+    public mutating func clearGettingPaid() {
+        bankAccountName = ""
+        bankAccountNumber = ""
+        bankName = ""
+        ifsc = ""
+        sortCode = ""
+        iban = ""
+        swift = ""
+        upiVpa = ""
+    }
 
     /// The draft for editing `business` in Settings.
     public init(business: Business, rules: BusinessRules) {

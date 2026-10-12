@@ -17,6 +17,10 @@ struct DocumentScreen: View {
         lifecycle
             .focusedSceneValue(\.documentEditor, model)
             .sheet(item: $model.preview) { DocumentPreviewView(model: $0) }
+            // Review & send (`documents.md` §6.1): sending happens once the sheet is gone, so the PDF can open.
+            .sheet(isPresented: $model.state.confirmingIssue, onDismiss: { Task { await model.sendAfterReview() } }) {
+                ReviewSendView(model: model, session: session)
+            }
             .alert("Something went wrong", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { model.dismissError() }
             } message: {
@@ -24,7 +28,7 @@ struct DocumentScreen: View {
             }
     }
 
-    /// Loading, saving when the screen goes away or the app leaves the foreground, and the issue haptic.
+    /// Loading, saving when the screen goes away or the app leaves the foreground, and the send haptic.
     private var lifecycle: some View {
         content
             .task { await model.load() }
@@ -59,12 +63,6 @@ struct DocumentScreen: View {
     }
 }
 
-/// Which sheet the builder shows.
-private enum BuilderSheet: String, Identifiable {
-    case client, catalog
-    var id: String { rawValue }
-}
-
 /// What the wide layout's right pane shows.
 private enum BuilderPane: String, CaseIterable {
     case preview, totals
@@ -72,14 +70,16 @@ private enum BuilderPane: String, CaseIterable {
     var label: String { rawValue.capitalized }
 }
 
-/// The invoice / quote builder (wireframe 8): a form, and on wide screens the live PDF preview beside it, with the
-/// totals and tax panel a tap away.
+/// The guided builder (`docs/design/design.md` §6.4): who, what and when as three numbered cards, everything else
+/// under More options, and the totals with Review & send pinned at the bottom. On wide iPads the live PDF preview
+/// sits beside it.
 struct DocumentBuilderView: View {
     @Bindable var model: DocumentViewModel
     let session: Session
     @State private var width: CGFloat = 0
-    @State private var sheet: BuilderSheet?
+    @State private var choosingClient = false
     @State private var confirmingDelete = false
+    @State private var showsBreakdown = false
     @State private var pane: BuilderPane = .preview
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -91,7 +91,10 @@ struct DocumentBuilderView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            BuilderForm(model: model, session: session, showsTotals: !twoPane, sheet: $sheet)
+            GuidedBuilderForm(model: model, session: session, choosingClient: $choosingClient)
+                .safeAreaInset(edge: .bottom) {
+                    TotalsBar(model: model, session: session, showsBreakdown: $showsBreakdown)
+                }
             if twoPane {
                 Divider()
                 sidePane
@@ -99,26 +102,23 @@ struct DocumentBuilderView: View {
                     .background(Theme.surfaceMuted)
             }
         }
+        .background(Theme.background)
+        // iPhone: the builder has the screen to itself, as in the design; the tab bar returns when it closes.
+        .toolbar(sizeClass == .compact ? .hidden : .automatic, for: .tabBar)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .navigationTitle(DocumentText.title(model.state.document, isPersisted: model.state.isPersisted))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
-        .sheet(item: $sheet) { sheet in
-            switch sheet {
-            case .client:
-                ClientPickerSheet(session: session, selectedID: model.state.document.clientId) { client in
-                    model.chooseClient(client)
-                }
-            case .catalog:
-                CatalogPickerSheet(session: session) { item in model.addItem(item) }
+        .sheet(isPresented: $choosingClient) {
+            ClientPickerSheet(session: session, selectedID: model.state.document.clientId) { client in
+                model.chooseClient(client)
             }
         }
-        .confirmationDialog(issueTitle, isPresented: $model.state.confirmingIssue, titleVisibility: .visible) {
-            Button("Issue \(DocumentText.noun(model.state.document.docType))") {
-                Task { await model.confirmIssue() }
-            }
-        } message: {
-            Text(issueMessage)
+        .sheet(item: lineEditorBinding) { _ in
+            AddItemSheet(model: model, session: session)
+        }
+        .sheet(isPresented: $showsBreakdown) {
+            TotalsBreakdownSheet(model: model, session: session)
         }
         .sheet(isPresented: $model.state.showsPaywall) {
             PaywallView(session: session)
@@ -132,6 +132,11 @@ struct DocumentBuilderView: View {
         .confirmationDialog("Delete this draft?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete draft", role: .destructive) { Task { await model.deleteDraft() } }
         }
+    }
+
+    /// The "Add an item" sheet follows `state.lineEditor`; swiping it away cancels, as Cancel does.
+    private var lineEditorBinding: Binding<DocumentViewModel.LineEditorState?> {
+        Binding(get: { model.state.lineEditor }, set: { if $0 == nil { model.cancelLineEditor() } })
     }
 
     /// The preview of the draft as it is edited, or the totals and tax panel.
@@ -161,18 +166,18 @@ struct DocumentBuilderView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                Task { await model.requestIssue() }
-            } label: {
-                if model.state.isWorking { ProgressView() } else { Text("Issue").fontWeight(.semibold) }
+        ToolbarItem(placement: .principal) {
+            VStack(spacing: 0) {
+                Text(DocumentText.title(model.state.document, isPersisted: model.state.isPersisted))
+                    .font(Theme.Fonts.headline)
+                    .foregroundStyle(Theme.textPrimary)
+                saveStatus
             }
-            .keyboardShortcut(.return, modifiers: .command)
-            .disabled(!model.canRequestIssue)
-            .accessibilityIdentifier("issueButton")
+            .accessibilityElement(children: .combine)
         }
         ToolbarItem(placement: .primaryAction) {
-            Button("Preview", systemImage: "doc.richtext") { Task { await model.openPreview() } }
+            Button("Preview") { Task { await model.openPreview() } }
+                .fontWeight(.bold)
                 .disabled(!model.canPreview)
                 .accessibilityIdentifier("previewButton")
         }
@@ -183,7 +188,7 @@ struct DocumentBuilderView: View {
                     Task { await model.duplicate() }
                 }
                 .disabled(!model.state.isPersisted && model.state.document.lines.isEmpty)
-                Button("Duplicate line", systemImage: "square.on.square") { model.duplicateSelectedLine() }
+                Button("Duplicate item", systemImage: "square.on.square") { model.duplicateSelectedLine() }
                     .disabled(!model.canDuplicateSelectedLine)
                 Divider()
                 Button("Delete draft", systemImage: "trash", role: .destructive) { confirmingDelete = true }
@@ -200,51 +205,68 @@ struct DocumentBuilderView: View {
         }
     }
 
-    private var issueTitle: String {
-        "Issue this \(DocumentText.noun(model.state.document.docType))?"
-    }
-
-    private var issueMessage: String {
-        let number = model.state.numberPreview.map { "It will be numbered \($0). " } ?? ""
-        return number + "Issued documents keep their number and can't be deleted."
+    /// "Draft saved" under the title once autosave has written the draft (`documents.md` §5).
+    @ViewBuilder private var saveStatus: some View {
+        if model.state.saveFailed {
+            Text("Not saved yet").font(Theme.Fonts.caption).foregroundStyle(Theme.danger)
+        } else if model.state.isPersisted {
+            Label("Draft saved", systemImage: "checkmark")
+                .font(Theme.Fonts.caption.weight(.regular))
+                .foregroundStyle(Theme.textSecondary)
+                .labelStyle(SmallIconLabelStyle())
+        }
     }
 }
 
-/// The builder's form sections.
-private struct BuilderForm: View {
+/// An icon and title with a 4 pt gap, the icon in brand ("✓ Draft saved").
+private struct SmallIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.icon.foregroundStyle(Theme.brand).font(.system(size: 10, weight: .heavy))
+            configuration.title
+        }
+    }
+}
+
+// MARK: - The form
+
+/// The three numbered cards, More options and the save state.
+private struct GuidedBuilderForm: View {
     @Bindable var model: DocumentViewModel
     let session: Session
-    let showsTotals: Bool
-    @Binding var sheet: BuilderSheet?
-    @State private var showsTaxAndCurrency = false
+    @Binding var choosingClient: Bool
+    @State private var showsMore = false
 
     private var document: InvoiceCore.Document { model.state.document }
     private var config: TaxConfig { model.config }
 
     var body: some View {
-        Form {
-            banner
-            clientSection
-            detailsSection
-            linesSection
-            adjustmentsSection
-            taxAndCurrencySection
-            if showsTotals {
-                Section("Totals") {
-                    TotalsView(computed: model.computed, error: model.engineError, currency: document.currency,
-                               config: config, session: session)
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Space.m) {
+                Text("Three quick parts. We handle the tax maths.")
+                    .font(Theme.Fonts.subhead)
+                    .foregroundStyle(Theme.textSecondary)
+                    .padding(.horizontal, Theme.Space.xs)
+                banner
+                clientCard
+                linesCard
+                whenCard
+                MoreOptionsSection(model: model, session: session, isExpanded: $showsMore)
             }
-            notesSection
+            .padding(.horizontal, Theme.Space.l)
+            .padding(.top, Theme.Space.s)
+            .padding(.bottom, Theme.Space.l)
+            .readableWidth()
         }
+        .scrollDismissesKeyboard(.interactively)
         .onAppear {
-            showsTaxAndCurrency = model.isForeignCurrency || document.reverseCharge || document.pricesIncludeTax
-                || document.placeOfSupply != nil || document.supplyDate != nil
-                || document.supplyType != config.supplyTypes.first?.id
+            showsMore = model.isForeignCurrency || document.reverseCharge || document.pricesIncludeTax
+                || document.placeOfSupply != nil || document.supplyDate != nil || document.discount != nil
+                || document.shippingMinor != 0 || document.supplyType != config.supplyTypes.first?.id
         }
     }
 
-    // MARK: Sections
+    // MARK: Problems
 
     @ViewBuilder private var banner: some View {
         let problems = model.state.issueProblems.map {
@@ -255,32 +277,61 @@ private struct BuilderForm: View {
             .filter { !blocking || $0.severity != .error }
             .map { DocumentText.message($0, config: config, homeCurrency: model.homeCurrency) }
         if !problems.isEmpty || !warnings.isEmpty {
-            Section {
-                DocumentBanner(problems: problems, warnings: warnings.filter { !problems.contains($0) })
-            }
+            DocumentBanner(problems: problems, warnings: warnings.filter { !problems.contains($0) })
+                .padding(Theme.Space.l)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card)
+                    .strokeBorder((problems.isEmpty ? Theme.warning : Theme.danger).opacity(0.5)))
         }
     }
 
-    private var clientSection: some View {
-        Section("Client") {
-            Button {
-                sheet = .client
-            } label: {
-                if let name = clientName {
-                    VStack(alignment: .leading, spacing: Theme.Space.xxs) {
-                        Text(name).foregroundStyle(Theme.textPrimary)
-                        if let detail = clientDetail {
-                            Text(detail).font(.subheadline).foregroundStyle(Theme.textSecondary)
+    // MARK: 1 Who is it for?
+
+    private var clientCard: some View {
+        NumberedCard(number: 1, title: "Who is it for?") {
+            if clientName != nil {
+                Button("Change") { choosingClient = true }
+                    .buttonStyle(.textLink)
+                    .accessibilityLabel("Change client")
+            }
+        } content: {
+            if let name = clientName {
+                Button {
+                    choosingClient = true
+                } label: {
+                    HStack(spacing: Theme.Space.m) {
+                        Avatar(name: name, style: .tip)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(name).font(Theme.Fonts.rowTitle).foregroundStyle(Theme.textPrimary)
+                            if let detail = clientDetail {
+                                Text(detail).font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
+                            }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                } else {
-                    Label("Choose client", systemImage: "person.crop.circle.badge.plus")
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("chooseClient")
+            } else {
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
+                    Button {
+                        choosingClient = true
+                    } label: {
+                        Label("Choose a client", systemImage: "person.crop.circle.badge.plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.secondary)
+                    .accessibilityIdentifier("chooseClient")
+                    Text("Or leave it empty for a walk-in customer.")
+                        .font(Theme.Fonts.footnote)
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
-            .accessibilityIdentifier("chooseClient")
             if model.state.clientMissing {
                 Text("This client was deleted. The \(DocumentText.noun(document.docType)) keeps their last details.")
-                    .font(.footnote)
+                    .font(Theme.Fonts.footnote)
                     .foregroundStyle(Theme.warning)
             }
         }
@@ -290,45 +341,173 @@ private struct BuilderForm: View {
         model.state.client?.name ?? (document.clientId != nil ? document.buyerSnapshot?.name : nil)
     }
 
+    /// "Bengaluru, Karnataka · GSTIN added"; abroad, the country.
     private var clientDetail: String? {
-        if let client = model.state.client {
-            if client.countryCode != session.business.countryCode { return session.countryName(client.countryCode) }
-            if let taxId = client.taxId { return "\(config.labels.taxIdName) \(taxId)" }
-            return client.billingAddress?.singleLine
-        }
-        return document.buyerSnapshot?.address
+        guard let client = model.state.client else { return document.buyerSnapshot?.address }
+        if client.countryCode != session.business.countryCode { return session.countryName(client.countryCode) }
+        let place = [client.billingAddress?.city?.trimmedOrNil,
+                     client.regionCode.flatMap { config.region($0)?.name }].compactMap { $0 }.joined(separator: ", ")
+        let taxID = client.taxId?.trimmedOrNil != nil ? "\(config.labels.taxIdName) added" : nil
+        let parts = [place.isEmpty ? nil : place, taxID].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    private var detailsSection: some View {
-        Section("Details") {
+    // MARK: 2 What are you charging for?
+
+    private var linesCard: some View {
+        NumberedCard(number: 2, title: "What are you charging for?") {
+            VStack(spacing: 0) {
+                ForEach(Array(document.lines.enumerated()), id: \.element.id) { index, line in
+                    Button {
+                        model.editLine(line.id)
+                    } label: {
+                        LineRow(line: line, computed: model.computed?.lines[safe: index], currency: document.currency,
+                                chargesTax: model.chargesTax, session: session)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu { lineMenu(line, index: index) }
+                    .accessibilityHint("Opens the item to change it")
+                    Divider().overlay(Theme.surfaceMuted)
+                }
+            }
+            Button {
+                model.addLine()
+            } label: {
+                Label("Add an item", systemImage: "plus")
+                    .font(Theme.Fonts.callout.weight(.bold))
+                    .foregroundStyle(Theme.brand)
+                    .frame(maxWidth: .infinity, minHeight: 46)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.Radius.input)
+                        .strokeBorder(Theme.brand.opacity(0.45), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4])))
+                    .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.input))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("addItem")
+        }
+    }
+
+    @ViewBuilder
+    private func lineMenu(_ line: LineItem, index: Int) -> some View {
+        Button("Edit", systemImage: "pencil") { model.editLine(line.id) }
+        Button("Duplicate", systemImage: "plus.square.on.square") { model.duplicateLine(line.id) }
+        if index > 0 {
+            Button("Move up", systemImage: "arrow.up") { model.moveLines(from: IndexSet(integer: index), to: index - 1) }
+        }
+        if index < document.lines.count - 1 {
+            Button("Move down", systemImage: "arrow.down") {
+                model.moveLines(from: IndexSet(integer: index), to: index + 2)
+            }
+        }
+        Button("Delete", systemImage: "trash", role: .destructive) { model.deleteLine(line.id) }
+    }
+
+    // MARK: 3 When should they pay?
+
+    private var whenCard: some View {
+        let isQuote = document.docType == .quote
+        return NumberedCard(number: 3, title: isQuote ? "How long is this quote valid?" : "When should they pay?") {
+            FlowLayout {
+                ForEach(model.termChoices, id: \.self) { days in
+                    ChoiceChip(title: days == 0 ? "Right away" : "\(days) days",
+                               isSelected: model.selectedTermDays == days) {
+                        model.setTerm(days: days)
+                    }
+                    .accessibilityIdentifier("term-\(days)")
+                }
+            }
+            if let date = isQuote ? document.validUntil : document.dueDate {
+                (Text(isQuote ? "Valid until " : "Due ") + Text(dueText(date)).bold().foregroundStyle(Theme.textPrimary))
+                    .font(Theme.Fonts.subhead)
+                    .foregroundStyle(Theme.textSecondary)
+                    .accessibilityIdentifier("dueText")
+            }
+        }
+    }
+
+    private func dueText(_ date: LocalDate) -> String {
+        date == session.today ? "today, \(date.displayText)" : date.displayText
+    }
+}
+
+// MARK: - More options
+
+/// Everything most invoices never need, folded away: dates, discount and shipping, tax and currency, notes.
+private struct MoreOptionsSection: View {
+    @Bindable var model: DocumentViewModel
+    let session: Session
+    @Binding var isExpanded: Bool
+
+    private var document: InvoiceCore.Document { model.state.document }
+    private var config: TaxConfig { model.config }
+
+    var body: some View {
+        VStack(spacing: Theme.Space.m) {
+            Button {
+                withAnimation(.snappy) { isExpanded.toggle() }
+            } label: {
+                HStack(spacing: Theme.Space.s + 2) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("More options").font(Theme.Fonts.rowTitle).foregroundStyle(Theme.textPrimary)
+                        Text("Discount, notes, currency. Most invoices don't need these.")
+                            .font(Theme.Fonts.caption.weight(.regular))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "chevron.down")
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .foregroundStyle(Theme.textSecondary)
+                        .accessibilityHidden(true)
+                }
+                .padding(.horizontal, Theme.Space.l)
+                .frame(minHeight: 52)
+                .background(Theme.surfaceSubtle, in: RoundedRectangle(cornerRadius: Theme.Radius.l))
+                .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.l))
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? "Shown" : "Hidden")
+            .accessibilityIdentifier("moreOptions")
+            if isExpanded {
+                OptionGroup(title: "Dates") { dates }
+                OptionGroup(title: "Discount and shipping") { adjustments }
+                OptionGroup(title: "Tax and currency") { taxAndCurrency }
+                    .accessibilityIdentifier("taxAndCurrency")
+                OptionGroup(title: "Notes and terms") { notes }
+            }
+        }
+    }
+
+    // MARK: Dates
+
+    @ViewBuilder private var dates: some View {
+        OptionRow {
             Picker("Type", selection: Binding(get: { document.docType }, set: { model.setDocType($0) })) {
                 Text("Invoice").tag(DocumentType.invoice)
                 Text("Quote").tag(DocumentType.quote)
             }
             .pickerStyle(.segmented)
-            DatePicker("Issue date", selection: Binding(get: { document.issueDate.date },
-                                                        set: { model.setIssueDate(LocalDate(date: $0)) }),
+        }
+        OptionRow {
+            DatePicker("\(DocumentText.noun(document.docType).capitalized) date",
+                       selection: Binding(get: { document.issueDate.date },
+                                          set: { model.setIssueDate(LocalDate(date: $0)) }),
                        displayedComponents: .date)
-            if document.docType == .quote {
+        }
+        if document.docType == .quote {
+            OptionRow {
                 DatePicker("Valid until", selection: Binding(
                     get: { (document.validUntil ?? document.issueDate).date },
                     set: { model.setValidUntil(LocalDate(date: $0)) }
                 ), in: document.issueDate.date..., displayedComponents: .date)
-            } else {
-                HStack {
-                    DatePicker("Due date", selection: Binding(
-                        get: { (document.dueDate ?? document.issueDate).date },
-                        set: { model.setDueDate(LocalDate(date: $0)) }
-                    ), in: document.issueDate.date..., displayedComponents: .date)
-                    Menu {
-                        ForEach([0, 7, 15, 30, 45, 60], id: \.self) { days in
-                            Button(days == 0 ? "Due on receipt" : "\(days) days") { model.setDue(daysAfterIssue: days) }
-                        }
-                    } label: {
-                        Image(systemName: "calendar.badge.clock")
-                            .accessibilityLabel("Payment terms")
-                    }
-                }
+            }
+        } else {
+            OptionRow {
+                DatePicker("Due date", selection: Binding(
+                    get: { (document.dueDate ?? document.issueDate).date },
+                    set: { model.setDueDate(LocalDate(date: $0)) }
+                ), in: document.issueDate.date..., displayedComponents: .date)
+            }
+            OptionRow(divider: false) {
                 Picker("Remind me", selection: Binding(get: { document.reminderDaysAfterDueOverride },
                                                         set: { model.setReminderOverride($0) })) {
                     Text("Business default").tag(Int?.none)
@@ -341,70 +520,21 @@ private struct BuilderForm: View {
         }
     }
 
-    private var linesSection: some View {
-        Section {
-            ForEach(document.lines) { line in
-                let index = document.lines.firstIndex { $0.id == line.id }
-                Button {
-                    model.editLine(line.id)
-                } label: {
-                    LineRow(line: line, computed: index.flatMap { model.computed?.lines[safe: $0] },
-                            currency: document.currency, chargesTax: model.chargesTax, session: session)
-                }
-                .foregroundStyle(Theme.textPrimary)
-                .popover(item: editorBinding(for: line.id)) { _ in
-                    LineEditorView(model: model, session: session)
-                }
-                .swipeActions(edge: .trailing) {
-                    Button("Delete", systemImage: "trash", role: .destructive) { model.deleteLine(line.id) }
-                    Button("Duplicate", systemImage: "plus.square.on.square") { model.duplicateLine(line.id) }
-                        .tint(Theme.info)
-                }
-                .contextMenu {
-                    Button("Edit", systemImage: "pencil") { model.editLine(line.id) }
-                    Button("Duplicate", systemImage: "plus.square.on.square") { model.duplicateLine(line.id) }
-                    Button("Delete", systemImage: "trash", role: .destructive) { model.deleteLine(line.id) }
-                }
-            }
-            .onMove { model.moveLines(from: $0, to: $1) }
-            Button {
-                sheet = .catalog
-            } label: {
-                Label("Add from items", systemImage: "shippingbox")
-            }
-            .accessibilityIdentifier("addFromItems")
-            Button {
-                model.addLine()
-            } label: {
-                Label("Add line", systemImage: "plus")
-            }
-            .accessibilityIdentifier("addLine")
-            .popover(item: newLineBinding) { _ in
-                LineEditorView(model: model, session: session)
-            }
-        } header: {
-            HStack {
-                Text("Items")
-                Spacer()
-                if document.lines.count > 1 {
-                    EditButton()
-                        .font(.footnote)
-                        .accessibilityLabel("Reorder items")
-                }
-            }
-        }
-    }
+    // MARK: Discount and shipping
 
-    @ViewBuilder private var adjustmentsSection: some View {
+    @ViewBuilder private var adjustments: some View {
         let symbol = session.dependencies.reference.currencies[document.currency]?.symbol ?? document.currency.rawValue
-        Section("Discount and shipping") {
+        OptionRow {
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                 HStack {
-                    TextField("Discount", text: Binding(
-                        get: { model.state.discountText },
-                        set: { model.setDiscountText(DecimalPadText.normalized($0)) }
-                    ))
+                    Text("Discount")
+                    Spacer()
+                    TextField("0", text: Binding(get: { model.state.discountText },
+                                                 set: { model.setDiscountText(DecimalPadText.normalized($0)) }))
                         .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 120)
+                        .accessibilityLabel("Discount")
                         .accessibilityIdentifier("discountField")
                     Picker("Discount type", selection: Binding(get: { model.state.discountIsPercent },
                                                                set: { model.setDiscountIsPercent($0) })) {
@@ -418,6 +548,8 @@ private struct BuilderForm: View {
                     IssueText(message: IssueMessages.text(issue, field: "discount"))
                 }
             }
+        }
+        OptionRow(divider: false) {
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                 LabeledContent("Shipping") {
                     TextField("0", text: Binding(get: { model.state.shippingText },
@@ -433,40 +565,73 @@ private struct BuilderForm: View {
         }
     }
 
-    private var taxAndCurrencySection: some View {
-        Section {
-            DisclosureGroup("Tax and currency", isExpanded: $showsTaxAndCurrency) {
-                if model.showsSupplyType {
-                    Picker("Supply", selection: Binding(get: { document.supplyType },
-                                                        set: { model.setSupplyType($0) })) {
-                        ForEach(config.supplyTypes) { Text($0.label).tag($0.id) }
-                    }
-                }
-                if model.showsPlaceOfSupply { placeOfSupplyPicker }
-                Toggle("Different supply date", isOn: Binding(
-                    get: { document.supplyDate != nil },
-                    set: { model.setSupplyDate($0 ? document.issueDate : nil) }
-                ))
-                if let supplyDate = document.supplyDate {
-                    DatePicker("Supply date", selection: Binding(get: { supplyDate.date },
-                                                                 set: { model.setSupplyDate(LocalDate(date: $0)) }),
-                               displayedComponents: .date)
-                }
-                if model.showsReverseCharge {
-                    Toggle("Reverse charge", isOn: Binding(get: { document.reverseCharge },
-                                                           set: { model.setReverseCharge($0) }))
-                }
-                if model.showsPricesIncludeTax {
-                    Toggle("Prices include \(config.labels.taxName)", isOn: Binding(
-                        get: { document.pricesIncludeTax }, set: { model.setPricesIncludeTax($0) }))
-                }
-                currencyRows
-                if model.showsRoundOff {
-                    Toggle(config.rounding.grandTotal?.label ?? "Round off", isOn: Binding(
-                        get: { model.roundOffOn }, set: { model.setRoundOff($0) }))
+    // MARK: Tax and currency
+
+    @ViewBuilder private var taxAndCurrency: some View {
+        if model.showsSupplyType {
+            OptionRow {
+                Picker("Supply", selection: Binding(get: { document.supplyType }, set: { model.setSupplyType($0) })) {
+                    ForEach(config.supplyTypes) { Text($0.label).tag($0.id) }
                 }
             }
-            .accessibilityIdentifier("taxAndCurrency")
+        }
+        if model.showsPlaceOfSupply { OptionRow { placeOfSupplyPicker } }
+        OptionRow {
+            Toggle("Different supply date", isOn: Binding(
+                get: { document.supplyDate != nil },
+                set: { model.setSupplyDate($0 ? document.issueDate : nil) }
+            ))
+        }
+        if let supplyDate = document.supplyDate {
+            OptionRow {
+                DatePicker("Supply date", selection: Binding(get: { supplyDate.date },
+                                                             set: { model.setSupplyDate(LocalDate(date: $0)) }),
+                           displayedComponents: .date)
+            }
+        }
+        if model.showsReverseCharge {
+            OptionRow {
+                Toggle("Reverse charge", isOn: Binding(get: { document.reverseCharge },
+                                                       set: { model.setReverseCharge($0) }))
+            }
+        }
+        if model.showsPricesIncludeTax {
+            OptionRow {
+                Toggle("Prices include \(config.labels.taxName)", isOn: Binding(
+                    get: { document.pricesIncludeTax }, set: { model.setPricesIncludeTax($0) }))
+            }
+        }
+        OptionRow(divider: model.isForeignCurrency || model.showsRoundOff) {
+            Picker("Currency", selection: Binding(get: { document.currency }, set: { model.setCurrency($0) })) {
+                ForEach(session.dependencies.reference.currencies.all) { currency in
+                    Text("\(currency.code.rawValue) – \(currency.name)").tag(currency.code)
+                }
+            }
+        }
+        if model.isForeignCurrency {
+            OptionRow(divider: model.showsRoundOff) {
+                VStack(alignment: .leading, spacing: Theme.Space.xxs) {
+                    LabeledContent("1 \(document.currency.rawValue) =") {
+                        HStack {
+                            TextField("Exchange rate", text: Binding(
+                                get: { model.state.exchangeRateText },
+                                set: { model.setExchangeRateText(DecimalPadText.normalized($0)) }))
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                            Text(model.homeCurrency.rawValue).foregroundStyle(Theme.textSecondary)
+                        }
+                    }
+                    if let issue = model.exchangeRateIssue {
+                        IssueText(message: IssueMessages.text(issue, field: "exchange rate"))
+                    }
+                }
+            }
+        }
+        if model.showsRoundOff {
+            OptionRow(divider: false) {
+                Toggle(config.rounding.grandTotal?.label ?? "Round off", isOn: Binding(
+                    get: { model.roundOffOn }, set: { model.setRoundOff($0) }))
+            }
         }
     }
 
@@ -484,72 +649,191 @@ private struct BuilderForm: View {
         }
     }
 
-    @ViewBuilder private var currencyRows: some View {
-        Picker("Currency", selection: Binding(get: { document.currency }, set: { model.setCurrency($0) })) {
-            ForEach(session.dependencies.reference.currencies.all) { currency in
-                Text("\(currency.code.rawValue) – \(currency.name)").tag(currency.code)
-            }
-        }
-        if model.isForeignCurrency {
-            VStack(alignment: .leading, spacing: Theme.Space.xxs) {
-                LabeledContent("1 \(document.currency.rawValue) =") {
-                    HStack {
-                        TextField("Exchange rate", text: Binding(get: { model.state.exchangeRateText },
-                                                                 set: { model.setExchangeRateText(
-                                                                     DecimalPadText.normalized($0)) }))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                        Text(model.homeCurrency.rawValue).foregroundStyle(Theme.textSecondary)
-                    }
-                }
-                if let issue = model.exchangeRateIssue {
-                    IssueText(message: IssueMessages.text(issue, field: "exchange rate"))
-                }
-            }
-        }
-    }
+    // MARK: Notes and terms
 
-    private var notesSection: some View {
-        Section {
+    @ViewBuilder private var notes: some View {
+        OptionRow {
             TextField("Notes", text: Binding(get: { model.state.notesText }, set: { model.setNotesText($0) }),
                       axis: .vertical)
                 .lineLimit(2...6)
+        }
+        OptionRow(divider: false) {
             TextField("Terms", text: Binding(get: { model.state.termsText }, set: { model.setTermsText($0) }),
                       axis: .vertical)
                 .lineLimit(2...6)
-        } header: {
-            Text("Notes and terms")
-        } footer: {
-            Text(model.state.saveFailed ? "Couldn't save the latest changes. They'll be saved again with your next change."
-                                        : "Drafts save automatically.")
-                .foregroundStyle(model.state.saveFailed ? Theme.danger : Theme.textSecondary)
         }
-    }
-
-    // MARK: Line editor presentation (a popover in regular width, a sheet in compact width)
-
-    private func editorBinding(for lineID: String) -> Binding<DocumentViewModel.LineEditorState?> {
-        Binding(
-            get: { model.state.lineEditor.flatMap { !$0.isNew && $0.lineID == lineID ? $0 : nil } },
-            set: { if $0 == nil { closeEditor() } }
-        )
-    }
-
-    private var newLineBinding: Binding<DocumentViewModel.LineEditorState?> {
-        Binding(
-            get: { model.state.lineEditor.flatMap { $0.isNew ? $0 : nil } },
-            set: { if $0 == nil { closeEditor() } }
-        )
-    }
-
-    /// Dismissed by tapping outside or swiping down: keeps a valid line, drops an invalid one.
-    private func closeEditor() {
-        guard model.state.lineEditor != nil else { return }
-        if !model.commitLineEditor() { model.cancelLineEditor() }
     }
 }
 
-/// One document line: description, quantity × price, rate and amount.
+/// A titled white group of option rows.
+private struct OptionGroup<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Overline(text: title).padding(.horizontal, Theme.Space.xs)
+            VStack(spacing: 0) { content }
+                .padding(.horizontal, Theme.Space.l)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.border))
+        }
+    }
+}
+
+/// One control row of an option group, with a hairline under it.
+private struct OptionRow<Content: View>: View {
+    var divider = true
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+                .font(Theme.Fonts.callout)
+                .foregroundStyle(Theme.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: Theme.Layout.minTouchTarget + 4, alignment: .leading)
+                .padding(.vertical, Theme.Space.xs)
+            if divider { Divider().overlay(Theme.surfaceMuted) }
+        }
+    }
+}
+
+// MARK: - Totals
+
+/// The pinned totals: subtotal, the tax "added for you", the total and Review & send.
+private struct TotalsBar: View {
+    @Bindable var model: DocumentViewModel
+    let session: Session
+    @Binding var showsBreakdown: Bool
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var currency: CurrencyCode { model.state.document.currency }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            summary
+            PrimaryButton(title: "Review & send", isBusy: model.state.isWorking,
+                          isEnabled: model.canRequestIssue) {
+                Task { await model.requestIssue() }
+            }
+            .keyboardShortcut(.return, modifiers: .command)
+            .accessibilityIdentifier("reviewAndSend")
+            .padding(.top, 6)
+        }
+        .padding(.horizontal, Theme.Layout.screenGutter)
+        .padding(.top, Theme.Space.m + 2)
+        .padding(.bottom, Theme.Space.s)
+        .frame(maxWidth: .infinity)
+        .background(Theme.surface)
+        .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
+        .shadow(color: Theme.shadow.opacity(0.06), radius: 9, y: -6)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("bottomBar")
+    }
+
+    @ViewBuilder private var summary: some View {
+        if let computed = model.computed, !model.state.document.lines.isEmpty {
+            Button {
+                showsBreakdown = true
+            } label: {
+                VStack(spacing: 6) {
+                    let totals = computed.totals
+                    // At accessibility text sizes the pinned bar keeps only the total; the breakdown is a tap away.
+                    let showsParts = !typeSize.isAccessibilitySize
+                    if showsParts { row("Subtotal", totals.subtotal) }
+                    if showsParts, totals.discount != 0 { row("Discount", -totals.discount) }
+                    if showsParts, totals.shipping != 0 { row("Shipping", totals.shipping) }
+                    if showsParts, computed.chargesTax, totals.tax != 0 {
+                        HStack(spacing: 6) {
+                            Text(taxLabel(computed))
+                            Badge(text: computed.inclusive ? "included" : "added for you")
+                                .fixedSize()
+                            Spacer(minLength: Theme.Space.s)
+                            Text(money(totals.tax)).monospacedDigit()
+                                .fixedSize()
+                        }
+                        .font(Theme.Fonts.subhead)
+                        .foregroundStyle(Theme.textSecondary)
+                    }
+                    if showsParts, totals.roundOff != 0 {
+                        row(model.config.rounding.grandTotal?.label ?? "Round off", totals.roundOff)
+                    }
+                    AdaptiveRow { // stacked at accessibility text sizes, so the amount never shrinks or wraps
+                        Text("Total").font(Theme.Fonts.headline).foregroundStyle(Theme.textPrimary)
+                    } value: {
+                        Text(money(totals.total))
+                            .font(Theme.Fonts.amountLarge)
+                            .foregroundStyle(Theme.textPrimary)
+                            .accessibilityIdentifier("totalAmount")
+                    }
+                    .padding(.top, 2)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Shows the full tax breakdown")
+            .accessibilityIdentifier("totals")
+        } else if let error = model.engineError, !model.state.document.lines.isEmpty {
+            IssueText(message: DocumentText.message(error, config: model.config))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            Text("Add an item to see the total.")
+                .font(Theme.Fonts.subhead)
+                .foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// "GST 18%" when every line has the same rate, else "GST".
+    private func taxLabel(_ computed: ComputedDocument) -> String {
+        let rates = Set(computed.lines.map(\.rate))
+        let name = model.config.labels.taxName
+        guard rates.count == 1, let rate = rates.first else { return name }
+        return "\(name) \(SpecFormatter.percent(rate))"
+    }
+
+    private func row(_ title: String, _ minor: Int64) -> some View {
+        HStack {
+            Text(title)
+            Spacer(minLength: Theme.Space.s)
+            Text(money(minor)).monospacedDigit()
+                .fixedSize()
+        }
+        .font(Theme.Fonts.subhead)
+        .foregroundStyle(Theme.textSecondary)
+    }
+
+    private func money(_ minor: Int64) -> String { session.money(minor, currency: currency) }
+}
+
+/// The full totals and tax breakdown, a tap away from the totals bar.
+private struct TotalsBreakdownSheet: View {
+    let model: DocumentViewModel
+    let session: Session
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                TotalsView(computed: model.computed, error: model.engineError,
+                           currency: model.state.document.currency, config: model.config, session: session)
+                    .padding(Theme.Space.l)
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+                    .padding(Theme.Space.l)
+            }
+            .background(Theme.background)
+            .navigationTitle("Tax breakdown")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+/// One document line: description, quantity × price · rate, and the amount.
 struct LineRow: View {
     let line: LineItem
     let computed: ComputedLine?
@@ -558,26 +842,27 @@ struct LineRow: View {
     let session: Session
 
     var body: some View {
-        AdaptiveRow {
-            VStack(alignment: .leading, spacing: Theme.Space.xxs) {
+        AdaptiveRow(alignment: .center) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(line.description.isEmpty ? "No description" : line.description)
+                    .font(Theme.Fonts.rowTitle)
                     .foregroundStyle(line.description.isEmpty ? Theme.danger : Theme.textPrimary)
-                Text(quantityText).font(.subheadline).foregroundStyle(Theme.textSecondary)
-                if chargesTax {
-                    Text(session.rate(line.rateId)?.label ?? (line.rateId.isEmpty ? "Choose a rate" : line.rateId))
-                        .font(.caption)
-                        .foregroundStyle(line.rateId.isEmpty ? Theme.danger : Theme.textTertiary)
-                }
+                Text(detailText)
+                    .font(Theme.Fonts.footnote)
+                    .foregroundStyle(chargesTax && line.rateId.isEmpty ? Theme.danger : Theme.textSecondary)
             }
         } value: {
             Text(computed.map { session.money($0.amount, currency: currency) } ?? "—")
-                .monospacedDigit()
+                .font(Theme.Fonts.rowTitle.monospacedDigit())
+                .foregroundStyle(Theme.textPrimary)
         }
-        .padding(.vertical, Theme.Space.xxs)
+        .padding(.vertical, Theme.Space.s)
+        .frame(minHeight: 52)
         .accessibilityElement(children: .combine)
     }
 
-    private var quantityText: String {
+    /// "2 × ₹2,500 · GST 18%", with the unit and any line discount.
+    private var detailText: String {
         let unit = line.unit.map { " " + session.unitLabel($0) } ?? ""
         var text = SpecFormatter.quantity(line.quantity) + unit + " × "
             + session.money(line.unitPriceMinor, currency: currency)
@@ -585,6 +870,9 @@ struct LineRow: View {
         case .percent(let value)?: text += " − \(SpecFormatter.percent(value))"
         case .amount(let minor)?: text += " − " + session.money(minor, currency: currency)
         case nil: break
+        }
+        if chargesTax {
+            text += " · " + (session.rate(line.rateId)?.label ?? (line.rateId.isEmpty ? "Choose a rate" : line.rateId))
         }
         return text
     }

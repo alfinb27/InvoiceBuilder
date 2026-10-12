@@ -121,6 +121,8 @@ fun DocumentScreen(session: Session, route: DocumentRoute, showsBack: Boolean) {
         model.isDraft -> DocumentBuilder(model, session, showsBack, back)
         else -> IssuedDocument(model, session, showsBack, back)
     }
+    // Review & send (`documents.md` §6.1); its Send button issues and opens the channel (`DocumentViewModel.send`).
+    if (model.confirmingIssue) ReviewSendSheet(model, session)
     model.preview?.let { preview -> DocumentPreviewScreen(preview) { model.preview = null } }
     ErrorAlert(model.errorMessage, { model.errorMessage = null })
 }
@@ -206,7 +208,7 @@ private fun DocumentList(session: Session) {
                     items(drafts, key = { it.id }) { DocumentRow(it, session, onDelete = { pendingDelete = it }, onError = { errorMessage = it }) }
                 }
                 if (issued.isNotEmpty()) {
-                    item { SectionHeader(if (router.docType == DocumentType.quote) "Quotes" else "Issued") }
+                    item { SectionHeader(if (router.docType == DocumentType.quote) "Sent quotes" else "Sent invoices") }
                     items(issued, key = { it.id }) { DocumentRow(it, session, onDelete = { pendingDelete = it }, onError = { errorMessage = it }) }
                 }
             }

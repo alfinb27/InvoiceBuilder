@@ -5,6 +5,8 @@ import app.invoicebuilder.core.domain.backup.BackupCodec
 import app.invoicebuilder.core.domain.backup.BackupData
 import app.invoicebuilder.core.domain.backup.BackupFile
 import app.invoicebuilder.core.domain.backup.BackupStatus
+import app.invoicebuilder.core.domain.backup.CloudBackupState
+import app.invoicebuilder.core.domain.backup.CloudBackupStateStore
 import app.invoicebuilder.core.domain.billing.FreeTierCounts
 import app.invoicebuilder.core.domain.decimal.Outcome
 import app.invoicebuilder.core.domain.documents.DocumentLifecycle
@@ -21,6 +23,8 @@ import app.invoicebuilder.core.domain.tax.TaxConfigStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -31,8 +35,23 @@ class RoomBackupService(
     private val ids: IDGenerator,
     private val snapshots: BackupSnapshotStore,
     private val appVersion: String,
-) : BackupService {
+) : BackupService, CloudBackupStateStore {
     override val schemaVersion: Int = SpecMigrations.VERSION
+
+    // Automatic cloud backup (§7)
+
+    override suspend fun cloudBackupState(): CloudBackupState =
+        CloudBackupState.fromRows(db.appState().entries(CloudBackupState.ROW_KEYS).associate { it.key to it.value })
+
+    override suspend fun saveCloudBackupState(state: CloudBackupState) = db.withTransaction {
+        for ((key, value) in state.rows) if (value != null) db.appState().set(key, value) else db.appState().delete(key)
+    }
+
+    override fun observeCloudBackupState(): Flow<CloudBackupState> =
+        db.appState().observeEntries(CloudBackupState.ROW_KEYS)
+            .map { rows -> CloudBackupState.fromRows(rows.associate { it.key to it.value }) }.distinctUntilChanged()
+
+    override suspend fun latestChangeAt(): Long? = db.appState().latestChangeAt()
 
     override suspend fun makeBackup(app: BackupFile.AppInfo): BackupFile {
         val now = time.now()

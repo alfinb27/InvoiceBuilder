@@ -60,6 +60,8 @@ class DocumentsRouter {
     var statusFilter by mutableStateOf(InvoiceStatusFilter.all)
     var dateFilter by mutableStateOf(DocumentDateFilter.allTime)
     var pendingAction by mutableStateOf<PendingDocumentAction?>(null)
+    /** A draft is open in the builder: on phones it has the screen to itself (no bottom bar), as on iOS. */
+    var isEditingDraft by mutableStateOf(false)
 
     fun open(id: String) { selection = DocumentRoute.Existing(id) }
 
@@ -85,7 +87,7 @@ data class PendingDocumentAction(val documentID: String, val action: DocumentAct
 
 /** The Invoices list's status segments. */
 enum class InvoiceStatusFilter(val label: String) {
-    all("All"), unpaid("Unpaid"), overdue("Overdue"), paid("Paid");
+    all("All"), unpaid("Waiting"), overdue("Past due"), paid("Paid");
 
     fun matches(status: DocumentStatus): Boolean = when (this) {
         all -> true

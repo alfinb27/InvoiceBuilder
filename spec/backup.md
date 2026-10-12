@@ -4,7 +4,8 @@ Normative for both apps' portable backup: exporting a `.invoicebackup` file, val
 "replace all" (ADR-0013, `docs/plan.md` D13). The file format is `schema/backup.schema.json`; record shapes are
 `schema/domain.schema.json`. iOS implements validation in `InvoiceCore` (`BackupCodec`), export and restore in
 `InvoiceData` (`GRDBBackupService`) and the screens in `InvoiceUI`; Android in `:core:domain`, `:core:data` and
-`:app`. Validation is proven by `fixtures/backup/*.json` (kind `backup`).
+`:app`. Validation is proven by `fixtures/backup/*.json` (kind `backup`); automatic backup to Google Drive (§7) by
+`fixtures/autobackup/*.json` (kind `autobackup`).
 
 ## 1. What a backup holds
 
@@ -96,3 +97,77 @@ are identical (only `createdAt` differs).
 
 - The app declares the `.invoicebackup` type (`com.invoicebuilder.backup`, conforming to JSON). Opening such a file
   in the app (Files, Mail, AirDrop), or dropping one onto Settings on iPad, starts §4 at step 1.
+
+## 7. Automatic backup to Google Drive (ADR-0021)
+
+Only in builds that carry a Google OAuth client (iOS Info.plist `GoogleDriveClientID`, Android BuildConfig
+`GOOGLE_DRIVE_BACKUP`); other builds show none of this. Calls go only to Google's OAuth and Drive v3 endpoints, over
+HTTPS, and only after the user connects. The pure rules are `AutoBackupRules` (fixtures kind `autobackup`).
+
+### 7.1 Connecting and disconnecting
+
+- Settings → Backup shows a **Google Drive** row (On / Off / Needs attention) that opens the Google Drive page;
+  **Back up to Google Drive automatically** there opens Google sign-in for the scope
+  `https://www.googleapis.com/auth/drive.file` and nothing else. Cancelling changes nothing.
+- Then the app finds its folder — a folder it created named **InvoiceBuilder backups**, not trashed (the earliest
+  created when there are several) — or creates one in My Drive, remembers its id and backs up at once (§7.2 "Back up
+  now") when there is anything to back up (a new phone that connects to restore has nothing yet).
+- The Backup page shows the connected account's email. Tokens stay with the platform (iOS: Keychain, this device
+  only; Android: Google Play services), never in the database or a backup.
+- **Stop backing up to Google Drive** revokes the token and forgets the account and folder. Files already in Drive
+  stay there.
+
+### 7.2 When a backup runs (`AutoBackupRules.isDue`)
+
+- `latestChangeAt` = the highest `updated_at` over the synced tables (a tombstone bumps it), or none without rows.
+- Due when `latestChangeAt` exists **and** (there is no Drive backup yet **or** `latestChangeAt > lastBackupAt`)
+  **and** (there was no attempt yet **or** `now − lastAttemptAt ≥ 15 minutes`).
+- Checked when the app goes to the background, and by a daily background task (iOS `BGProcessingTask` needing the
+  network; Android periodic WorkManager work needing a connection). The OS decides when background work really runs.
+- **Back up now** runs at once, whatever the rule says. One backup at a time: a request while one runs waits for it
+  and reports its result. An attempt records `drive_last_attempt_at` before it uploads. A due backup that fails is
+  reported as a failure, so background work retries it (Android: WorkManager backoff from 15 minutes; not for
+  `signedOut` or `quotaExceeded`, which wait for the user). No automatic attempt runs while the last error is `signedOut`.
+
+### 7.3 Which file it writes (`AutoBackupRules.target`)
+
+- The content is the §1 backup (the §2 export) with the §1 file name (today's local date).
+- Every file carries Drive `appProperties` (strings; Drive allows 124 bytes per key plus value, so longer values are
+  cut with "…"): `ibDeviceId` (this device's `device_state.id`), `ibDeviceName` (the model name the platform reports,
+  e.g. "iPhone", "Pixel 8"), `ibPlatform` (`ios` | `android`), `ibCreatedAt` (the backup's `createdAt`, epoch ms),
+  `ibFormatVersion`, `ibBusinesses` (live business names joined by ", "), `ibInvoices` (live issued invoices) and
+  `ibClients` (live clients).
+- If a file in the folder has today's file name **and** this device's `ibDeviceId`, the backup replaces that file's
+  content and properties (the newest such file when there are several). Otherwise it creates a new file. Another
+  device's file is never overwritten, even with the same name.
+- If the remembered folder is gone or trashed, the app finds or creates it again (§7.1) and retries once.
+
+### 7.4 Keeping the newest ten (`AutoBackupRules.filesToDelete`)
+
+- After a successful upload, among the folder's files whose `ibDeviceId` is this device, the **10 newest** stay and the
+  rest are deleted. Newer = larger `ibCreatedAt`; with equal `ibCreatedAt`, the larger file id is newer. The list to
+  delete is returned oldest first.
+- Files of other devices, and files without the app's properties, are never deleted.
+
+### 7.5 Results
+
+- Success: `drive_last_backup_at` = the backup's `createdAt`, `last_backup_at` = now (so §5's due warning clears) and
+  `drive_last_error` is cleared.
+- Failure: `drive_last_error` = `signedOut` (consent revoked or expired — reconnect), `quotaExceeded` (Drive is full),
+  `networkUnavailable` or `other`. The Backup page shows it in plain words ("Couldn't back up to Google Drive: your
+  Google Drive is full."); nothing else nags.
+
+### 7.6 Restoring from Google Drive
+
+- From Settings → Backup → **Restore from Google Drive…**, or Welcome → "I've used this app before" → **Restore from
+  Google Drive** (which signs in first and leaves automatic backups connected on this device).
+- The list shows every file in the folder that has the app's properties, **newest first**
+  (`AutoBackupRules.newestFirst`, same order as §7.4): date and time, device name and platform, businesses, and the
+  invoice and client counts — no download needed.
+- Choosing one downloads it and starts §4 at step 1: validate, preview, safety snapshot, replace all. A file from
+  either platform restores on the other.
+
+### 7.7 Local state
+
+`app_state` keys, local only, never synced and never in a backup; a restore leaves them as they are:
+`drive_account_email`, `drive_folder_id`, `drive_last_backup_at`, `drive_last_attempt_at`, `drive_last_error`.

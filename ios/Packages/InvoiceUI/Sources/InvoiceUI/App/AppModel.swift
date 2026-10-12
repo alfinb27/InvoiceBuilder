@@ -16,6 +16,8 @@ public final class AppModel {
     }
 
     public private(set) var phase: Phase = .loading
+    /// Automatic Google Drive backup for this device (`spec/backup.md` §7); nil without Drive in this build.
+    public private(set) var autoBackup: AutoBackupRunner?
     private let dependencies: AppDependencies?
     private let seed: SampleData.Country?
     private var skipICloudCheck = false
@@ -39,7 +41,9 @@ public final class AppModel {
         do {
             let (dependencies, seed) = try AppDependencies.forLaunch(arguments: arguments)
             if seed == nil, !arguments.contains("-inMemory") { Diagnostics.shared.start() }
-            return AppModel(dependencies: dependencies, seed: seed)
+            let model = AppModel(dependencies: dependencies, seed: seed)
+            if dependencies.cloudBackup != nil { AutoBackupScheduler.register(model) }
+            return model
         } catch {
             return AppModel(failure: error)
         }
@@ -56,6 +60,9 @@ public final class AppModel {
                 device = try await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name)
             }
             await dependencies.sync.setEnabled(device.preferences.isSyncEnabled)
+            if autoBackup == nil {
+                autoBackup = dependencies.autoBackupRunner(deviceID: device.id, appVersion: AppInfo.version)
+            }
             // Never wait for the store at launch: offline, the price lookup waits for a network timeout. Until it
             // answers the state is `unknown`, which still lets anyone under the free limit issue (`spec/billing.md`).
             let entitlements = dependencies.entitlements
@@ -72,6 +79,7 @@ public final class AppModel {
                     dependencies: dependencies, deviceID: deviceID,
                     onRestored: { [weak self] in await self?.reload() },
                     onTryDemo: { [weak self] country in await self?.startDemo(country) },
+                    autoBackup: autoBackup,
                     onFinished: { [weak self] in self?.finishOnboarding(with: $0, deviceID: deviceID) }))
             }
         } catch {
@@ -156,6 +164,20 @@ public final class AppModel {
         guard let dependencies else { throw SpecLoadingError(path: "-", reason: "no dependencies") }
         let session = try Session(dependencies: dependencies, business: business, deviceID: deviceID)
         session.reloadApp = { [weak self] in await self?.reload() }
+        session.autoBackup = autoBackup
         return session
+    }
+
+    // MARK: Automatic cloud backup (spec/backup.md §7.2)
+
+    var hasCloudBackup: Bool { dependencies?.cloudBackup != nil }
+
+    /// A backup if one is due. Works in a background launch too, before any screen has loaded the device.
+    func backUpIfDue() async {
+        guard let dependencies, dependencies.cloudBackup != nil else { return }
+        if autoBackup == nil, let device = try? await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name) {
+            autoBackup = dependencies.autoBackupRunner(deviceID: device.id, appVersion: AppInfo.version)
+        }
+        _ = try? await autoBackup?.backUpIfDue() // the result is in the state; the next trigger tries again
     }
 }

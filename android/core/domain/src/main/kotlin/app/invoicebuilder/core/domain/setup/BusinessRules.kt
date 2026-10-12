@@ -21,6 +21,20 @@ import java.time.LocalDate
 /** The onboarding steps, in order (`spec/setup.md` §3). */
 enum class OnboardingStep { country, registration, business, bank, images }
 
+/** The three screens onboarding shows the five steps on (`spec/setup.md` §3, ADR-0020). iOS: `OnboardingStage`. */
+enum class OnboardingStage(val steps: List<OnboardingStep>) {
+    whereYouWork(listOf(OnboardingStep.country, OnboardingStep.registration)),
+    yourBusiness(listOf(OnboardingStep.business)),
+    gettingPaid(listOf(OnboardingStep.bank, OnboardingStep.images));
+
+    /** Bank details, UPI, logo and signature: "Skip for now" finishes without them. */
+    val isOptional: Boolean get() = this == gettingPaid
+
+    companion object {
+        fun of(step: OnboardingStep): OnboardingStage = entries.first { step in it.steps }
+    }
+}
+
 enum class BusinessField(val step: OnboardingStep?) {
     Country(OnboardingStep.country), HomeCurrency(OnboardingStep.country),
     Registration(OnboardingStep.registration), GenericTaxName(OnboardingStep.registration), GenericTaxPercent(OnboardingStep.registration),
@@ -69,6 +83,12 @@ data class BusinessDraft(
     val accentColor: String? = null,
     val reminderDaysAfterDue: Int? = null,
 ) {
+    /** "Skip for now" on the Getting paid stage: nothing typed there is kept. */
+    fun clearGettingPaid(): BusinessDraft = copy(
+        bankAccountName = "", bankAccountNumber = "", bankName = "", ifsc = "", sortCode = "", iban = "", swift = "",
+        upiVpa = "",
+    )
+
     companion object {
         /** The draft for editing [business] in Settings. */
         fun of(business: Business, rules: BusinessRules) = BusinessDraft(
