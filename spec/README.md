@@ -13,6 +13,7 @@ redefines it. Start here before changing anything about money, tax, numbering, s
 | `tax/IN.json`, `GB.json`, `GENERIC.json` | Country tax configs (data-driven rules) |
 | `tax/ENGINE.md` | Normative tax engine, numbering, status, formatting and validation rules |
 | `billing.md` | Entitlements, free tier, purchase state machine |
+| `sync.md` | iCloud sync scope and status, numbering on several devices, the duplicate-number check |
 | `backup.md` | Exporting, validating and restoring `.invoicebackup` files ("replace all"), safety snapshots |
 | `documents.md` | Drafts, issuing, duplicate/convert, payments, void, quote outcomes |
 | `reminders.md` | Overdue reminders: default and override, eligibility, scheduling |

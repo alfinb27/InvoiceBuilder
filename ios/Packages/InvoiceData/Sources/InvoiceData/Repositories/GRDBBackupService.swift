@@ -25,10 +25,14 @@ public struct GRDBBackupService: BackupService {
         return BackupFile(createdAt: now, app: app, dbSchemaVersion: schemaVersion, data: data)
     }
 
+    public func writeSafetySnapshot() async throws {
+        let snapshot = try await makeBackup(app: BackupFile.AppInfo(platform: "ios", version: "snapshot"))
+        try snapshots.write(snapshot, at: time.now())
+    }
+
     public func restore(_ file: BackupFile, deviceID: String) async throws {
         // §4 step 3: no snapshot, no restore.
-        let snapshot = try await makeBackup(app: file.app.snapshotApp)
-        try snapshots.write(snapshot, at: time.now())
+        try await writeSafetySnapshot()
 
         let now = time.now(), ids = self.ids
         try await database.writer.write { db in
@@ -152,9 +156,50 @@ public struct GRDBBackupService: BackupService {
     }
 }
 
-private extension BackupFile.AppInfo {
-    /// A snapshot is written by this app, whatever wrote the file being restored.
-    var snapshotApp: BackupFile.AppInfo { BackupFile.AppInfo(platform: "ios", version: "snapshot") }
+// MARK: Automatic cloud backup (§7)
+
+extension GRDBBackupService: CloudBackupStateStore {
+    /// §7.2: every synced table carries `updated_at`; a tombstone bumps it.
+    static let changeTables = ["business", "asset", "client", "catalog_item", "numbering_series", "document",
+                               "line_item", "tax_line", "payment"]
+
+    public func cloudBackupState() async throws -> CloudBackupState {
+        try await database.writer.read { db in try Self.cloudState(db) }
+    }
+
+    public func saveCloudBackupState(_ state: CloudBackupState) async throws {
+        try await database.writer.write { db in
+            for (key, value) in state.rows {
+                if let value {
+                    try db.execute(sql: """
+                        INSERT INTO app_state (key, value) VALUES (?, ?)
+                        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                        """, arguments: [key, value])
+                } else {
+                    try db.execute(sql: "DELETE FROM app_state WHERE key = ?", arguments: [key])
+                }
+            }
+        }
+    }
+
+    public func observeCloudBackupState() -> AsyncThrowingStream<CloudBackupState, any Error> {
+        database.observe { db in try Self.cloudState(db) }
+    }
+
+    public func latestChangeAt() async throws -> Int64? {
+        let sql = "SELECT MAX(changed) FROM ("
+            + Self.changeTables.map { "SELECT MAX(updated_at) AS changed FROM \($0)" }.joined(separator: " UNION ALL ")
+            + ")"
+        return try await database.writer.read { db in try Int64.fetchOne(db, sql: sql) }
+    }
+
+    static func cloudState(_ db: Database) throws -> CloudBackupState {
+        let keys = CloudBackupState.rowKeys
+        let placeholders = Array(repeating: "?", count: keys.count).joined(separator: ", ")
+        let rows = try Row.fetchAll(db, sql: "SELECT key, value FROM app_state WHERE key IN (\(placeholders))",
+                                    arguments: StatementArguments(keys))
+        return CloudBackupState(rows: Dictionary(uniqueKeysWithValues: rows.map { ($0["key"] as String, $0["value"] as String) }))
+    }
 }
 
 /// Safety snapshots (`spec/backup.md` §4 step 3): `pre-restore-<epoch ms>.invoicebackup`, newest 3 kept.
@@ -182,10 +227,20 @@ public struct BackupSnapshotStore: Sendable {
     public func write(_ file: BackupFile, at timestamp: Int64) throws -> URL {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appending(path: "pre-restore-\(timestamp).\(BackupFile.fileExtension)")
-        try BackupCodec.encode(file).write(to: url, options: [.atomic, .completeFileProtection])
+        try BackupCodec.encode(file).write(to: url, options: Self.writeOptions)
         let old = try snapshots().dropFirst(Self.kept)
         for stale in old { try? FileManager.default.removeItem(at: stale) }
         return url
+    }
+
+    /// Encrypted while the device is locked. Data protection is an iOS feature: a macOS host (`swift test`) can
+    /// refuse the option outright ("Operation not permitted" from mktemp).
+    static var writeOptions: Data.WritingOptions {
+        #if os(iOS)
+        [.atomic, .completeFileProtection]
+        #else
+        [.atomic]
+        #endif
     }
 
     /// Newest first.

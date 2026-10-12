@@ -22,7 +22,7 @@ struct FormTextField<Focus: Hashable>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xxs) {
             Text(title)
-                .font(.footnote)
+                .font(Theme.Fonts.footnote)
                 .foregroundStyle(Theme.textSecondary)
                 .accessibilityHidden(true)
             TextField(title, text: keyboard == .decimalPad ? $text.decimalPadInput() : $text,
@@ -74,7 +74,7 @@ struct IssueText: View {
 
     var body: some View {
         Label(message, systemImage: "exclamationmark.circle.fill")
-            .font(.footnote)
+            .font(Theme.Fonts.footnote)
             .foregroundStyle(Theme.danger)
             .accessibilityLabel("Problem: \(message)")
     }
@@ -86,7 +86,7 @@ struct SuccessText: View {
 
     var body: some View {
         Label(message, systemImage: "checkmark.circle.fill")
-            .font(.footnote)
+            .font(Theme.Fonts.footnote)
             .foregroundStyle(Theme.success)
     }
 }
@@ -100,31 +100,11 @@ struct Tag: View {
     var body: some View {
         let onHighlight = prominence == .increased
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(Theme.Fonts.caption.weight(.semibold))
             .padding(.horizontal, Theme.Space.s)
             .padding(.vertical, Theme.Space.xxs)
             .foregroundStyle(onHighlight ? Color.white : color)
             .background(onHighlight ? Color.white.opacity(0.22) : color.opacity(0.12), in: Capsule())
-    }
-}
-
-/// The large full-width button at the bottom of onboarding steps.
-struct PrimaryButton: View {
-    let title: String
-    var isBusy = false
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                Text(title).opacity(isBusy ? 0 : 1)
-                if isBusy { ProgressView().tint(Theme.brandOn) }
-            }
-            .frame(maxWidth: .infinity, minHeight: Theme.Layout.minTouchTarget - 8)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .disabled(isBusy)
     }
 }
 
@@ -241,6 +221,38 @@ extension FieldRule {
         case .postalCodeGB: "Enter a UK postcode, like SW1A 1AA"
         case .companyNumberGB: "A company number has 8 characters, like 01234567 or SC123456"
         case .hsnSac: "HSN and SAC codes have 2 to 8 digits"
+        }
+    }
+}
+
+/// A labelled input outside a form (a label above a boxed text field, the problem underneath), as in the setup and
+/// "Add an item" screens.
+struct BoxedTextField: View {
+    let title: String
+    @Binding var text: String
+    var prompt: String?
+    var issue: String?
+    var hint: String?
+    var keyboard: UIKeyboardType = .default
+    var capitalization: TextInputAutocapitalization = .sentences
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            FieldLabel(text: title)
+            TextField(title, text: keyboard == .decimalPad ? $text.decimalPadInput() : $text,
+                      prompt: Text(prompt ?? "").foregroundStyle(Theme.textSecondary))
+                .keyboardType(keyboard)
+                .textInputAutocapitalization(capitalization)
+                .focused($isFocused)
+                .inputBox(isFocused: isFocused)
+                .accessibilityLabel(title)
+                .accessibilityHint(issue ?? hint ?? "")
+            if let issue {
+                IssueText(message: issue)
+            } else if let hint {
+                Text(hint).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
+            }
         }
     }
 }

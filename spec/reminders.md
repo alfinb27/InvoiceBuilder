@@ -41,9 +41,10 @@ the `cap` places, however many invoices are long overdue.
   reconciliation pass instead of being scheduled now. iOS passes `from = today`: a notification cannot be
   scheduled in the past, so a reminder date that passed while the app was not running is skipped, not delivered
   late.
-- Android's daily job posts the reminders dated on or before today that it has not posted yet. It passes `from` =
-  the day after its last completed run (today on its first run), so a day on which the OS did not run the job is
-  still covered, but turning reminders on does not post a backlog of old dates at once.
+- Android's daily job posts each `{ documentId, remindOn }` dated on or before today once. It passes `from` = the
+  date of its last completed run (today on its first run), but never more than 7 days before today: a day on which
+  the OS did not run the job, or an invoice issued after that day's run, is still covered, while turning reminders
+  on (or a phone that was off for weeks) does not post a backlog of old dates at once.
 - **Reconciliation** re-runs the plan and replaces every pending local reminder with the new result. It runs:
   on app launch; after a payment is recorded (§`documents.md` §10); after a document is voided (§`documents.md`
   §11); after a due date, the business default, or a per-invoice override changes. It is a callable unit, not

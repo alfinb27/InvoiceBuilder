@@ -10,7 +10,10 @@ actor PDFLibrary {
     private let labels: PDFLabels
     private let reference: ReferenceData
     private let assets: any AssetRepository
-    private let directory: URL
+    /// The render cache (key-based names).
+    nonisolated let directory: URL
+    /// Copies under the names people see when sharing (`shareableCopy`), beside the cache so trimming never sees them.
+    nonisolated let sharedDirectory: URL
 
     init(configs: TaxConfigStore, reference: ReferenceData, assets: any AssetRepository,
          directory: URL? = nil) throws {
@@ -23,6 +26,7 @@ actor PDFLibrary {
             .appending(path: "InvoicePDFs")
         try? FileManager.default.createDirectory(at: caches, withIntermediateDirectories: true)
         self.directory = caches
+        sharedDirectory = caches.deletingLastPathComponent().appending(path: caches.lastPathComponent + "-Shared")
     }
 
     /// The templates the switcher offers, in spec order.
@@ -130,6 +134,7 @@ actor PDFLibrary {
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil))
             ?? []
         for file in files { try? FileManager.default.removeItem(at: file) }
+        try? FileManager.default.removeItem(at: sharedDirectory)
     }
 
     /// Removes cached files for a document (a draft that was deleted, or a restore).
@@ -139,6 +144,20 @@ actor PDFLibrary {
         for file in files where file.lastPathComponent.hasPrefix(documentID) {
             try? FileManager.default.removeItem(at: file)
         }
+        try? FileManager.default.removeItem(at: sharedDirectory.appending(path: documentID))
+    }
+}
+
+extension PDFLibrary {
+    /// A copy of a cached PDF under the name people see when it is shared (`DocumentText.pdfFileName`); the cache
+    /// keeps its own key-based names. One folder per cached file, so each render (template, edit) has its own URL.
+    nonisolated func shareableCopy(of url: URL, named name: String, documentID: String) throws -> URL {
+        let folder = sharedDirectory.appending(path: documentID).appending(path: url.deletingPathExtension().lastPathComponent)
+        let target = folder.appending(path: name)
+        if FileManager.default.fileExists(atPath: target.path) { return target }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: url, to: target)
+        return target
     }
 }
 

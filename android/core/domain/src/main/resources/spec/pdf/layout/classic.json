@@ -1,0 +1,33 @@
+{
+  "$schema": "../../schema/pdf-layout.schema.json",
+  "id": "classic",
+  "label": "Classic",
+  "description": "Formal and dense: ruled table, accent only on the title and the table rule. The safe default for tax offices and accountants.",
+  "page": { "margins": { "top": 44, "right": 44, "bottom": 36, "left": 44 }, "footerHeight": 24 },
+  "style": {
+    "fontSizes": { "title": 19, "heading": 10, "body": 9, "small": 8 },
+    "lineHeight": 1.35,
+    "colors": { "text": "#111827", "muted": "#4B5563", "rule": "#C8D0DA", "onAccent": "#FFFFFF" },
+    "accentUse": ["title", "tableHeaderText"],
+    "rule": { "width": 0.75 },
+    "table": {
+      "headerWeight": "semibold",
+      "headerUppercase": true,
+      "rowPadding": { "vertical": 5, "horizontal": 6 },
+      "rowRule": "below"
+    },
+    "blockSpacing": 16,
+    "logo": { "maxWidth": 140, "maxHeight": 48 },
+    "qrSize": 84,
+    "signatureHeight": 40
+  },
+  "blocks": [
+    { "id": "header", "variant": "logoRight" },
+    { "id": "parties", "variant": "twoColumns" },
+    { "id": "items", "variant": "ruled" },
+    { "id": "totals", "variant": "right" },
+    { "id": "payment", "variant": "twoColumns" },
+    { "id": "notes", "variant": "stacked" },
+    { "id": "signature", "variant": "right" }
+  ]
+}

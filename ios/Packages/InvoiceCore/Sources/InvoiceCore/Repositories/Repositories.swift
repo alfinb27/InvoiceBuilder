@@ -47,6 +47,8 @@ public protocol DeviceStateRepository: Sendable {
     /// This device's row, created on first use (`spec/setup.md` §2).
     func loadOrCreate(deviceName: String) async throws -> DeviceState
     func setActiveBusiness(id: String?) async throws
+    /// `preferences.syncEnabled` (`spec/sync.md` §2).
+    func setSyncEnabled(_ enabled: Bool) async throws
 }
 
 /// Operations that write several tables in one transaction (ADR-0002's thin domain-service layer).
@@ -146,7 +148,27 @@ public protocol BackupService: Sendable {
     /// §4 steps 3–4: writes the safety snapshot, then replaces all data in one transaction (taking over series for
     /// `deviceID` where needed). Validate first; a thrown error means nothing changed.
     func restore(_ file: BackupFile, deviceID: String) async throws
+    /// §4 step 3 on its own: a snapshot of the current data before something replaces it (a restore, or erasing
+    /// this device's data to sync with another iCloud account).
+    func writeSafetySnapshot() async throws
     /// §2: the user saved or shared an export.
     func recordBackup(at timestamp: Int64) async throws
     func observeStatus() -> AsyncThrowingStream<BackupStatus, any Error>
+}
+
+/// Numbering on several devices (`spec/sync.md` §3–4), each write one transaction.
+public protocol NumberingService: Sendable {
+    /// §3.1: a new series of `docType` owned by `deviceID`, with the next free device letter.
+    func createDeviceSeries(businessID: String, docType: DocumentType, deviceID: String) async throws
+        -> NumberingSeries
+    /// §3.2: `deviceID` becomes the owner; counters continue after every number issued from the series.
+    func takeOver(seriesID: String, deviceID: String) async throws -> NumberingSeries
+    /// §4: issued or void documents of the business that share a number.
+    func observeDuplicateNumbers(businessID: String) -> AsyncThrowingStream<[DuplicateNumbers.Group], any Error>
+}
+
+public enum NumberingServiceError: Error, Equatable, Sendable {
+    case businessNotFound
+    case seriesNotFound
+    case noDeviceLetter
 }

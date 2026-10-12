@@ -1,0 +1,560 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "autobackup",
+  "description": "Automatic backup to Google Drive (backup.md §7): when a backup is due, which file it writes, which old files go, and the restore list's order.",
+  "cases": [
+    {
+      "id": "autobackup-due-no-rows",
+      "description": "Nothing in the database yet: nothing to back up.",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000
+      },
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "id": "autobackup-due-first-backup",
+      "description": "Data exists and Drive has never had a backup: due.",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000,
+        "latestChangeAt": 1791599400000
+      },
+      "expected": {
+        "due": true
+      }
+    },
+    {
+      "id": "autobackup-due-changed-since-last",
+      "description": "A change after the last Drive backup, last attempt 16 minutes ago: due.",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000,
+        "lastBackupAt": 1791513600000,
+        "latestChangeAt": 1791598200000,
+        "lastAttemptAt": 1791599040000
+      },
+      "expected": {
+        "due": true
+      }
+    },
+    {
+      "id": "autobackup-due-attempt-too-recent",
+      "description": "A change after the last backup, but an attempt 5 minutes ago: wait for 15 minutes.",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000,
+        "lastBackupAt": 1791513600000,
+        "latestChangeAt": 1791599880000,
+        "lastAttemptAt": 1791599700000
+      },
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "id": "autobackup-due-attempt-exactly-15-min",
+      "description": "The last attempt exactly 15 minutes ago counts as long enough (≥).",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000,
+        "lastBackupAt": 1791513600000,
+        "latestChangeAt": 1791599880000,
+        "lastAttemptAt": 1791599100000
+      },
+      "expected": {
+        "due": true
+      }
+    },
+    {
+      "id": "autobackup-due-nothing-changed",
+      "description": "The newest change is the one already backed up: not due.",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000,
+        "lastBackupAt": 1791598800000,
+        "latestChangeAt": 1791598800000,
+        "lastAttemptAt": 1791598800000
+      },
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "id": "autobackup-due-backup-newer-than-change",
+      "description": "The last backup is newer than every change: not due.",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000,
+        "lastBackupAt": 1791599400000,
+        "latestChangeAt": 1791597600000,
+        "lastAttemptAt": 1791599400000
+      },
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "id": "autobackup-due-first-backup-failed-recently",
+      "description": "Never backed up, but a failed attempt a minute ago: wait.",
+      "input": {
+        "op": "isDue",
+        "now": 1791600000000,
+        "latestChangeAt": 1791596400000,
+        "lastAttemptAt": 1791599940000
+      },
+      "expected": {
+        "due": false
+      }
+    },
+    {
+      "id": "autobackup-target-empty-folder",
+      "description": "An empty folder: create today's file.",
+      "input": {
+        "op": "target",
+        "fileName": "InvoiceBackup-2026-10-10.invoicebackup",
+        "deviceId": "dev-me",
+        "entries": []
+      },
+      "expected": {
+        "action": "create"
+      }
+    },
+    {
+      "id": "autobackup-target-update-own-today",
+      "description": "Today's file from this device exists: replace its content.",
+      "input": {
+        "op": "target",
+        "fileName": "InvoiceBackup-2026-10-10.invoicebackup",
+        "deviceId": "dev-me",
+        "entries": [
+          {
+            "id": "f-yday",
+            "name": "InvoiceBackup-2026-10-09.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791513600000
+          },
+          {
+            "id": "f-today",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791589200000
+          }
+        ]
+      },
+      "expected": {
+        "action": "update",
+        "id": "f-today"
+      }
+    },
+    {
+      "id": "autobackup-target-other-device-same-name",
+      "description": "Another device wrote a file with today's name: never overwrite it, create our own.",
+      "input": {
+        "op": "target",
+        "fileName": "InvoiceBackup-2026-10-10.invoicebackup",
+        "deviceId": "dev-me",
+        "entries": [
+          {
+            "id": "f-theirs",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791596400000
+          }
+        ]
+      },
+      "expected": {
+        "action": "create"
+      }
+    },
+    {
+      "id": "autobackup-target-own-yesterday-only",
+      "description": "Only yesterday's file from this device: a new day gets a new file.",
+      "input": {
+        "op": "target",
+        "fileName": "InvoiceBackup-2026-10-10.invoicebackup",
+        "deviceId": "dev-me",
+        "entries": [
+          {
+            "id": "f-yday",
+            "name": "InvoiceBackup-2026-10-09.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791513600000
+          }
+        ]
+      },
+      "expected": {
+        "action": "create"
+      }
+    },
+    {
+      "id": "autobackup-target-two-own-today-newest",
+      "description": "Two files of today from this device (an earlier upload raced): replace the newest.",
+      "input": {
+        "op": "target",
+        "fileName": "InvoiceBackup-2026-10-10.invoicebackup",
+        "deviceId": "dev-me",
+        "entries": [
+          {
+            "id": "f-a",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791592800000
+          },
+          {
+            "id": "f-b",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791596400000
+          }
+        ]
+      },
+      "expected": {
+        "action": "update",
+        "id": "f-b"
+      }
+    },
+    {
+      "id": "autobackup-target-ignores-files-without-properties",
+      "description": "A same-named file the app didn't tag is not ours: create.",
+      "input": {
+        "op": "target",
+        "fileName": "InvoiceBackup-2026-10-10.invoicebackup",
+        "deviceId": "dev-me",
+        "entries": [
+          {
+            "id": "f-manual",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup"
+          }
+        ]
+      },
+      "expected": {
+        "action": "create"
+      }
+    },
+    {
+      "id": "autobackup-prune-keeps-ten-newest",
+      "description": "Twelve own backups, keep 10: the two oldest go, oldest first.",
+      "input": {
+        "op": "filesToDelete",
+        "deviceId": "dev-me",
+        "keep": 10,
+        "entries": [
+          {
+            "id": "own-00",
+            "name": "InvoiceBackup-day00.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790563200000
+          },
+          {
+            "id": "own-01",
+            "name": "InvoiceBackup-day01.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790649600000
+          },
+          {
+            "id": "own-02",
+            "name": "InvoiceBackup-day02.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790736000000
+          },
+          {
+            "id": "own-03",
+            "name": "InvoiceBackup-day03.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790822400000
+          },
+          {
+            "id": "own-04",
+            "name": "InvoiceBackup-day04.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790908800000
+          },
+          {
+            "id": "own-05",
+            "name": "InvoiceBackup-day05.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790995200000
+          },
+          {
+            "id": "own-06",
+            "name": "InvoiceBackup-day06.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791081600000
+          },
+          {
+            "id": "own-07",
+            "name": "InvoiceBackup-day07.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791168000000
+          },
+          {
+            "id": "own-08",
+            "name": "InvoiceBackup-day08.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791254400000
+          },
+          {
+            "id": "own-09",
+            "name": "InvoiceBackup-day09.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791340800000
+          },
+          {
+            "id": "own-10",
+            "name": "InvoiceBackup-day10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791427200000
+          },
+          {
+            "id": "own-11",
+            "name": "InvoiceBackup-day11.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791513600000
+          }
+        ]
+      },
+      "expected": {
+        "delete": [
+          "own-00",
+          "own-01"
+        ]
+      }
+    },
+    {
+      "id": "autobackup-prune-never-touches-other-devices",
+      "description": "Three own backups and fifteen from another device: nothing to delete.",
+      "input": {
+        "op": "filesToDelete",
+        "deviceId": "dev-me",
+        "keep": 10,
+        "entries": [
+          {
+            "id": "theirs-00",
+            "name": "InvoiceBackup-x00.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791600000000
+          },
+          {
+            "id": "theirs-01",
+            "name": "InvoiceBackup-x01.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791513600000
+          },
+          {
+            "id": "theirs-02",
+            "name": "InvoiceBackup-x02.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791427200000
+          },
+          {
+            "id": "theirs-03",
+            "name": "InvoiceBackup-x03.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791340800000
+          },
+          {
+            "id": "theirs-04",
+            "name": "InvoiceBackup-x04.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791254400000
+          },
+          {
+            "id": "theirs-05",
+            "name": "InvoiceBackup-x05.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791168000000
+          },
+          {
+            "id": "theirs-06",
+            "name": "InvoiceBackup-x06.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791081600000
+          },
+          {
+            "id": "theirs-07",
+            "name": "InvoiceBackup-x07.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790995200000
+          },
+          {
+            "id": "theirs-08",
+            "name": "InvoiceBackup-x08.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790908800000
+          },
+          {
+            "id": "theirs-09",
+            "name": "InvoiceBackup-x09.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790822400000
+          },
+          {
+            "id": "theirs-10",
+            "name": "InvoiceBackup-x10.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790736000000
+          },
+          {
+            "id": "theirs-11",
+            "name": "InvoiceBackup-x11.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790649600000
+          },
+          {
+            "id": "theirs-12",
+            "name": "InvoiceBackup-x12.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790563200000
+          },
+          {
+            "id": "theirs-13",
+            "name": "InvoiceBackup-x13.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790476800000
+          },
+          {
+            "id": "theirs-14",
+            "name": "InvoiceBackup-x14.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1790390400000
+          },
+          {
+            "id": "own-00",
+            "name": "InvoiceBackup-day00.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790563200000
+          },
+          {
+            "id": "own-01",
+            "name": "InvoiceBackup-day01.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790649600000
+          },
+          {
+            "id": "own-02",
+            "name": "InvoiceBackup-day02.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1790736000000
+          }
+        ]
+      },
+      "expected": {
+        "delete": []
+      }
+    },
+    {
+      "id": "autobackup-prune-tie-larger-id-is-newer",
+      "description": "Equal createdAt: the larger id counts as newer, so with keep 2 the smallest id goes.",
+      "input": {
+        "op": "filesToDelete",
+        "deviceId": "dev-me",
+        "keep": 2,
+        "entries": [
+          {
+            "id": "b",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791600000000
+          },
+          {
+            "id": "a",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791600000000
+          },
+          {
+            "id": "c",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791600000000
+          }
+        ]
+      },
+      "expected": {
+        "delete": [
+          "a"
+        ]
+      }
+    },
+    {
+      "id": "autobackup-prune-ignores-untagged-files",
+      "description": "A file without the app's properties is never deleted.",
+      "input": {
+        "op": "filesToDelete",
+        "deviceId": "dev-me",
+        "keep": 1,
+        "entries": [
+          {
+            "id": "own-old",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791513600000
+          },
+          {
+            "id": "untagged",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup"
+          },
+          {
+            "id": "own-new",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791600000000
+          }
+        ]
+      },
+      "expected": {
+        "delete": [
+          "own-old"
+        ]
+      }
+    },
+    {
+      "id": "autobackup-list-newest-first",
+      "description": "The restore list: tagged files newest first, ties by larger id, untagged files left out.",
+      "input": {
+        "op": "newestFirst",
+        "entries": [
+          {
+            "id": "p",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-other",
+            "createdAt": 1791513600000
+          },
+          {
+            "id": "q",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791600000000
+          },
+          {
+            "id": "untagged",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup"
+          },
+          {
+            "id": "r",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791513600000
+          },
+          {
+            "id": "s",
+            "name": "InvoiceBackup-2026-10-10.invoicebackup",
+            "deviceId": "dev-me",
+            "createdAt": 1791427200000
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "q",
+          "r",
+          "p",
+          "s"
+        ]
+      }
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 import XCTest
 
-/// End-to-end smoke flows for Phase 1 (ADR-0012): onboarding, then adding a client and an item. The app runs on an
-/// in-memory database (`-inMemory`, `-seed IN`), so nothing touches the simulator's real data.
+/// End-to-end smoke flows (ADR-0012, ADR-0020): the Welcome screen and the three setup stages, then adding a client
+/// and an item. The app runs on an in-memory database (`-inMemory`, `-seed IN`), so nothing touches the simulator's
+/// real data.
 final class SetupSmokeTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
@@ -13,24 +14,25 @@ final class SetupSmokeTests: XCTestCase {
         app.launchArguments = ["-inMemory"]
         app.launch()
 
-        // 1 Country
-        app.buttons["India"].firstMatch.tap()
-        app.buttons["Continue"].tap()
-        // 2 Registration: "Registered (regular)" is the default
-        XCTAssertTrue(app.staticTexts["Registered (regular)"].waitForExistence(timeout: 5))
-        app.buttons["Continue"].tap()
-        // 3 Business: the state comes from the GSTIN, the PAN is filled in from it
+        XCTAssertTrue(app.buttons["onboarding.start"].waitForExistence(timeout: 10))
+        app.buttons["onboarding.start"].tap()
+        // 1 Where you work: India, then "Yes, regular GST" (the default)
+        app.buttons["country-IN"].tap()
+        XCTAssertTrue(app.buttons["registration.regular"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["registration.regular"].isSelected)
+        app.buttons["onboarding.continue"].tap()
+        // 2 Your business: the state comes from the GSTIN, the PAN is filled in from it
         type("Bharat Test Studio", into: app.textFields["Business name"], in: app)
         type("29AAGCB7383J1Z4", into: app.textFields["GSTIN"], in: app)
         XCTAssertTrue(app.staticTexts["Valid · Karnataka"].waitForExistence(timeout: 5))
         type("12 MG Road", into: app.textFields["Address line 1"], in: app)
-        app.buttons["Continue"].tap()
-        // 4 Bank and UPI (optional), 5 Logo and signature (optional)
-        app.buttons["Continue"].tap()
-        app.buttons["Finish"].tap()
+        app.buttons["onboarding.continue"].tap()
+        // 3 Getting paid (optional)
+        XCTAssertTrue(app.buttons["onboarding.skip"].waitForExistence(timeout: 5))
+        app.buttons["onboarding.finish"].tap()
 
         XCTAssertTrue(app.staticTexts["Bharat Test Studio"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["GSTIN 29AAGCB7383J1Z4"].exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "home.checklist").firstMatch.exists)
     }
 
     @MainActor
@@ -39,13 +41,14 @@ final class SetupSmokeTests: XCTestCase {
         app.launchArguments = ["-inMemory"]
         app.launch()
 
-        app.buttons["Continue"].tap()
+        XCTAssertTrue(app.buttons["onboarding.start"].waitForExistence(timeout: 10))
+        app.buttons["onboarding.start"].tap()
+        app.buttons["onboarding.continue"].tap()
         XCTAssertTrue(text("Enter the country", in: app).waitForExistence(timeout: 5))
-        app.buttons["United Kingdom"].firstMatch.tap()
-        app.buttons["Continue"].tap()
-        app.buttons["Continue"].tap()
+        app.buttons["country-GB"].tap()
+        app.buttons["onboarding.continue"].tap()
         type("GB123456789", into: app.textFields["VAT registration number"], in: app)
-        app.buttons["Continue"].tap()
+        app.buttons["onboarding.continue"].tap()
         XCTAssertTrue(text("Enter the business name", in: app).waitForExistence(timeout: 5))
         XCTAssertTrue(text("This VAT registration number has a typo", in: app).exists)
     }
@@ -93,19 +96,16 @@ final class SetupSmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["backup.restore"].exists)
     }
 
+    /// "I've used this app before" offers a restore from a backup file (`spec/backup.md` §4).
     @MainActor
-    func testOnboardingOffersRestore() {
+    func testWelcomeOffersRestore() {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemory"]
         app.launch()
 
-        let restore = app.buttons["onboarding.restore"]
-        var attempts = 0
-        while !(restore.exists && restore.isHittable) && attempts < 12 {
-            app.swipeUp()
-            attempts += 1
-        }
-        XCTAssertTrue(restore.exists)
+        XCTAssertTrue(app.buttons["onboarding.usedBefore"].waitForExistence(timeout: 10))
+        app.buttons["onboarding.usedBefore"].tap()
+        XCTAssertTrue(app.buttons["Restore from a backup file"].waitForExistence(timeout: 5))
     }
 
     /// A tab bar button on iPhone; the top tab bar (or sidebar) on iPad.

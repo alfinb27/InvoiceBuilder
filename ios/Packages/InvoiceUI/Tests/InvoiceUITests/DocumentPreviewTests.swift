@@ -144,8 +144,8 @@ struct DocumentPreviewTests {
         await model.openPreview()
         let preview = try #require(model.preview)
         await preview.render()
-        let file = try #require(preview.state.file)
-        let directory = file.deletingLastPathComponent()
+        _ = try #require(preview.state.file)
+        let directory = session.pdfLibrary.directory // the render cache, not the shared copies
         // Fill the cache past its limit with files that look older than the one just rendered.
         for index in 0..<260 {
             let stale = directory.appending(path: "old-\(index).pdf")

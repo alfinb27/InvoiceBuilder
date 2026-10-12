@@ -31,10 +31,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Xcode version
         run: xcodebuild -version
-      - name: Core (every implemented fixture) and data tests
+      - name: Core (every implemented fixture), data and Google Drive tests
         run: |
           make test-core-ios
           make test-data-ios
+          make test-drive-ios
       - name: Pick a simulator
         id: sim
         run: |

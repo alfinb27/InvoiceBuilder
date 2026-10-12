@@ -124,7 +124,7 @@ CREATE TABLE document (
   voided_at             INTEGER,
   void_reason           TEXT,
   quote_outcome         TEXT,  -- one of: accepted, declined, converted (enforced in app code)
-  converted_from_id     TEXT REFERENCES document (id) ON DELETE SET NULL,
+  converted_from_id     TEXT,  -- the quote this invoice came from; not a foreign key (0004: SyncEngine rejects self-references)
   currency              TEXT NOT NULL,
   exchange_rate         TEXT,
   supply_type           TEXT NOT NULL,

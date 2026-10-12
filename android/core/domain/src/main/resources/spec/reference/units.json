@@ -1,0 +1,255 @@
+{
+  "$comment": "Units offered in the item catalogue. uqc = GST Unique Quantity Code reported for India (service units map to OTH).",
+  "units": [
+    {
+      "id": "BAG",
+      "label": "Bags",
+      "uqc": "BAG"
+    },
+    {
+      "id": "BAL",
+      "label": "Bale",
+      "uqc": "BAL"
+    },
+    {
+      "id": "BDL",
+      "label": "Bundles",
+      "uqc": "BDL"
+    },
+    {
+      "id": "BKL",
+      "label": "Buckles",
+      "uqc": "BKL"
+    },
+    {
+      "id": "BOU",
+      "label": "Billions of units",
+      "uqc": "BOU"
+    },
+    {
+      "id": "BOX",
+      "label": "Box",
+      "uqc": "BOX"
+    },
+    {
+      "id": "BTL",
+      "label": "Bottles",
+      "uqc": "BTL"
+    },
+    {
+      "id": "BUN",
+      "label": "Bunches",
+      "uqc": "BUN"
+    },
+    {
+      "id": "CAN",
+      "label": "Cans",
+      "uqc": "CAN"
+    },
+    {
+      "id": "CBM",
+      "label": "Cubic meters",
+      "uqc": "CBM"
+    },
+    {
+      "id": "CCM",
+      "label": "Cubic centimeters",
+      "uqc": "CCM"
+    },
+    {
+      "id": "CMS",
+      "label": "Centimeters",
+      "uqc": "CMS"
+    },
+    {
+      "id": "CTN",
+      "label": "Cartons",
+      "uqc": "CTN"
+    },
+    {
+      "id": "DOZ",
+      "label": "Dozens",
+      "uqc": "DOZ"
+    },
+    {
+      "id": "DRM",
+      "label": "Drums",
+      "uqc": "DRM"
+    },
+    {
+      "id": "GGK",
+      "label": "Great gross",
+      "uqc": "GGK"
+    },
+    {
+      "id": "GMS",
+      "label": "Grams",
+      "uqc": "GMS"
+    },
+    {
+      "id": "GRS",
+      "label": "Gross",
+      "uqc": "GRS"
+    },
+    {
+      "id": "GYD",
+      "label": "Gross yards",
+      "uqc": "GYD"
+    },
+    {
+      "id": "KGS",
+      "label": "Kilograms",
+      "uqc": "KGS"
+    },
+    {
+      "id": "KLR",
+      "label": "Kilolitre",
+      "uqc": "KLR"
+    },
+    {
+      "id": "KME",
+      "label": "Kilometre",
+      "uqc": "KME"
+    },
+    {
+      "id": "LTR",
+      "label": "Litres",
+      "uqc": "LTR"
+    },
+    {
+      "id": "MLT",
+      "label": "Millilitre",
+      "uqc": "MLT"
+    },
+    {
+      "id": "MTR",
+      "label": "Meters",
+      "uqc": "MTR"
+    },
+    {
+      "id": "MTS",
+      "label": "Metric ton",
+      "uqc": "MTS"
+    },
+    {
+      "id": "NOS",
+      "label": "Numbers",
+      "uqc": "NOS"
+    },
+    {
+      "id": "OTH",
+      "label": "Others",
+      "uqc": "OTH"
+    },
+    {
+      "id": "PAC",
+      "label": "Packs",
+      "uqc": "PAC"
+    },
+    {
+      "id": "PCS",
+      "label": "Pieces",
+      "uqc": "PCS"
+    },
+    {
+      "id": "PRS",
+      "label": "Pairs",
+      "uqc": "PRS"
+    },
+    {
+      "id": "QTL",
+      "label": "Quintal",
+      "uqc": "QTL"
+    },
+    {
+      "id": "ROL",
+      "label": "Rolls",
+      "uqc": "ROL"
+    },
+    {
+      "id": "SET",
+      "label": "Sets",
+      "uqc": "SET"
+    },
+    {
+      "id": "SQF",
+      "label": "Square feet",
+      "uqc": "SQF"
+    },
+    {
+      "id": "SQM",
+      "label": "Square meters",
+      "uqc": "SQM"
+    },
+    {
+      "id": "SQY",
+      "label": "Square yards",
+      "uqc": "SQY"
+    },
+    {
+      "id": "TBS",
+      "label": "Tablets",
+      "uqc": "TBS"
+    },
+    {
+      "id": "TGM",
+      "label": "Ten gross",
+      "uqc": "TGM"
+    },
+    {
+      "id": "THD",
+      "label": "Thousands",
+      "uqc": "THD"
+    },
+    {
+      "id": "TON",
+      "label": "Tonnes",
+      "uqc": "TON"
+    },
+    {
+      "id": "TUB",
+      "label": "Tubes",
+      "uqc": "TUB"
+    },
+    {
+      "id": "UGS",
+      "label": "US gallons",
+      "uqc": "UGS"
+    },
+    {
+      "id": "UNT",
+      "label": "Units",
+      "uqc": "UNT"
+    },
+    {
+      "id": "YDS",
+      "label": "Yards",
+      "uqc": "YDS"
+    },
+    {
+      "id": "HRS",
+      "label": "Hours",
+      "uqc": "OTH"
+    },
+    {
+      "id": "DAY",
+      "label": "Days",
+      "uqc": "OTH"
+    },
+    {
+      "id": "WEK",
+      "label": "Weeks",
+      "uqc": "OTH"
+    },
+    {
+      "id": "MON",
+      "label": "Months",
+      "uqc": "OTH"
+    },
+    {
+      "id": "JOB",
+      "label": "Job",
+      "uqc": "OTH"
+    }
+  ]
+}

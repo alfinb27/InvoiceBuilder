@@ -65,7 +65,7 @@ private struct ClientForm: View {
     private var taxIDName: String { session.config.labels.taxIdName }
 
     var body: some View {
-        Form {
+        ThemedForm {
             if model.state.attemptedSave, !model.issues.isEmpty {
                 Section { IssueText(message: "Check the highlighted fields.") }
             }
@@ -103,7 +103,7 @@ private struct ClientForm: View {
                         }
                         if let duplicate = model.duplicate {
                             Label("\(duplicate.name) already has this \(taxIDName).", systemImage: "exclamationmark.triangle.fill")
-                                .font(.footnote)
+                                .font(Theme.Fonts.footnote)
                                 .foregroundStyle(Theme.warning)
                         }
                     }

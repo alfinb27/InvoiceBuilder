@@ -1,0 +1,88 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "series",
+  "description": "Device-owned numbering across devices (sync.md §3–4): a device's own series, taking a series over, and the duplicate-number check.",
+  "cases": [
+    {
+      "id": "series-device-letter-b",
+      "input": { "op": "deviceSeries", "docType": "invoice", "pattern": "INV/{fy}/{seq:4}", "existingPatterns": ["INV/{fy}/{seq:4}"] },
+      "expected": { "pattern": "INV/{fy}/B{seq:4}", "label": "Invoices (B)" }
+    },
+    {
+      "id": "series-device-letter-skips-used",
+      "input": { "op": "deviceSeries", "docType": "invoice", "pattern": "INV/{fy}/{seq:4}", "existingPatterns": ["INV/{fy}/{seq:4}", "INV/{fy}/B{seq:4}", "INV/{fy}/D{seq:4}"] },
+      "expected": { "pattern": "INV/{fy}/C{seq:4}", "label": "Invoices (C)" }
+    },
+    {
+      "id": "series-device-letter-quote",
+      "input": { "op": "deviceSeries", "docType": "quote", "pattern": "QT-{seq:3}", "existingPatterns": ["QT-{seq:3}"] },
+      "expected": { "pattern": "QT-B{seq:3}", "label": "Quotes (B)" }
+    },
+    {
+      "id": "series-device-letter-ignores-lowercase-and-digits",
+      "input": { "op": "deviceSeries", "docType": "invoice", "pattern": "{yyyy}{seq:4}", "existingPatterns": ["{yyyy}{seq:4}", "INVb{seq:4}", "INV9{seq:4}"] },
+      "expected": { "pattern": "{yyyy}B{seq:4}", "label": "Invoices (B)" }
+    },
+    {
+      "id": "series-device-letter-none-existing",
+      "input": { "op": "deviceSeries", "docType": "invoice", "pattern": "INV-{seq:4}", "existingPatterns": [] },
+      "expected": { "pattern": "INV-B{seq:4}", "label": "Invoices (B)" }
+    },
+    {
+      "id": "series-device-letters-exhausted",
+      "input": {
+        "op": "deviceSeries", "docType": "invoice", "pattern": "I{seq:4}",
+        "existingPatterns": ["I{seq:4}", "IB{seq:4}", "IC{seq:4}", "ID{seq:4}", "IE{seq:4}", "IF{seq:4}", "IG{seq:4}", "IH{seq:4}", "II{seq:4}", "IJ{seq:4}", "IK{seq:4}", "IL{seq:4}", "IM{seq:4}", "IN{seq:4}", "IO{seq:4}", "IP{seq:4}", "IQ{seq:4}", "IR{seq:4}", "IS{seq:4}", "IT{seq:4}", "IU{seq:4}", "IV{seq:4}", "IW{seq:4}", "IX{seq:4}", "IY{seq:4}", "IZ{seq:4}"]
+      },
+      "expected": { "error": "no_device_letter" }
+    },
+    {
+      "id": "series-take-over-continues-after-highest",
+      "input": { "op": "takeOver", "counters": { "FY2026": 40 }, "highest": { "FY2026": 42 } },
+      "expected": { "counters": { "FY2026": 43 } }
+    },
+    {
+      "id": "series-take-over-keeps-a-higher-counter",
+      "input": { "op": "takeOver", "counters": { "FY2026": 50 }, "highest": { "FY2026": 42 } },
+      "expected": { "counters": { "FY2026": 50 } }
+    },
+    {
+      "id": "series-take-over-adds-missing-periods-and-keeps-others",
+      "input": { "op": "takeOver", "counters": { "FY2025": 9 }, "highest": { "FY2026": 3 } },
+      "expected": { "counters": { "FY2025": 9, "FY2026": 4 } }
+    },
+    {
+      "id": "series-duplicates-none",
+      "input": {
+        "op": "duplicates",
+        "documents": [
+          { "id": "a", "docType": "invoice", "lifecycle": "issued", "number": "INV-0001" },
+          { "id": "b", "docType": "invoice", "lifecycle": "issued", "number": "INV-0002" },
+          { "id": "c", "docType": "invoice", "lifecycle": "draft", "number": null }
+        ]
+      },
+      "expected": { "groups": [] }
+    },
+    {
+      "id": "series-duplicates-found-sorted",
+      "input": {
+        "op": "duplicates",
+        "documents": [
+          { "id": "z", "docType": "invoice", "lifecycle": "issued", "number": "INV-0002" },
+          { "id": "a", "docType": "invoice", "lifecycle": "void", "number": "INV-0002" },
+          { "id": "q", "docType": "quote", "lifecycle": "issued", "number": "INV-0002" },
+          { "id": "m", "docType": "invoice", "lifecycle": "issued", "number": "INV-0001" },
+          { "id": "k", "docType": "invoice", "lifecycle": "issued", "number": "INV-0001" },
+          { "id": "d", "docType": "invoice", "lifecycle": "draft", "number": null },
+          { "id": "e", "docType": "invoice", "lifecycle": "draft", "number": null }
+        ]
+      },
+      "expected": {
+        "groups": [
+          { "docType": "invoice", "number": "INV-0001", "ids": ["k", "m"] },
+          { "docType": "invoice", "number": "INV-0002", "ids": ["a", "z"] }
+        ]
+      }
+    }
+  ]
+}

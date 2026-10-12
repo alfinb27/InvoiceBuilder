@@ -118,3 +118,38 @@ struct HomeDashboardTests {
         #expect(home.state.dashboard.overdueMinor == 0) // due in the future (payment terms), not overdue
     }
 }
+
+@MainActor
+@Suite("List performance")
+struct ListPerformanceTests {
+    /// Phase 6: searching 1,000 invoices returns in under 100 ms (the list filters in memory).
+    @Test func searchingAThousandInvoicesIsFast() async throws {
+        let session = try await TestEnvironment.session(.india)
+        let model = DocumentListViewModel(session: session)
+        let today = TestEnvironment.today
+        // Explicit types and one value per line: Xcode 26's type checker times out on the inline arithmetic.
+        let rows = (1...1_000).map { (index: Int) -> DocumentSummary in
+            let age: Int = index % 300
+            let client: Int = index % 40
+            let total: Int64 = Int64(index) * 1_000
+            let paid: Int64 = index % 3 == 0 ? 1_000 : 0
+            return DocumentSummary(id: "d\(index)", docType: .invoice, number: String(format: "INV/26-27/%04d", index),
+                                   lifecycle: .issued, issueDate: today.adding(days: -age),
+                                   dueDate: today.adding(days: 30 - age), validUntil: nil, sentAt: nil,
+                                   quoteOutcome: nil, clientId: "c\(client)", buyerName: "Client \(client)",
+                                   currency: .inr, totalMinor: total, paidMinor: paid,
+                                   lineCount: 3, updatedAt: Int64(index))
+        }
+        model.replaceForTesting(rows)
+        let clock = ContinuousClock()
+        var found = 0
+        let elapsed = clock.measure {
+            for query in ["Client 7", "0420", "inv/26", "zzz"] {
+                found += model.visible(docType: .invoice, query: query, statusFilter: .unpaid,
+                                       dateFilter: .last3Months, today: today).issued.count
+            }
+        }
+        #expect(found > 0)
+        #expect(elapsed < .milliseconds(100), "four searches took \(elapsed)")
+    }
+}

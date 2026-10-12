@@ -27,7 +27,7 @@ struct SignaturePadSheet: View {
                     .accessibilityLabel("Signature pad")
                     .accessibilityHint("Draw your signature with a finger or Apple Pencil.")
                 Text("Sign with your finger or Apple Pencil. It appears above \"Authorised signatory\" on your invoices.")
-                    .font(.footnote)
+                    .font(Theme.Fonts.footnote)
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
                 if failed { IssueText(message: "The signature couldn't be saved. Try again.") }

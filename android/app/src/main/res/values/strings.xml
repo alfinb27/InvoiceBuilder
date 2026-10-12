@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">InvoiceBuilder</string>
+    <string name="reminder_channel">Payment reminders</string>
+    <string name="reminder_channel_description">When an invoice is overdue</string>
+</resources>
