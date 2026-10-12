@@ -22,6 +22,10 @@ import app.invoicebuilder.core.domain.repositories.BackupService
 import app.invoicebuilder.core.domain.support.TimeSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -188,6 +192,48 @@ class AutoBackupTests {
     }
 
     @Test
+    fun aSecondBackUpNowWaitsForTheRunningOne() = runBlocking {
+        val clock = Clock()
+        val cloud = FakeCloud()
+        val (runner, _, _) = runner(clock, cloud)
+        runner.connect()
+        cloud.failure = CloudBackupError.NetworkUnavailable
+        cloud.delayMs = 200
+        val first = async { runCatching { runner.backUpNow() }.exceptionOrNull() }
+        delay(50)
+        // Joins the backup in progress, so it reports that backup's failure instead of returning quietly.
+        val second = runCatching { runner.backUpNow() }.exceptionOrNull()
+        assertEquals(CloudBackupError.NetworkUnavailable, (second as CloudBackupException).error)
+        assertEquals(CloudBackupError.NetworkUnavailable, (first.await() as CloudBackupException).error)
+    }
+
+    @Test
+    fun aDueBackupThatFailsThrows() = runBlocking {
+        val clock = Clock()
+        val cloud = FakeCloud()
+        val state = FakeState()
+        val (runner, _, _) = runner(clock, cloud, state)
+        runner.connect()
+        cloud.failure = CloudBackupError.NetworkUnavailable
+        clock.now += DAY
+        state.latest = clock.now
+        val error = assertThrows<CloudBackupException> { runBlocking { runner.backUpIfDue() } }
+        assertEquals(CloudBackupError.NetworkUnavailable, error.error)
+    }
+
+    @Test
+    fun cancellingAConnectStopsIt() = runBlocking {
+        val clock = Clock()
+        val cloud = FakeCloud().apply { delayMs = 5_000 }
+        val (runner, _, state) = runner(clock, cloud)
+        val job = launch { runner.connect() }
+        delay(50)
+        job.cancelAndJoin()
+        assertTrue(job.isCancelled)
+        assertEquals(null, state.cloudBackupState().lastBackupAt)
+    }
+
+    @Test
     fun longPropertiesAreCutToDrivesLimit() {
         val cut = AutoBackupRules.fit("Ä".repeat(100), "ibBusinesses")
         assertTrue(cut.endsWith("…"))
@@ -205,6 +251,7 @@ class AutoBackupTests {
         var updates = 0
         var connected = false
         var failure: CloudBackupError? = null
+        var delayMs = 0L
         private var next = 0
 
         override suspend fun connect(): String { connected = true; return "owner@example.com" }
@@ -217,6 +264,7 @@ class AutoBackupTests {
         override suspend fun list(folderID: String) =
             files.filter { it.value.folder == folderID }.map { CloudBackupEntry.of(it.key, it.value.name, it.value.properties) }
         override suspend fun upload(data: ByteArray, name: String, properties: Map<String, String>, target: CloudBackupTarget, folderID: String): String {
+            if (delayMs > 0) kotlinx.coroutines.delay(delayMs)
             failure?.let { throw CloudBackupException(it) }
             val id = when (target) {
                 CloudBackupTarget.Create -> id("file")

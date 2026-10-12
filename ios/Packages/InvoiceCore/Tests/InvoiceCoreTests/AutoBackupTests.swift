@@ -95,14 +95,14 @@ struct AutoBackupTests {
         try await runner.connect()
         // Nothing changed since the backup.
         await state.setLatestChange(clock.now - 1)
-        #expect(await runner.backUpIfDue() == false)
+        #expect(try await runner.backUpIfDue() == false)
         // A change, but the last attempt was a minute ago.
         clock.now += 60_000
         await state.setLatestChange(clock.now)
-        #expect(await runner.backUpIfDue() == false)
+        #expect(try await runner.backUpIfDue() == false)
         // Fifteen minutes later it runs.
         clock.now += AutoBackupRules.minimumInterval
-        #expect(await runner.backUpIfDue() == true)
+        #expect(try await runner.backUpIfDue() == true)
         #expect(await cloud.updates == 1)
     }
 
@@ -123,7 +123,7 @@ struct AutoBackupTests {
         await #expect(throws: CloudBackupError.signedOut) { try await runner.backUpNow() }
         clock.now += Self.day
         await state.setLatestChange(clock.now)
-        #expect(await runner.backUpIfDue() == false) // waits for the user to reconnect
+        #expect(try await runner.backUpIfDue() == false) // waits for the user to reconnect
     }
 
     @Test func aTrashedFolderIsFoundOrCreatedAgain() async throws {
@@ -163,6 +163,32 @@ struct AutoBackupTests {
         #expect(await cloud.connected == false)
     }
 
+    @Test func aSecondBackUpNowWaitsForTheRunningOne() async throws {
+        let clock = Clock()
+        let cloud = FakeCloud()
+        let (runner, _, _, _) = makeRunner(clock: clock, cloud: cloud)
+        try await runner.connect()
+        await cloud.fail(with: .networkUnavailable)
+        await cloud.setDelay(.milliseconds(200))
+        let first = Task { try await runner.backUpNow() }
+        try await Task.sleep(for: .milliseconds(50))
+        // Joins the backup in progress, so it reports that backup's failure instead of returning quietly.
+        await #expect(throws: CloudBackupError.networkUnavailable) { try await runner.backUpNow() }
+        await #expect(throws: CloudBackupError.networkUnavailable) { try await first.value }
+    }
+
+    @Test func aDueBackupThatFailsThrows() async throws {
+        let clock = Clock()
+        let cloud = FakeCloud()
+        let state = FakeState()
+        let (runner, _, _, _) = makeRunner(clock: clock, cloud: cloud, state: state)
+        try await runner.connect()
+        await cloud.fail(with: .networkUnavailable)
+        clock.now += AutoBackupTests.day
+        await state.setLatestChange(clock.now)
+        await #expect(throws: CloudBackupError.networkUnavailable) { try await runner.backUpIfDue() }
+    }
+
     @Test func longPropertiesAreCutToDrivesLimit() {
         let value = String(repeating: "Ä", count: 100) // 200 bytes
         let cut = AutoBackupRules.fit(value, key: "ibBusinesses")
@@ -188,8 +214,10 @@ actor FakeCloud: CloudBackupDestination {
     private(set) var connected = false
     private var nextID = 0
     private var failure: CloudBackupError?
+    private var delay: Duration?
 
     func fail(with error: CloudBackupError?) { failure = error }
+    func setDelay(_ value: Duration?) { delay = value }
     func trashFolder(_ id: String) { folders.remove(id) }
 
     func connect() async throws -> String {
@@ -214,6 +242,7 @@ actor FakeCloud: CloudBackupDestination {
 
     func upload(_ data: Data, name: String, properties: [String: String], target: CloudBackupTarget,
                 folderID: String) async throws -> String {
+        if let delay { try await Task.sleep(for: delay) }
         if let failure { throw failure }
         switch target {
         case .create:

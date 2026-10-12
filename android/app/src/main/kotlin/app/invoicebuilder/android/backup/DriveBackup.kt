@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -300,23 +301,34 @@ fun DriveRestoreRow(drive: DriveBackupModel) {
 
 /** A backup when one is due: after the app leaves the screen, and once a day (WorkManager, needs a connection). */
 class DriveBackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = try {
         val container = (applicationContext as InvoiceApplication).container
         val device = container.deviceState.loadOrCreate(Build.MODEL)
         container.autoBackupRunner(device.id)?.backUpIfDue()
-        return Result.success()
+        Result.success()
+    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+        throw cancelled
+    } catch (error: CloudBackupException) {
+        // Signed out or Drive full: retrying can't help until the user acts (the Backup page says so).
+        if (error.error == CloudBackupError.SignedOut || error.error == CloudBackupError.QuotaExceeded) Result.success() else Result.retry()
+    } catch (error: Exception) {
+        Result.retry()
     }
 
     companion object {
+        /** A retry earlier than §7.2's 15-minute floor would find nothing due. */
+        private const val BACKOFF_MINUTES = 15L
         private val network = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
         /** The app went to the background (≈ iOS `scenePhase == .background`). */
         fun appStopped(context: Context) {
             val work = WorkManager.getInstance(context)
             work.enqueueUniqueWork("driveBackupNow", ExistingWorkPolicy.REPLACE,
-                OneTimeWorkRequestBuilder<DriveBackupWorker>().setConstraints(network).setInitialDelay(1, TimeUnit.SECONDS).build())
+                OneTimeWorkRequestBuilder<DriveBackupWorker>().setConstraints(network).setInitialDelay(1, TimeUnit.SECONDS)
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES).build())
             work.enqueueUniquePeriodicWork("driveBackup", ExistingPeriodicWorkPolicy.KEEP,
-                PeriodicWorkRequestBuilder<DriveBackupWorker>(1, TimeUnit.DAYS).setConstraints(network).build())
+                PeriodicWorkRequestBuilder<DriveBackupWorker>(1, TimeUnit.DAYS).setConstraints(network)
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES).build())
         }
     }
 }

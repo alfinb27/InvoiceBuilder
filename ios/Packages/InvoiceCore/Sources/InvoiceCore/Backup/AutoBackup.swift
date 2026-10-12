@@ -214,7 +214,8 @@ public actor AutoBackupRunner {
     let state: any CloudBackupStateStore
     let time: TimeSource
     let device: Device
-    private var running = false
+    /// The backup in progress: a second request waits for it instead of returning as if it had run.
+    private var current: Task<Void, any Error>?
 
     public init(destination: any CloudBackupDestination, backups: any BackupService, state: any CloudBackupStateStore,
                 time: TimeSource, device: Device) {
@@ -244,23 +245,29 @@ public actor AutoBackupRunner {
         try await state.saveCloudBackupState(CloudBackupState())
     }
 
-    /// §7.2: the automatic path. Returns whether a backup was written.
+    /// §7.2: the automatic path. Returns false when no backup is due; throws when one was due and failed, so
+    /// background work can retry.
     @discardableResult
-    public func backUpIfDue() async -> Bool {
-        guard let current = try? await state.cloudBackupState(), current.isConnected,
-              current.lastError != .signedOut,
-              let latest = try? await state.latestChangeAt(),
-              AutoBackupRules.isDue(lastBackupAt: current.lastBackupAt, latestChangeAt: latest,
+    public func backUpIfDue() async throws -> Bool {
+        let current = try await state.cloudBackupState()
+        guard current.isConnected, current.lastError != .signedOut,
+              AutoBackupRules.isDue(lastBackupAt: current.lastBackupAt, latestChangeAt: try await state.latestChangeAt(),
                                     lastAttemptAt: current.lastAttemptAt, now: time.now())
         else { return false }
-        return (try? await backUpNow()) != nil
+        try await backUpNow()
+        return true
     }
 
     /// §7.2 "Back up now": export, upload (§7.3), prune (§7.4), record the result (§7.5).
     public func backUpNow() async throws {
-        guard !running else { return }
-        running = true
-        defer { running = false }
+        if let current { return try await current.value } // join the backup already running
+        let task = Task { try await perform() }
+        current = task
+        defer { current = nil }
+        try await task.value
+    }
+
+    private func perform() async throws {
         var current = try await state.cloudBackupState()
         guard current.isConnected else { throw CloudBackupError.signedOut }
         current.lastAttemptAt = time.now()

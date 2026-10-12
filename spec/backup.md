@@ -124,8 +124,10 @@ HTTPS, and only after the user connects. The pure rules are `AutoBackupRules` (f
   **and** (there was no attempt yet **or** `now − lastAttemptAt ≥ 15 minutes`).
 - Checked when the app goes to the background, and by a daily background task (iOS `BGProcessingTask` needing the
   network; Android periodic WorkManager work needing a connection). The OS decides when background work really runs.
-- **Back up now** runs at once, whatever the rule says. One backup at a time; an attempt records
-  `drive_last_attempt_at` before it uploads. No automatic attempt runs while the last error is `signedOut`.
+- **Back up now** runs at once, whatever the rule says. One backup at a time: a request while one runs waits for it
+  and reports its result. An attempt records `drive_last_attempt_at` before it uploads. A due backup that fails is
+  reported as a failure, so background work retries it (Android: WorkManager backoff from 15 minutes; not for
+  `signedOut` or `quotaExceeded`, which wait for the user). No automatic attempt runs while the last error is `signedOut`.
 
 ### 7.3 Which file it writes (`AutoBackupRules.target`)
 

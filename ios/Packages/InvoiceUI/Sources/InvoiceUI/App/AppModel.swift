@@ -178,6 +178,6 @@ public final class AppModel {
         if autoBackup == nil, let device = try? await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name) {
             autoBackup = dependencies.autoBackupRunner(deviceID: device.id, appVersion: AppInfo.version)
         }
-        await autoBackup?.backUpIfDue()
+        _ = try? await autoBackup?.backUpIfDue() // the result is in the state; the next trigger tries again
     }
 }

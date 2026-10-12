@@ -6,6 +6,7 @@ import app.invoicebuilder.core.domain.repositories.BackupService
 import app.invoicebuilder.core.domain.support.TimeSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * A file in the cloud backup folder (`spec/backup.md` §7.3). The `ib…` app properties are null on a file the app
@@ -201,14 +202,18 @@ class AutoBackupRunner(
 ) {
     data class Device(val id: String, /** The model name ("Pixel 8", "iPhone"). */ val name: String, val app: BackupFile.AppInfo)
 
+    /** The backup in progress: a second request waits for it instead of returning as if it had run. */
     private val running = Mutex()
+    @Volatile private var lastRunError: CloudBackupException? = null
 
     /** §7.1: sign in, find or create the folder, back up at once when there is data. A failed first backup keeps the connection. */
     suspend fun connect() {
         val email = destination.connect()
         val folder = destination.folder(null)
         state.saveCloudBackupState(state.cloudBackupState().copy(accountEmail = email, folderID = folder, lastError = null))
-        if (state.latestChangeAt() != null) runCatching { backUpNow() }
+        if (state.latestChangeAt() != null) {
+            try { backUpNow() } catch (_: CloudBackupException) {} // recorded in the state; connected anyway
+        }
     }
 
     /** §7.1: revoke and forget; files stay in the cloud. */
@@ -217,18 +222,27 @@ class AutoBackupRunner(
         state.saveCloudBackupState(CloudBackupState())
     }
 
-    /** §7.2: the automatic path. Returns whether a backup was written. */
+    /**
+     * §7.2: the automatic path. Returns false when no backup is due; throws when one was due and failed, so background
+     * work can retry. Cancellation propagates.
+     */
     suspend fun backUpIfDue(): Boolean {
-        val current = runCatching { state.cloudBackupState() }.getOrNull() ?: return false
+        val current = state.cloudBackupState()
         if (!current.isConnected || current.lastError == CloudBackupError.SignedOut) return false
-        val latest = runCatching { state.latestChangeAt() }.getOrNull()
-        if (!AutoBackupRules.isDue(current.lastBackupAt, latest, current.lastAttemptAt, time.now())) return false
-        return runCatching { backUpNow() }.isSuccess
+        if (!AutoBackupRules.isDue(current.lastBackupAt, state.latestChangeAt(), current.lastAttemptAt, time.now())) return false
+        backUpNow()
+        return true
     }
 
     /** §7.2 "Back up now": export, upload (§7.3), prune (§7.4), record the result (§7.5). */
     suspend fun backUpNow() {
-        if (!running.tryLock()) return
+        if (!running.tryLock()) {
+            // Join the backup already running and report its outcome.
+            running.withLock {}
+            lastRunError?.let { throw it }
+            return
+        }
+        lastRunError = null
         try {
             var current = state.cloudBackupState()
             if (!current.isConnected) throw CloudBackupException(CloudBackupError.SignedOut)
@@ -247,7 +261,7 @@ class AutoBackupRunner(
             } catch (error: Exception) {
                 val reason = (error as? CloudBackupException)?.error ?: CloudBackupError.Other
                 runCatching { state.saveCloudBackupState(current.copy(lastError = reason)) }
-                throw CloudBackupException(reason)
+                throw CloudBackupException(reason).also { lastRunError = it }
             }
         } finally {
             running.unlock()
