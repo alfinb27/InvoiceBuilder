@@ -155,6 +155,80 @@ struct DocumentViewModelTests {
         #expect(!model.canConvert)
     }
 
+    @Test func quotesCanBeAcceptedOrDeclinedButNotAfterConverting() async throws {
+        let session = try await TestEnvironment.session()
+        let model = await newInvoice(session, docType: .quote)
+        model.chooseClient(try await client(session, named: "Rao Traders"))
+        model.addItem(try await item(session, named: "SEO audit"))
+        #expect(!model.canRespondToQuote) // still a draft
+        await model.requestIssue()
+        await model.confirmIssue()
+        #expect(model.canRespondToQuote)
+
+        await model.acceptQuote()
+        #expect(model.state.document.quoteOutcome == .accepted)
+
+        // The buyer can change their mind.
+        await model.declineQuote()
+        #expect(model.state.document.quoteOutcome == .declined)
+
+        await model.acceptQuote()
+        await model.convertToInvoice()
+        #expect(!model.canRespondToQuote)
+        await model.acceptQuote() // the UI hides the button once converted; the guard makes this a silent no-op
+        #expect(model.state.document.quoteOutcome == .converted && model.state.errorMessage == nil)
+    }
+
+    @Test func voidingAnIssuedDocumentNeedsAReason() async throws {
+        let session = try await TestEnvironment.session()
+        let model = await newInvoice(session)
+        model.chooseClient(try await client(session, named: "Rao Traders"))
+        model.addItem(try await item(session, named: "Website development"))
+        #expect(!model.canVoid) // still a draft
+        await model.requestIssue()
+        await model.confirmIssue()
+        #expect(model.canVoid)
+
+        await model.voidDocument(reason: "   ")
+        #expect(model.state.document.lifecycle == .issued && model.state.errorMessage != nil)
+        model.dismissError()
+
+        await model.voidDocument(reason: " Duplicate invoice ")
+        #expect(model.state.document.lifecycle == .void && model.state.document.voidReason == "Duplicate invoice")
+        #expect(!model.canVoid)
+    }
+
+    @Test func recordingAndRemovingAPayment() async throws {
+        let session = try await TestEnvironment.session()
+        let model = await newInvoice(session)
+        model.chooseClient(try await client(session, named: "Rao Traders"))
+        model.addItem(try await item(session, named: "Website development"))
+        #expect(!model.canRecordPayment) // still a draft
+        await model.requestIssue()
+        await model.confirmIssue()
+        #expect(model.canRecordPayment && model.paidMinor == 0)
+
+        let editor = PaymentEditorViewModel(session: session, documentID: model.state.document.id,
+                                            currency: model.state.document.currency)
+        editor.state.draft.amountText = "" // required
+        #expect(await editor.save() == nil)
+        #expect(editor.visibleAmountIssue() == .required)
+
+        editor.state.draft.amountText = "0" // must be greater than 0
+        #expect(await editor.save() == nil)
+
+        editor.state.draft.amountText = "2000"
+        editor.state.draft.method = .upi
+        let payment = try #require(await editor.save())
+        model.recordedPayment(payment)
+        #expect(model.paidMinor == 200_000 && model.state.payments.map(\.id) == [payment.id])
+        #expect(try await session.dependencies.payments.fetchPayments(documentID: model.state.document.id).count == 1)
+
+        await model.deletePayment(payment)
+        #expect(model.paidMinor == 0 && model.state.payments.isEmpty)
+        #expect(try await session.dependencies.payments.fetchPayments(documentID: model.state.document.id).isEmpty)
+    }
+
     @Test func currencyChangesResetTheExchangeRateAndRoundOff() async throws {
         let session = try await TestEnvironment.session()
         let model = await newInvoice(session)

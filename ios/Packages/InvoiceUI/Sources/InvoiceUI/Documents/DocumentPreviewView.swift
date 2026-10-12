@@ -25,18 +25,35 @@ final class DocumentPreviewViewModel: Identifiable {
     private let computed: ComputedDocument
     /// Tells the document screen the status changed.
     private let onSent: (Int64) -> Void
+    /// Set only when opened from "Send reminder" (`spec/reminders.md` §4): shared alongside the PDF.
+    let reminderMessage: String?
+    /// Set when opened by Review & send: the channel opens as soon as the PDF is ready (`documents.md` §6.1).
+    private(set) var pendingChannel: SendChannel?
 
     init(session: Session, document: InvoiceCore.Document, computed: ComputedDocument,
-         onSent: @escaping (Int64) -> Void = { _ in }) {
+         reminderMessage: String? = nil, channel: SendChannel? = nil, onSent: @escaping (Int64) -> Void = { _ in }) {
         self.session = session
         self.document = document
         self.computed = computed
+        self.reminderMessage = reminderMessage
+        pendingChannel = channel
         self.onSent = onSent
         id = document.id
         state = State(template: document.templateId, sentAt: document.sentAt)
     }
 
     var templates: [PDFTemplate] { session.pdfLibrary.allTemplates }
+    /// The client's email, for "Send by email".
+    var recipient: String? { document.buyerSnapshot?.email }
+    var emailSubject: String {
+        "\(DocumentText.noun(document.docType).capitalized) \(document.number ?? "") from \(session.business.name)"
+    }
+
+    /// The Review & send channel, once.
+    func takePendingChannel() -> SendChannel? {
+        defer { pendingChannel = nil }
+        return pendingChannel
+    }
     var title: String { document.number ?? DocumentText.title(document, isPersisted: true) }
     var canMarkSent: Bool { !document.isDraft && state.sentAt == nil }
 
@@ -46,7 +63,8 @@ final class DocumentPreviewViewModel: Identifiable {
         do {
             let file = try await session.pdfLibrary.file(for: document, business: session.business,
                                                           computed: computed, template: state.template)
-            state.file = file.url
+            state.file = try session.pdfLibrary.shareableCopy(of: file.url, named: DocumentText.pdfFileName(document),
+                                                              documentID: document.id)
         } catch {
             state.errorMessage = "The PDF couldn't be created."
         }
@@ -118,7 +136,14 @@ struct DocumentPreviewView: View {
                     }
                 }
             }
-            .task { await model.render() }
+            .task {
+                await model.render()
+                if let channel = model.takePendingChannel(), let file = model.state.file {
+                    // Let this sheet finish appearing: UIKit refuses to present over a sheet mid-animation.
+                    try? await Task.sleep(for: .milliseconds(500))
+                    open(channel, file)
+                }
+            }
             .alert("Mark as sent?", isPresented: $model.state.askToMarkSent) {
                 Button("Mark as sent") { Task { await model.markSent() } }
                 Button("Not yet", role: .cancel) {}
@@ -141,7 +166,7 @@ struct DocumentPreviewView: View {
                         Task { await model.setTemplate(template.id) }
                     } label: {
                         Text(template.label)
-                            .font(.subheadline.weight(model.state.template == template.id ? .semibold : .regular))
+                            .font(Theme.Fonts.subhead.weight(model.state.template == template.id ? .semibold : .regular))
                             .padding(.horizontal, Theme.Space.m)
                             .padding(.vertical, Theme.Space.s)
                             .background(model.state.template == template.id ? Theme.brand.opacity(0.14)
@@ -163,12 +188,34 @@ struct DocumentPreviewView: View {
         Binding(get: { model.state.errorMessage != nil }, set: { if !$0 { model.dismissError() } })
     }
 
+    /// Review & send's channel (`spec/documents.md` §8); each reports back so "Mark as sent?" follows a real send.
+    private func open(_ channel: SendChannel, _ url: URL) {
+        switch channel {
+        case .whatsApp:
+            share(url)
+        case .email:
+            let presented = SystemSheets.email(url, to: model.recipient, subject: model.emailSubject) { sent in
+                if sent { model.didShare() }
+            }
+            if !presented { share(url) }
+        case .print:
+            airPrint(url)
+        case .savePDF:
+            SystemSheets.saveToFiles(url) { saved in
+                if saved { model.didShare() }
+            }
+        }
+    }
+
     /// The share sheet (WhatsApp, Mail, Save to Files, …). `UIActivityViewController` rather than `ShareLink`
     /// because only its completion handler tells us whether the document was really sent, and the "Mark as sent?"
     /// prompt must not appear when the sheet was cancelled.
     private func share(_ url: URL) {
         guard let window = Self.keyWindow, let presenter = Self.topViewController else { return }
-        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        var items: [Any] = []
+        if let message = model.reminderMessage { items.append(message) }
+        items.append(url)
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
         controller.completionWithItemsHandler = { _, completed, _, _ in
             if completed { model.didShare() }
         }

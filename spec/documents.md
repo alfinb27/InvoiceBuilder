@@ -1,25 +1,29 @@
 # Documents: drafts, issuing, duplicating and converting (v0)
 
 Normative for the document features of both apps: invoice and quote drafts, the builder's defaults, issuing
-(`IssueDocument`), duplicating, converting a quote and deleting a draft. iOS implements it in `InvoiceCore`
-(`DocumentRules`, `LinePricing`, `NumberAllocator`, `DocumentService`), `InvoiceData` (`GRDBDocumentRepository`,
-`GRDBDocumentService`) and `InvoiceUI` (the builder); Android in `:core:domain`, `:core:data` and `:app`, with the
-same names. Field shapes are in `schema/domain.schema.json#/$defs/Document`; tax results come only from
-`TaxEngine.compute` (`tax/ENGINE.md`). Pure functions here are proven by `fixtures/documents/*.json` (kind
-`document`). Record rules (ids, timestamps, trimming, tombstones) are `setup.md` §1.
+(`IssueDocument`), duplicating, converting a quote, deleting a draft, recording payments, voiding and the quote
+accept/decline outcomes. iOS implements it in `InvoiceCore` (`DocumentRules`, `LinePricing`, `NumberAllocator`,
+`DocumentService`, `PaymentRepository`, `PaymentService`), `InvoiceData` (`GRDBDocumentRepository`,
+`GRDBDocumentService`, `GRDBPaymentRepository`, `GRDBPaymentService`) and `InvoiceUI` (the builder); Android in
+`:core:domain`, `:core:data` and `:app`, with the same names. Field shapes are in
+`schema/domain.schema.json#/$defs/Document` and `#/$defs/Payment`; tax results come only from `TaxEngine.compute`
+(`tax/ENGINE.md`). Pure functions here are proven by `fixtures/documents/*.json` (kind `document`); derived status
+is proven by `fixtures/status/*.json` (kind `status`). Record rules (ids, timestamps, trimming, tombstones) are
+`setup.md` §1.
 
 ## 1. Lifecycle
 
 | Lifecycle | Number | Editable | Deletable | Tax results |
 |---|---|---|---|---|
 | `draft` | none | yes, autosaved | yes (tombstone) | recomputed on every change; totals columns stored, `computed` = `NULL` |
-| `issued` | allocated at issue, never changes | Phase 4 (revision) | never | frozen at issue |
-| `void` | kept | no | never | kept (Phase 4) |
+| `issued` | allocated at issue, never changes | deferred (revision) | never | frozen at issue |
+| `void` | kept | no | never | kept (§11) |
 
 - Drafts refer to the **live** business and client and re-take both snapshots (§4) on every save.
 - **Issuing** freezes the snapshots, allocates the number and stores the `ComputedDocument` (§6).
-- Display status is derived (`ENGINE.md` §6), never stored. Until payments exist (Phase 4), `paid = 0`.
-- Void, payments, the quote outcomes accepted/declined and revising an issued document are Phase 4.
+- Display status is derived (`ENGINE.md` §6), never stored; `paid` is the sum of an invoice's live payments (§10).
+- Payments (§10), void (§11) and the quote outcomes accepted/declined (§12) are specified below. Revising an
+  issued document remains deferred.
 
 ## 2. New drafts
 
@@ -87,6 +91,40 @@ one rounding (`round(x, config.rounding.amountMode)`, `ENGINE.md` §2.2):
   `exchange_rate_missing` (the builder adds the line with price 0 and asks for the price).
 - `unitPriceMinor = round(item.unitPriceMinor × b × c, amountMode)`.
 
+### 3.2 The "Add an item" sheet (`OneOffLine`)
+Lines are added and edited in one sheet (ADR-0020, `docs/design/design.md` §6.5) with two tabs: **My saved items**
+(each tap adds a catalogue line, as above) and **Something new** (a one-off line).
+
+- **Fields:** "What did you sell?" (`description`), "How many?" (`quantity`, a stepper that also takes typed decimals),
+  "Price for one" (typed in the document currency, §11 of `setup.md`), the rate, and, folded under "More details",
+  unit, product code and line discount. The product code is shown unfolded when the config needs it on this
+  document (IN: a B2B invoice, `ENGINE.md` Step 12).
+- **Rate chips** (`RateChips`): the ids of the config family in `design/rate-chips.json`, in that order, that are in
+  force on `supplyDate ?? issueDate`; a family that is not listed shows the business's own rates (`customRates`) in
+  force, at most `maxChips`. Every other rate in force is under "Other rates" (`rateChoices`). The line's rate starts
+  as `oneOffRateID` (§3). Not shown when the seller's registration does not charge tax.
+- **"My price already includes {taxName}"** (shown only when the registration charges tax) says how the typed price
+  is read. It starts as `document.pricesIncludeTax`. When the draft has **no other line** (the first line, or the only
+  line being edited), the switch sets `document.pricesIncludeTax` and the typed price is the line's `unitPriceMinor` as
+  typed. Otherwise, when the switch
+  differs from `document.pricesIncludeTax`, the typed price is converted to the document's basis with the §3.1 basis
+  factor `b` of the chosen rate and one rounding (`round(price × b, amountMode)`), exactly as a catalogue item with
+  `priceIncludesTax` = the switch.
+- **The live line total** is the engine's result for this line alone (taxable amount, tax and total, ENGINE.md), so
+  it matches what the document will show.
+- **"Save to my items so I can reuse it"** (on by default; offered only when the document currency is the home
+  currency): Add also creates a catalogue item (§10 of `setup.md`) with `name` = the description, `kind` = `service`,
+  `unit` = the line's unit or the kind's default, `unitPriceMinor` = the typed price, `priceIncludesTax` = the switch
+  (`false` when tax isn't charged), `rateId` and `productCode` of the line; the line's `catalogItemId` is that item.
+- **Editing** an existing line opens the same sheet without tabs, with Duplicate and Delete. The switch then starts
+  as `document.pricesIncludeTax` and the price as stored.
+
+### 3.3 Payment-term chips
+Invoices: "When should they pay?" offers chips for 0 ("Right away"), 7, 15 and 30 days, plus
+`business.paymentTermsDays` when it is not one of those; a chip sets `dueDate = issueDate + n` days. The selected chip
+is the one matching `dueDate − issueDate`, if any; any other due date is picked under More options. Quotes: "How long
+is this quote valid?" with 7, 15, 30 and 60 days setting `validUntil` the same way.
+
 ## 4. Snapshots
 
 `sellerSnapshot` and `buyerSnapshot` are the engine's `seller` / `buyer` (`ENGINE.md` §1) plus display fields, in one
@@ -137,6 +175,14 @@ One write transaction; any failure leaves the database unchanged.
 The next number offered in Settings (`setup.md` §6) must stay above the highest `sequence` already issued in that
 series and period.
 
+### 6.1 Review & send (the screens)
+The screens call issuing **Send** (ADR-0020). "Review & send" in the builder first runs the checks of step 3 (and the
+free-tier and series checks, `billing.md`, `sync.md` §3); any problem is shown in the builder and nothing else
+happens. Otherwise the review screen shows the client, total, item count and due date, the number the document will
+get (the preview of step 5; the number is allocated only when it is sent), that sending locks it, the channel
+(WhatsApp, Email, Print, Save PDF) and what happens next. Its button issues the document and then opens the chosen
+channel with the PDF (§8). "Keep as draft" closes the review and leaves the draft as it is.
+
 ## 7. Duplicate and convert
 
 - **Duplicate** (any live document) → a new draft of the same type: new ids for it and its lines; `issueDate` =
@@ -153,6 +199,13 @@ series and period.
 
 ## 8. Sharing
 
+Channels: **WhatsApp** (Android: WhatsApp with the PDF when it is installed, else the share sheet; iOS: the share
+sheet, where WhatsApp is one tap, as iOS can't hand a PDF to one chosen app), **Email** (a new
+email to the buyer snapshot's `email` with the PDF attached, else the share sheet), **Print** (the system print
+dialog) and **Save PDF** (the system "save to files" picker); the share sheet is also always available from the
+preview. The shared file is named "{Invoice|Quote} {number}.pdf" with each `/` of the number as `-`
+("Invoice INV-26-27-0001.pdf"); a draft's is "{Invoice|Quote} draft.pdf".
+
 Sharing, printing or saving an issued document's PDF offers to mark it as **sent**: `sentAt` is set to the moment
 the user accepts, and the derived status becomes `sent` (`ENGINE.md` §6). The prompt appears whenever an issued
 document that is not marked sent leaves the app, and stops once it is; declining leaves the document unchanged, so
@@ -165,3 +218,43 @@ Only drafts can be deleted: the document gets a tombstone (its lines are unreach
 draft again (its builder is still open, §5) revives it with the new content, so no edit is ever lost. If it was
 converted from a quote and no other live document has the same `convertedFromId`, the quote's `quoteOutcome` returns
 to `null`. Deleting an issued or void document is the error `not_a_draft`.
+
+## 10. Recording a payment
+
+One write: an issued invoice may receive any number of payments.
+
+- Precondition: `docType = invoice`, `lifecycle = issued`. Recording a payment on a draft or void invoice, or on
+  any quote, is the error `not_payable`.
+- Writes one `Payment` row (`businessId`, `documentId`, `amountMinor` > 0, `date`, `method`, optional `reference`,
+  `note`); the document row itself is never touched. `paid` = the sum of `amountMinor` over the invoice's live
+  payments; derived status and `outstanding` are always computed from that sum, never stored (`ENGINE.md` §6).
+- `amountMinor` may exceed the invoice's current outstanding amount: it is stored as given, never clamped or
+  rejected (a UI may warn on overpayment, but storage must not, so a backup round trip stays lossless).
+- Correcting a payment: delete it (tombstone, `setup.md` §1) and record a new one in its place; there is no
+  in-place amount edit.
+- Voiding an invoice (§11) does not delete its payments; they remain as history, and its status stays `void`
+  regardless of them (`ENGINE.md` §6 puts `void` first in the precedence order).
+
+## 11. Void a document
+
+One write: turns a live `issued` invoice or quote into `void`.
+
+- Precondition: `lifecycle = issued`. Voiding a `draft` (delete it instead, §9) or an already-`void` document is
+  the error `not_voidable`.
+- Requires a non-empty `voidReason` (free text, trimmed per `setup.md` §1; empty after trimming is rejected, not
+  stored as `NULL`).
+- Writes `lifecycle = void`, `voidedAt = now`, `voidReason`. Its `number`, snapshots, `computed` result and any
+  payments are unchanged and kept — voiding never reclaims the number (`ENGINE.md` §5).
+- Terminal: void cannot be reversed. A mistaken void is corrected by issuing a new document, never by un-voiding.
+
+## 12. Quote outcome: accept or decline
+
+One write: records the buyer's response to an issued quote, outside of converting it to an invoice (§7).
+
+- Precondition: `docType = quote`, `lifecycle = issued`, and `quoteOutcome` is `null` or the other of
+  `accepted`/`declined` (the buyer can change their mind). A `converted` quote cannot be reopened (`already_converted`);
+  a `draft` or `void` quote cannot be accepted or declined (`not_a_live_quote`).
+- Writes `quoteOutcome = accepted` or `declined`. `validUntil` having already passed does not block the action —
+  an expired quote can still be accepted or declined late, since expiry is a display-time computation only
+  (`ENGINE.md` §6; proven by fixture `status-quote-accepted-after-expiry`).
+- Does not affect lines, totals or any other field.

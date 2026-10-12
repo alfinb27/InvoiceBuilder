@@ -15,6 +15,12 @@ database, protected by your Apple Account, so it appears on your other Apple dev
 Apple's privacy policy. We cannot access it.
 
 **Backups.** Backup files are created only when you export them, and they are saved or shared wherever you choose.
+
+**Google Drive backup (optional).** If you connect Google Drive, the app saves backup files to a folder named
+"InvoiceBuilder backups" in *your own* Google Drive, after you make changes and about once a day, so you can restore on
+another phone. It asks Google only for access to the files it creates (the `drive.file` permission), sends them
+directly to Google over an encrypted connection, and never to us. Google stores them under Google's privacy policy.
+You can stop at any time in Settings → Backup → Google Drive; files already in your Drive stay until you delete them.
 Your device's own backups (iCloud device backup, Android Auto Backup to your Google Drive) may include the app's data
 according to your device settings.
 

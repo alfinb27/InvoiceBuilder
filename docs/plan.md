@@ -280,6 +280,9 @@ Each decision gets an ADR in `docs/decisions/` during Phase 0. The format is **o
   3. Before any restore or schema migration, the app automatically writes a safety snapshot to the app container.
   - Restore in v1 is "replace all", after validation and a preview of the counts. **With iCloud sync on, that replaces the data on every signed-in device**, so the confirmation says so explicitly, and every device keeps its own safety snapshot.
   - Raw SQLite copies are rejected because they tie backups to one schema version and one platform.
+  4. *(Added 2026-10-10, ADR-0021.)* **Automatic backup to Google Drive**: optional sign-in with the `drive.file`
+     scope, the same `.invoicebackup` file written to the user's own Drive when something changed and once a day,
+     newest 10 per device, and "Restore from Google Drive" on any phone (`spec/backup.md` §7). Still no backend.
 - **Reminders:**
   - **iOS:** can't reliably run background code, so each overdue reminder is *pre-scheduled* as a local notification (`UNCalendarNotificationTrigger`) at issue time or when the due date changes. iOS allows at most 64 pending, so only the nearest 50 are kept.
   - **Android:** can run background work reliably. **WorkManager**, the OS-managed job scheduler that survives reboots (a far more dependable cousin of `BGTaskScheduler`), runs a daily job that works out which invoices are overdue and posts grouped notifications.
@@ -1018,7 +1021,7 @@ Effort assumes about 5 dev-days per week. Calendar waits (App Review, beta perio
   5. **Hindi UI** (the String Catalog and `strings.xml` are already structured for it).
   6. **Tax-config updates over the air**: a signed JSON on a static host, verified with a bundled public key. That is still no backend, and rate changes stop needing an app release.
   7. **Multi-business.**
-  8. **Cross-platform sync (Android ↔ Apple).** iCloud covers Apple devices from v1. Android needs a hosted backend (Supabase, Firebase or your own), with an ADR covering cost, a sync *subscription* to fund it, and whether iOS moves off CloudKit or bridges both. The sync-safe schema is already there.
+  8. **Cross-platform sync (Android ↔ Apple).** iCloud covers Apple devices from v1. Two routes: a hosted backend (Supabase, Firebase or your own), with an ADR covering cost, a sync *subscription* to fund it, and whether iOS moves off CloudKit or bridges both; or file-based sync through the user's own Google Drive on the ADR-0021 connection (per-device change files, last edit wins per row; no server). The sync-safe schema is already there, and device-owned number series keep numbers unique across platforms.
   9. **Shop features:** thermal receipt printing (ESC/POS over Bluetooth), barcode item lookup, a bundled HSN/SAC search.
   10. **Platform extras:** App Intents / Shortcuts ("Invoice Acme for 3 hours"), widgets (outstanding total), Android app shortcuts.
   11. **Multiple iPad windows** (a client and an invoice side by side), and **Mac Catalyst** if "Designed for iPad" falls short at the Phase 6 gate.

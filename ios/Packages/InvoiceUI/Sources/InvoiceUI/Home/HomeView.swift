@@ -2,13 +2,22 @@ import InvoiceCore
 import Observation
 import SwiftUI
 
-/// Home: the business at a glance, what to set up next and quick actions for invoices and quotes. The dashboard
-/// joins it in Phase 4.
+/// Home: until the first invoice is sent, a checklist and a big "Create an invoice" (`spec/setup.md` §3.2); then
+/// what's owed and quick actions for invoices and quotes.
 @MainActor @Observable
 final class HomeViewModel {
     struct State: Equatable {
         var clientCount = 0
         var itemCount = 0
+        var documents: [DocumentSummary] = []
+        var documentsLoaded = false
+        var dashboard = DashboardTotals()
+        /// Issued documents sharing a number (`spec/sync.md` §4); normally empty.
+        var duplicateNumbers: [DuplicateNumbers.Group] = []
+
+        var checklist: FirstRunChecklist {
+            FirstRunChecklist(clientCount: clientCount, itemCount: itemCount, documents: documents)
+        }
     }
 
     private(set) var state = State()
@@ -27,7 +36,38 @@ final class HomeViewModel {
         async let items: Void = observeCount(dependencies.catalog.observeItems(businessID: businessID)) {
             self.state.itemCount = $0
         }
-        _ = await (clients, items)
+        async let documents: Void = observeDocuments()
+        async let dashboard: Void = observeDashboard()
+        async let duplicates: Void = observeDuplicates()
+        _ = await (clients, items, documents, dashboard, duplicates)
+    }
+
+    private func observeDocuments() async {
+        do {
+            for try await documents in session.dependencies.documents.observeDocuments(
+                businessID: session.business.id) {
+                state.documents = documents
+                state.documentsLoaded = true
+            }
+        } catch {}
+    }
+
+    private func observeDuplicates() async {
+        do {
+            for try await groups in session.dependencies.numbering.observeDuplicateNumbers(
+                businessID: session.business.id) {
+                state.duplicateNumbers = groups
+            }
+        } catch {}
+    }
+
+    private func observeDashboard() async {
+        do {
+            for try await totals in session.dependencies.documents.observeDashboard(
+                businessID: session.business.id, homeCurrency: session.business.homeCurrency) {
+                state.dashboard = totals
+            }
+        } catch {}
     }
 
     private func observeCount<Row: Sendable>(_ stream: AsyncThrowingStream<[Row], any Error>,
@@ -41,6 +81,7 @@ final class HomeViewModel {
 struct HomeView: View {
     let session: Session
     @State private var model: HomeViewModel
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     init(session: Session) {
         self.session = session
@@ -51,133 +92,274 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
-                    BusinessCard(session: session)
-                    checklist
-                    comingNext
+                    HomeHeader(session: session)
+                    if session.isDemo { DemoBanner(session: session) }
+                    if !session.entitlement.isUnlocked, session.entitlement.state != .unknown,
+                       session.entitlement.remaining <= 3 {
+                        FreeTierBanner(session: session)
+                    }
+                    ForEach(model.state.duplicateNumbers, id: \.self) { group in
+                        DuplicateNumberWarning(group: group, session: session)
+                    }
+                    if model.state.documentsLoaded {
+                        if model.state.checklist.isShown { firstRun } else { dashboard }
+                    }
                     if session.config.reviewStatus != "reviewed" {
                         Label("\(session.config.labels.taxName) rules in this build are awaiting review by a professional.",
                               systemImage: "info.circle")
-                            .font(.footnote)
+                            .font(Theme.Fonts.footnote)
                             .foregroundStyle(Theme.textSecondary)
                     }
                 }
-                .padding(Theme.Space.l)
+                .padding(.horizontal, Theme.Layout.screenGutter)
+                .padding(.vertical, Theme.Space.xl)
                 .readableWidth()
             }
             .background(Theme.background)
             .navigationTitle("Home")
+            .toolbar(.hidden, for: .navigationBar)
         }
         .task { await model.observe() }
     }
 
-    private var checklist: some View {
-        Card {
-            VStack(alignment: .leading, spacing: Theme.Space.m) {
-                Text("Get ready to invoice").font(.headline)
-                ChecklistRow(done: true, title: "Set up your business")
-                ChecklistRow(done: model.state.clientCount > 0,
-                             title: model.state.clientCount > 0 ? "\(model.state.clientCount) client\(model.state.clientCount == 1 ? "" : "s")" : "Add your first client",
-                             action: ("Add client", { session.router.startNewClient() }))
-                ChecklistRow(done: model.state.itemCount > 0,
-                             title: model.state.itemCount > 0 ? "\(model.state.itemCount) item\(model.state.itemCount == 1 ? "" : "s") in your catalogue" : "Add the goods or services you sell",
-                             action: ("Add item", { session.router.startNewItem() }))
-                ChecklistRow(done: session.business.logoAssetId != nil && session.business.signatureAssetId != nil,
-                             title: "Add your logo and signature",
-                             action: ("Open", {
-                                 session.router.settings.selection = .images
-                                 session.router.selectedTab = .settings
-                             }))
+    // MARK: Before the first invoice
+
+    @ViewBuilder private var firstRun: some View {
+        let checklist = model.state.checklist
+        SurfaceCard(padding: Theme.Space.l + 2) {
+            VStack(alignment: .leading, spacing: Theme.Space.s) {
+                // One element for VoiceOver: the heading and how far along it is.
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
+                    Text("Get ready to send your first invoice")
+                        .font(Theme.Fonts.title3)
+                        .foregroundStyle(Theme.textPrimary)
+                    ProgressBar(value: checklist.doneCount, total: FirstRunChecklist.Item.allCases.count)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.bottom, Theme.Space.xs)
+                VStack(spacing: 0) {
+                    ForEach(FirstRunChecklist.Item.allCases, id: \.self) { item in
+                        ChecklistRow(title: title(item), hint: hint(item), isDone: checklist.isDone(item),
+                                     action: action(item))
+                            .accessibilityIdentifier("checklist.\(item.rawValue)")
+                        if item != FirstRunChecklist.Item.allCases.last { Divider().overlay(Theme.surfaceMuted) }
+                    }
+                }
             }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("home.checklist")
+        VStack(spacing: Theme.Space.s) {
+            PrimaryButton(title: "Create an invoice", systemImage: "plus") { session.startNewDocument(.invoice) }
+                .accessibilityIdentifier("homeNewInvoice")
+            Text("You can jump straight in. We'll ask for the client and items as you go.")
+                .font(Theme.Fonts.footnote)
+                .foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        }
+        VStack(alignment: .leading, spacing: Theme.Space.s + 2) {
+            Overline(text: "Once you start sending")
+            moneyTiles(empty: true)
+        }
+        .padding(.top, Theme.Space.xs)
+    }
+
+    private func title(_ item: FirstRunChecklist.Item) -> String {
+        switch item {
+        case .setUpBusiness: "Set up your business"
+        case .addClient: "Add your first client"
+        case .saveItem: "Save something you sell"
+        case .sendInvoice: "Send your first invoice"
         }
     }
 
-    private var comingNext: some View {
-        Card {
-            VStack(alignment: .leading, spacing: Theme.Space.m) {
-                Label("Invoices and quotes", systemImage: "doc.text")
-                    .font(.headline)
-                HStack(spacing: Theme.Space.m) {
-                    Button("New invoice", systemImage: "doc.badge.plus") { session.startNewDocument(.invoice) }
-                        .buttonStyle(.borderedProminent)
-                        .accessibilityIdentifier("homeNewInvoice")
-                    Button("New quote") { session.startNewDocument(.quote) }
-                        .buttonStyle(.bordered)
-                }
-                Text("PDFs and sharing arrive in the next test build.")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.textSecondary)
+    private func hint(_ item: FirstRunChecklist.Item) -> String? {
+        switch item {
+        case .setUpBusiness: nil
+        case .addClient: "The person or shop you're billing"
+        case .saveItem: "Add it once, reuse it on every invoice"
+        case .sendInvoice: "\(FreeTier.limit) invoices free, no sign-up"
+        }
+    }
+
+    private func action(_ item: FirstRunChecklist.Item) -> (() -> Void)? {
+        switch item {
+        case .setUpBusiness: nil
+        case .addClient: { session.router.startNewClient() }
+        case .saveItem: { session.router.startNewItem() }
+        case .sendInvoice: { session.startNewDocument(.invoice) }
+        }
+    }
+
+    // MARK: After the first invoice
+
+    @ViewBuilder private var dashboard: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s + 2) {
+            Overline(text: "Money")
+            moneyTiles(empty: false)
+        }
+        .accessibilityIdentifier("homeDashboard")
+        VStack(spacing: Theme.Space.s) {
+            PrimaryButton(title: "New invoice", systemImage: "plus") { session.startNewDocument(.invoice) }
+                .accessibilityIdentifier("homeNewInvoice")
+            Button {
+                session.startNewDocument(.quote)
+            } label: {
+                Label("New quote", systemImage: "doc.text.magnifyingglass").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.secondary)
+            .accessibilityIdentifier("homeNewQuote")
+        }
+        if session.business.logoAssetId == nil || session.business.signatureAssetId == nil {
+            Button {
+                session.router.settings.selection = .images
+                session.router.selectedTab = .settings
+            } label: {
+                TipCallout("Add your logo and signature so your invoices look like yours.", systemImage: "signature")
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens Settings")
+        }
+    }
+
+    private func moneyTiles(empty: Bool) -> some View {
+        let totals = model.state.dashboard
+        let tiles: [(String, Int64, Bool)] = [
+            ("Waiting to be paid", totals.outstandingMinor, false),
+            ("Past due date", totals.overdueMinor, totals.overdueMinor > 0),
+            ("Paid this month", totals.paidThisMonthMinor, false),
+        ]
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: Theme.Space.s))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: Theme.Space.s))
+        return layout { tileViews(tiles, empty: empty) }
+    }
+
+    @ViewBuilder
+    private func tileViews(_ tiles: [(String, Int64, Bool)], empty: Bool) -> some View {
+        ForEach(tiles, id: \.0) { label, minor, alert in
+            if empty {
+                EmptyStatTile(amount: session.money(0), label: label)
+            } else {
+                StatTile(amount: session.money(minor), label: label, emphasis: alert ? Theme.danger : nil)
             }
         }
     }
 }
 
-private struct BusinessCard: View {
+/// "Good morning", the business name, and its logo or initials.
+private struct HomeHeader: View {
     let session: Session
     @State private var logo: Data?
 
     var body: some View {
-        Card {
-            HStack(alignment: .top, spacing: Theme.Space.l) {
-                VStack(alignment: .leading, spacing: Theme.Space.xs) {
-                    Text(session.business.name)
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(Theme.textPrimary)
-                    if let registration = session.registration {
-                        Text(registration.label).font(.subheadline).foregroundStyle(Theme.textSecondary)
-                    }
-                    if let taxId = session.business.taxId {
-                        Text("\(session.config.labels.taxIdName) \(taxId)")
-                            .font(.subheadline.monospaced())
-                            .foregroundStyle(Theme.textSecondary)
-                    }
-                    if let address = session.business.address {
-                        Text(address.singleLine).font(.subheadline).foregroundStyle(Theme.textSecondary)
-                    }
-                }
-                Spacer(minLength: 0)
-                if logo != nil {
-                    ImageWell(data: logo, placeholder: "photo", label: "Logo")
-                }
+        HStack(alignment: .center, spacing: Theme.Space.m) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(greeting).font(Theme.Fonts.subhead).foregroundStyle(Theme.textSecondary)
+                Text(session.business.name)
+                    .font(Theme.Fonts.title)
+                    .tracking(Theme.Fonts.tracking("title"))
+                    .foregroundStyle(Theme.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
             }
-            .accessibilityElement(children: .combine)
-        }
-        .modifier(StoredAssetLoader(assetID: session.business.logoAssetId, assets: session.dependencies.assets,
-                                    data: $logo))
-    }
-}
-
-private struct ChecklistRow: View {
-    let done: Bool
-    let title: String
-    var action: (String, () -> Void)?
-
-    var body: some View {
-        HStack {
-            Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(done ? Theme.success : Theme.textTertiary)
-                .accessibilityHidden(true)
-            Text(title).foregroundStyle(Theme.textPrimary)
-            Spacer()
-            if let action, !done {
-                Button(action.0, action: action.1)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let logo, let image = UIImage(data: logo) {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .frame(width: 44, height: 44)
+                    .background(Theme.surface, in: Circle())
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+            } else {
+                Avatar(name: session.business.name, size: 44)
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(done ? "Done" : "Not done")
+        .modifier(StoredAssetLoader(assetID: session.business.logoAssetId, assets: session.dependencies.assets,
+                                    data: $logo))
+    }
+
+    private var greeting: String {
+        let date = Date(timeIntervalSince1970: TimeInterval(session.dependencies.time.now()) / 1000)
+        switch Calendar.current.component(.hour, from: date) {
+        case 5..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        default: return "Good evening"
+        }
     }
 }
 
-/// A rounded surface for Home's content.
-struct Card<Content: View>: View {
-    @ViewBuilder let content: Content
+/// Two issued documents share a number (`spec/sync.md` §4): say so and link to them; nothing is renumbered.
+private struct DuplicateNumberWarning: View {
+    let group: DuplicateNumbers.Group
+    let session: Session
 
     var body: some View {
-        content
-            .padding(Theme.Space.l)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.l))
-            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.l).stroke(Theme.border.opacity(0.6)))
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Label("\(group.ids.count) \(DocumentText.noun(group.docType))s share the number \(group.number)",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(Theme.Fonts.subhead.weight(.semibold))
+                .foregroundStyle(Theme.warning)
+            Text("Void one of them and send it again, so each number is used once.")
+                .font(Theme.Fonts.footnote)
+                .foregroundStyle(Theme.textSecondary)
+            HStack {
+                ForEach(Array(group.ids.enumerated()), id: \.element) { index, id in
+                    Button("Open \(index + 1)") { session.openDocument(id, docType: group.docType) }
+                        .buttonStyle(.secondary)
+                }
+            }
+        }
+        .padding(Theme.Space.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.warning.opacity(0.5)))
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// Three or fewer free invoices left (`spec/billing.md`): say so, once, without blocking anything.
+private struct FreeTierBanner: View {
+    let session: Session
+    @State private var showsPaywall = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: Theme.Space.m) {
+            Image(systemName: "infinity").foregroundStyle(Theme.brandPressed).accessibilityHidden(true)
+            Text(session.entitlement.remaining == 0
+                 ? "You've used your \(FreeTier.limit) free invoices"
+                 : "\(session.entitlement.remaining) free invoice\(session.entitlement.remaining == 1 ? "" : "s") left")
+                .font(Theme.Fonts.rowTitle)
+                .foregroundStyle(Theme.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button("Unlock") { showsPaywall = true }
+                .buttonStyle(.secondary)
+        }
+        .padding(Theme.Space.m + 2)
+        .background(Theme.brandTint, in: RoundedRectangle(cornerRadius: Theme.Radius.l))
+        .sheet(isPresented: $showsPaywall) { PaywallView(session: session) }
+        .accessibilityIdentifier("home.freeTier")
+    }
+}
+
+/// The sample business is not saved; leaving it goes back to setting up the real one.
+private struct DemoBanner: View {
+    let session: Session
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Label("This is a sample business", systemImage: "sparkles")
+                .font(Theme.Fonts.rowTitle)
+                .foregroundStyle(Theme.textPrimary)
+            Text("Look around and try anything: nothing here is saved.")
+                .font(Theme.Fonts.footnote)
+                .foregroundStyle(Theme.textSecondary)
+            Button("Set up my business") { Task { await session.reloadApp() } }
+                .buttonStyle(.secondary)
+                .accessibilityIdentifier("demo.leave")
+        }
+        .padding(Theme.Space.l)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.brandTint, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 }

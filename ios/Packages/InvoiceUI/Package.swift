@@ -14,15 +14,18 @@ let package = Package(
         .package(path: "../InvoiceCore"),
         .package(path: "../InvoiceData"),
         .package(path: "../InvoicePDF"),
+        .package(path: "../InvoiceSync"),
+        .package(path: "../InvoiceBilling"),
+        .package(path: "../InvoiceDrive"),
     ],
     targets: [
         .target(
             name: "InvoiceUI",
-            dependencies: ["InvoiceCore", "InvoiceData", "InvoicePDF"]
+            dependencies: ["InvoiceCore", "InvoiceData", "InvoicePDF", "InvoiceSync", "InvoiceBilling", "InvoiceDrive"]
         ),
         .testTarget(
             name: "InvoiceUITests",
-            dependencies: ["InvoiceUI"]
+            dependencies: ["InvoiceUI", "InvoiceData"]
         ),
     ],
     swiftLanguageModes: [.v6]

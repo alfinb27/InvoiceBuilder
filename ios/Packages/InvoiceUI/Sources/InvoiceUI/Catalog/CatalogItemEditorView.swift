@@ -58,7 +58,7 @@ private struct CatalogItemForm: View {
     private var labels: TaxLabels { session.config.labels }
 
     var body: some View {
-        Form {
+        ThemedForm {
             if model.state.attemptedSave, !model.issues.isEmpty {
                 Section { IssueText(message: "Check the highlighted fields.") }
             }
@@ -76,7 +76,7 @@ private struct CatalogItemForm: View {
 
             Section("Price") {
                 VStack(alignment: .leading, spacing: Theme.Space.xxs) {
-                    Text("Price per unit").font(.footnote).foregroundStyle(Theme.textSecondary)
+                    Text("Price per unit").font(Theme.Fonts.footnote).foregroundStyle(Theme.textSecondary)
                         .accessibilityHidden(true)
                     HStack(spacing: Theme.Space.xs) {
                         Text(model.currencySymbol).foregroundStyle(Theme.textSecondary)
@@ -111,7 +111,7 @@ private struct CatalogItemForm: View {
                 if let issue = message(.rate, "rate") { IssueText(message: issue) }
                 if let warning = model.rateWarning {
                     Label(warning, systemImage: "exclamationmark.triangle.fill")
-                        .font(.footnote)
+                        .font(Theme.Fonts.footnote)
                         .foregroundStyle(Theme.warning)
                 }
             } header: {

@@ -1,0 +1,15 @@
+{
+  "$comment": "The tax-rate chips of the Add an item sheet (spec/documents.md §3.2, docs/design/design.md §6.5): the rates shown as one-tap chips, in this order, when in force on the document's date. Every other rate in force is under \"Other rates\". A family that is not listed (GENERIC) shows the business's own rates, at most maxChips. The hint is shown under the chips.",
+  "version": 1,
+  "maxChips": 4,
+  "families": {
+    "IN": {
+      "rates": ["gst_0", "gst_5", "gst_18", "gst_40"],
+      "hint": "Most services are 18%. Not sure? Check once with your accountant. We'll remember it."
+    },
+    "GB": {
+      "rates": ["standard", "reduced", "zero"],
+      "hint": "Most goods and services are 20%. Not sure? Check once with your accountant. We'll remember it."
+    }
+  }
+}

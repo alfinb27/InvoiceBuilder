@@ -7,6 +7,7 @@
     "version",
     "color",
     "status",
+    "fonts",
     "type",
     "space",
     "radius",
@@ -54,16 +55,42 @@
         }
       }
     },
+    "fonts": {
+      "type": "object",
+      "required": [
+        "display",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$comment": {
+          "type": "string"
+        },
+        "display": {
+          "$ref": "#/$defs/fontFamily"
+        },
+        "text": {
+          "$ref": "#/$defs/fontFamily"
+        }
+      }
+    },
     "type": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
         "required": [
+          "font",
           "size",
           "weight"
         ],
         "additionalProperties": false,
         "properties": {
+          "font": {
+            "enum": [
+              "display",
+              "text"
+            ]
+          },
           "size": {
             "type": "number",
             "exclusiveMinimum": 0
@@ -77,6 +104,12 @@
             ]
           },
           "monospacedDigits": {
+            "type": "boolean"
+          },
+          "tracking": {
+            "type": "number"
+          },
+          "uppercase": {
             "type": "boolean"
           }
         }
@@ -158,9 +191,102 @@
     },
     "palette": {
       "type": "object",
-      "minProperties": 1,
-      "additionalProperties": {
-        "$ref": "#/$defs/hex"
+      "required": [
+        "brand",
+        "brandPressed",
+        "brandOn",
+        "brandTint",
+        "background",
+        "surface",
+        "surfaceMuted",
+        "surfaceSubtle",
+        "border",
+        "borderStrong",
+        "control",
+        "textPrimary",
+        "textSecondary",
+        "textTertiary",
+        "tip",
+        "tipOn",
+        "tipIcon",
+        "highlight",
+        "scrim",
+        "success",
+        "warning",
+        "danger",
+        "info"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "brand": {
+          "$ref": "#/$defs/hex"
+        },
+        "brandPressed": {
+          "$ref": "#/$defs/hex"
+        },
+        "brandOn": {
+          "$ref": "#/$defs/hex"
+        },
+        "brandTint": {
+          "$ref": "#/$defs/hex"
+        },
+        "background": {
+          "$ref": "#/$defs/hex"
+        },
+        "surface": {
+          "$ref": "#/$defs/hex"
+        },
+        "surfaceMuted": {
+          "$ref": "#/$defs/hex"
+        },
+        "surfaceSubtle": {
+          "$ref": "#/$defs/hex"
+        },
+        "border": {
+          "$ref": "#/$defs/hex"
+        },
+        "borderStrong": {
+          "$ref": "#/$defs/hex"
+        },
+        "control": {
+          "$ref": "#/$defs/hex"
+        },
+        "textPrimary": {
+          "$ref": "#/$defs/hex"
+        },
+        "textSecondary": {
+          "$ref": "#/$defs/hex"
+        },
+        "textTertiary": {
+          "$ref": "#/$defs/hex"
+        },
+        "tip": {
+          "$ref": "#/$defs/hex"
+        },
+        "tipOn": {
+          "$ref": "#/$defs/hex"
+        },
+        "tipIcon": {
+          "$ref": "#/$defs/hex"
+        },
+        "highlight": {
+          "$ref": "#/$defs/hex"
+        },
+        "scrim": {
+          "$ref": "#/$defs/hex"
+        },
+        "success": {
+          "$ref": "#/$defs/hex"
+        },
+        "warning": {
+          "$ref": "#/$defs/hex"
+        },
+        "danger": {
+          "$ref": "#/$defs/hex"
+        },
+        "info": {
+          "$ref": "#/$defs/hex"
+        }
       }
     },
     "numbers": {
@@ -169,6 +295,36 @@
       "additionalProperties": {
         "type": "number",
         "minimum": 0
+      }
+    },
+    "fontFamily": {
+      "type": "object",
+      "required": [
+        "family",
+        "files"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "files": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "enum": [
+              "regular",
+              "medium",
+              "semibold",
+              "bold"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]+$"
+          }
+        }
       }
     }
   }

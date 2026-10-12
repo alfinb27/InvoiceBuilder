@@ -167,11 +167,14 @@
         "roundOff": null,
         "clientId": "0650e03f-7c04-5005-91c3-730e0ae378dd",
         "sellerSnapshot": {
+          "name": "Bharat Web Studio",
+          "legalName": "Bharat Web Studio LLP",
           "registration": "regular",
           "taxId": "29AAGCB7383J1Z4",
           "country": "IN",
           "homeCurrency": "INR",
-          "address": "12 MG Road, Bengaluru 560001"
+          "address": "12 MG Road, Bengaluru 560001",
+          "region": "29"
         },
         "buyerSnapshot": {
           "name": "Rao Traders",
@@ -231,6 +234,9 @@
               "amount": 1000000,
               "discount": 0,
               "taxable": 1000000,
+              "rateId": "gst_18",
+              "rate": "18",
+              "category": "standard",
               "taxes": [
                 {
                   "component": "CGST",

@@ -1,0 +1,134 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "backup",
+  "description": "BackupCodec.validate: the checks of backup.md §3 in order, and the live counts a valid file previews.",
+  "cases": [
+    {
+      "id": "backup-sample-valid",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json" },
+      "expected": { "live": { "businesses": 1, "clients": 1, "catalogItems": 1, "numberingSeries": 1, "documents": 2, "payments": 1, "assets": 1 } }
+    },
+    {
+      "id": "backup-tombstones-counted-but-not-live",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/clients/0/deletedAt": 1789800000500, "/data/documents/1/deletedAt": 1789800000600 }
+      },
+      "expected": { "live": { "businesses": 1, "clients": 0, "catalogItems": 1, "numberingSeries": 1, "documents": 1, "payments": 1, "assets": 1 } }
+    },
+    {
+      "id": "backup-older-schema-accepted",
+      "input": { "appSchemaVersion": 1, "base": "samples/backup-v1-sample.invoicebackup.json" },
+      "expected": { "live": { "businesses": 1, "clients": 1, "catalogItems": 1, "numberingSeries": 1, "documents": 2, "payments": 1, "assets": 1 } }
+    },
+    {
+      "id": "backup-unknown-keys-ignored",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/clients/0/futureField": "from a newer app" }
+      },
+      "expected": { "live": { "businesses": 1, "clients": 1, "catalogItems": 1, "numberingSeries": 1, "documents": 2, "payments": 1, "assets": 1 } }
+    },
+    {
+      "id": "backup-not-json",
+      "input": { "appSchemaVersion": 3, "raw": "{\"format\": \"invoicebuilder-backup\", " },
+      "expected": { "error": "not_json" }
+    },
+    {
+      "id": "backup-json-array-is-not-json-object",
+      "input": { "appSchemaVersion": 3, "raw": "[1, 2, 3]" },
+      "expected": { "error": "not_json" }
+    },
+    {
+      "id": "backup-wrong-format",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json", "set": { "/format": "something-else" } },
+      "expected": { "error": "not_a_backup" }
+    },
+    {
+      "id": "backup-format-version-missing",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json", "remove": ["/formatVersion"] },
+      "expected": { "error": "not_a_backup" }
+    },
+    {
+      "id": "backup-newer-format",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json", "set": { "/formatVersion": 2 } },
+      "expected": { "error": "newer_format" }
+    },
+    {
+      "id": "backup-newer-schema",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json", "set": { "/dbSchemaVersion": 4 } },
+      "expected": { "error": "newer_schema" }
+    },
+    {
+      "id": "backup-invalid-record",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json", "set": { "/data/payments/0/amountMinor": "1000" } },
+      "expected": { "error": "invalid_record" }
+    },
+    {
+      "id": "backup-invalid-record-missing-required",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json", "remove": ["/data/businesses/0/name"] },
+      "expected": { "error": "invalid_record" }
+    },
+    {
+      "id": "backup-count-mismatch",
+      "input": { "appSchemaVersion": 3, "base": "samples/backup-v1-sample.invoicebackup.json", "set": { "/counts/documents": 3 } },
+      "expected": { "error": "count_mismatch" }
+    },
+    {
+      "id": "backup-duplicate-id",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/documents/1/id": "58d49306-934b-53ca-8203-ead30445975d" }
+      },
+      "expected": { "error": "duplicate_id" }
+    },
+    {
+      "id": "backup-asset-hash-mismatch",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/assets/0/sha256": "0000000000000000000000000000000000000000000000000000000000000000" }
+      },
+      "expected": { "error": "asset_hash_mismatch" }
+    },
+    {
+      "id": "backup-dangling-client",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/documents/0/clientId": "00000000-0000-4000-8000-000000000000" }
+      },
+      "expected": { "error": "dangling_reference" }
+    },
+    {
+      "id": "backup-dangling-payment-document",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/payments/0/documentId": "00000000-0000-4000-8000-000000000000" }
+      },
+      "expected": { "error": "dangling_reference" }
+    },
+    {
+      "id": "backup-dangling-logo",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/businesses/0/logoAssetId": "00000000-0000-4000-8000-000000000000" }
+      },
+      "expected": { "error": "dangling_reference" }
+    },
+    {
+      "id": "backup-null-reference-is-fine",
+      "input": {
+        "appSchemaVersion": 3,
+        "base": "samples/backup-v1-sample.invoicebackup.json",
+        "set": { "/data/documents/1/clientId": null, "/data/documents/1/lines/0/catalogItemId": null }
+      },
+      "expected": { "live": { "businesses": 1, "clients": 1, "catalogItems": 1, "numberingSeries": 1, "documents": 2, "payments": 1, "assets": 1 } }
+    }
+  ]
+}

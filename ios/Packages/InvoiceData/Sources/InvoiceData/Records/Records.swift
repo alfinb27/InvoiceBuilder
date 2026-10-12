@@ -31,6 +31,8 @@ enum DBColumns {
     static let quoteOutcome = Column("quote_outcome")
     static let convertedFromID = Column("converted_from_id")
     static let sentAt = Column("sent_at")
+    static let voidedAt = Column("voided_at")
+    static let voidReason = Column("void_reason")
 }
 
 /// JSON text columns.

@@ -9,6 +9,8 @@ public final class Session {
     public let dependencies: AppDependencies
     /// This device's id (owner of the numbering series it creates).
     public let deviceID: String
+    /// Automatic Google Drive backup (`spec/backup.md` §7), shared with the app; nil without Drive in this build.
+    public var autoBackup: AutoBackupRunner?
     /// The active business, kept current by `observeBusiness()`.
     public private(set) var business: Business
     public let config: TaxConfig
@@ -16,6 +18,14 @@ public final class Session {
     public let formatter: SpecFormatter
     /// Renders and caches the PDFs the preview, sharing and printing use (`spec/pdf/RENDERING.md`).
     let pdfLibrary: PDFLibrary
+    /// The "Add an item" sheet's rate chips (`spec/design/rate-chips.json`).
+    let rateChips = (try? RateChips.bundled()) ?? RateChips(maxChips: 4, families: [:])
+    /// The unlock and the free-tier count, kept current by `observeEntitlements()` (`spec/billing.md`).
+    public internal(set) var entitlement = EntitlementStatus(state: .unknown, count: 0)
+    /// A sample business in an in-memory database (onboarding's "Try it with a sample business"); nothing is saved.
+    public internal(set) var isDemo = false
+    /// Rebuilds the app from the database (set by `AppModel`); a restore calls it.
+    var reloadApp: @MainActor () async -> Void = {}
 
     public init(dependencies: AppDependencies, business: Business, deviceID: String,
                 pdfDirectory: URL? = nil) throws {
@@ -33,6 +43,14 @@ public final class Session {
                                     assets: dependencies.assets, directory: pdfDirectory)
     }
 
+    /// Re-plans and replaces this business's local reminders (`spec/reminders.md` §3): at launch, after issuing an
+    /// invoice, after a payment is recorded or removed, after a void, and after the business default changes.
+    func reconcileReminders() async {
+        let reconciler = ReminderReconciler(dependencies: dependencies)
+        await reconciler.requestAuthorizationIfNeeded()
+        await reconciler.reconcile(businessID: business.id)
+    }
+
     /// Keeps `business` in step with the database (edits in Settings show everywhere at once).
     func observeBusiness() async {
         do {
@@ -42,6 +60,10 @@ public final class Session {
         } catch {
             // The stream only ends with an error if the database fails; the last known business stays on screen.
         }
+    }
+
+    func observeEntitlements() async {
+        for await status in dependencies.entitlements.observeStatus() { entitlement = status }
     }
 
     // MARK: Rules for the active business
@@ -74,6 +96,13 @@ public final class Session {
         router.selectedTab = .documents
         router.documents.docType = docType
         router.documents.selection = .new(docType, id: dependencies.ids.make())
+    }
+
+    /// Opens an existing invoice or quote in the Invoices tab (a client's document list, a search result).
+    public func openDocument(_ id: String, docType: DocumentType) {
+        router.selectedTab = .documents
+        router.documents.docType = docType
+        router.documents.open(id)
     }
 
     var registration: TaxRegistration? { config.registration(business.taxRegistration) }

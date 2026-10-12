@@ -129,6 +129,18 @@ public enum DocumentInput {
         return MoneyInput.parse(text, exponent: exponent).mapError { .invalidNumber($0) }
     }
 
+    /// A payment amount (`spec/documents.md` §10): required, must be greater than 0. May exceed the outstanding
+    /// amount (overpayment is allowed, stored as given).
+    public static func paymentAmount(_ text: String, exponent: Int) -> Result<Int64, FieldIssue> {
+        guard text.trimmedOrNil != nil else { return .failure(.required) }
+        switch MoneyInput.parse(text, exponent: exponent) {
+        case .success(let minor):
+            return minor > 0 ? .success(minor) : .failure(.invalidNumber(.invalid))
+        case .failure(let error):
+            return .failure(.invalidNumber(error))
+        }
+    }
+
     /// Units of home currency per 1 unit of the document currency: empty → none; otherwise a positive decimal.
     public static func exchangeRate(_ text: String) -> Result<String?, FieldIssue> {
         guard text.trimmedOrNil != nil else { return .success(nil) }

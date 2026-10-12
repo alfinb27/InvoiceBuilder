@@ -25,6 +25,9 @@ the app never hard-codes a price.
 - Effective count = `max(local counter, device_state.free_counter_mirror, issued invoices visible in the database)`.
   The last term makes iCloud-synced devices share the limit.
 - Mirrors: iOS Keychain item (`invoicebuilder.freeCounter`, not synchronizable); Android Block Store (best effort).
+  After each issue the mirror is raised to the effective count (never lowered); at launch it is one of the inputs.
+- "Issued invoices visible in the database" counts every invoice that was ever issued: `doc_type = 'invoice'` and
+  `lifecycle <> 'draft'`, voided and tombstoned ones included.
 - At the limit only **Issue invoice** is locked. Viewing, editing, sharing, exporting, backups, quotes and drafts
   keep working. The paywall opens from the Issue action and from Settings.
 
@@ -46,6 +49,26 @@ stateDiagram-v2
 ```
 
 `Free` re-evaluates the count on entry, so a cancelled purchase at the limit lands on `LimitReached`.
+
+### Transitions — `EntitlementMachine.next(state, event, count)`
+
+`count` is the effective count (above). "By count" means `limitReached` when `count ≥ FREE_LIMIT`, else `free`.
+Events that a state does not list leave it unchanged. Proven by `fixtures/billing/*.json` (kind `billing`).
+
+| Event | From | To |
+|---|---|---|
+| `resolved(owned: true)` | any | `unlocked` |
+| `resolved(owned: false)` | `unknown`, `unlocked` (a refund seen at launch) | by count |
+| `resolved(owned: false)` | `free`, `limitReached` | by count (re-evaluated) |
+| `counted` (an invoice was issued, or synced devices raised the count) | `free`, `limitReached`, `unknown` | `unknown` stays; others by count |
+| `purchaseStarted` | `free`, `limitReached` | `purchasing` |
+| `purchasePending` (Ask to Buy, Android pending) | `purchasing` | `pending` |
+| `purchased` (verified transaction, from the purchase or the updates listener) | any | `unlocked` |
+| `purchaseCancelled`, `purchaseFailed` | `purchasing`, `pending` | by count |
+| `revoked` (refund, revocation, Family Sharing removed) | `unlocked` | by count |
+
+**Issuing an invoice is allowed** when the state is `unlocked` or `count < FREE_LIMIT` — in every state, so an
+unresolved or pending store never blocks someone below the limit. `remaining = max(FREE_LIMIT − count, 0)`.
 `Unknown` resolves on launch from the platform's cached entitlements (works offline); the last known state is cached
 in `app_state` (`entitlement`) only to avoid UI flicker, never as the source of truth.
 
@@ -60,11 +83,16 @@ in `app_state` (`entitlement`) only to avoid UI flicker, never as the source of 
 
 **Android**
 - `BillingClient` with `enablePendingPurchases(...)` and automatic service reconnection.
-- On start and on every resume: `queryPurchasesAsync(INAPP)`; product absent → not owned (covers refunds).
+- On start and on every resume: `queryPurchasesAsync(INAPP)`; product absent → not owned (covers refunds). A query
+  that cannot complete (Play not connected within a few seconds, or a response other than `OK`) is **not an answer**:
+  the state is left as it is — `unknown` at launch, whatever it was on resume — so a brief Play outage never takes an
+  unlock away. Only a successful query without the product means not owned.
 - Unlock only on `Purchase.PurchaseState.PURCHASED`; `PENDING` (UPI/cash) shows "Payment pending".
 - **Acknowledge** every `PURCHASED`, unacknowledged purchase (`acknowledgePurchase`) — Google auto-refunds after 3 days.
   A startup sweep acknowledges anything missed.
-- "Refresh purchases" button re-runs the query (parity with iOS restore).
+- "Refresh purchases" button re-runs the query (parity with iOS restore). When the query can't complete, the screen
+  says so — "Google Play can't be reached right now, so your purchases weren't refreshed. Check your connection and
+  try again." — because, unlike `AppStore.sync()` on iOS, Play shows no screen of its own; the state is unchanged.
 
 ## Test matrix (Phase 5 / 7c definition of done)
 

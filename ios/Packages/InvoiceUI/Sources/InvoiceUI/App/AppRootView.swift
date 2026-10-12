@@ -4,8 +4,10 @@ import SwiftUI
 /// The root of the app: onboarding until a business exists, then the adaptive shell.
 public struct AppRootView: View {
     @State private var model: AppModel
+    @Environment(\.scenePhase) private var scenePhase
 
     public init(model: AppModel) {
+        ThemeAppearance.apply()
         _model = State(initialValue: model)
     }
 
@@ -14,6 +16,14 @@ public struct AppRootView: View {
             switch model.phase {
             case .loading:
                 ProgressView()
+            case .checkingICloud:
+                VStack(spacing: Theme.Space.l) {
+                    ProgressView()
+                    Text("Looking for your business in iCloud…")
+                        .foregroundStyle(Theme.textSecondary)
+                    Button("Skip") { model.skipICloud() }
+                        .accessibilityIdentifier("skipICloud")
+                }
             case .onboarding(let onboarding):
                 OnboardingView(model: onboarding)
             case .ready(let session):
@@ -26,8 +36,15 @@ public struct AppRootView: View {
                 }
             }
         }
-        .tint(Theme.brand)
+        .themedRoot()
         .task { await model.start() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { AutoBackupScheduler.appDidEnterBackground(model) }
+        }
+        .onOpenURL { url in
+            guard url.isFileURL else { return }
+            Task { await model.open(url) }
+        }
     }
 }
 
@@ -63,5 +80,14 @@ public struct MainShellView: View {
         .environment(session)
         .focusedSceneValue(\.session, session)
         .task { await session.observeBusiness() }
+        .task { await session.reconcileReminders() }
+        .task {
+            // Changes from another device (`spec/sync.md` §5): reminders follow invoices issued or paid there.
+            for await _ in session.dependencies.sync.observeRemoteChanges() {
+                await session.reconcileReminders()
+                await session.dependencies.entitlements.refreshCount() // synced devices share the limit
+            }
+        }
+        .task { await session.observeEntitlements() }
     }
 }

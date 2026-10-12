@@ -24,3 +24,6 @@ node_modules/
 # Editors
 .idea/
 .vscode/
+
+# Local tooling
+.serena/

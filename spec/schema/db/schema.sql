@@ -124,7 +124,7 @@ CREATE TABLE document (
   voided_at             INTEGER,
   void_reason           TEXT,
   quote_outcome         TEXT,  -- one of: accepted, declined, converted (enforced in app code)
-  converted_from_id     TEXT REFERENCES document (id) ON DELETE SET NULL,
+  converted_from_id     TEXT,  -- the quote this invoice came from; not a foreign key (0004: SyncEngine rejects self-references)
   currency              TEXT NOT NULL,
   exchange_rate         TEXT,
   supply_type           TEXT NOT NULL,
@@ -153,7 +153,8 @@ CREATE TABLE document (
   created_at            INTEGER NOT NULL,
   updated_at            INTEGER NOT NULL,
   deleted_at            INTEGER,
-  sequence              INTEGER CHECK (sequence IS NULL OR sequence >= 1)  -- 0002: allocated at issue
+  sequence              INTEGER CHECK (sequence IS NULL OR sequence >= 1),  -- 0002: allocated at issue
+  reminder_days_after_due_override INTEGER CHECK (reminder_days_after_due_override IS NULL OR reminder_days_after_due_override >= 0)  -- 0003: spec/reminders.md §1
 );
 
 CREATE TABLE line_item (

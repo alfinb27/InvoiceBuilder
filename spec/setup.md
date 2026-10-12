@@ -21,7 +21,25 @@ by `fixtures/validation/fields.json` (kind `field`).
 
 - On first launch the app creates this device's `device_state` row: `id` = a new UUID (the `owner_device_id` of the
   numbering series it creates), `device_name` = the platform device name, `preferences = {}`. The row is local: never
-  synced and never backed up. Only one row exists; if several are found, the earliest `created_at` wins.
+  synced and never written to a `.invoicebackup` file. Only one row exists; if several are found, the earliest
+  `created_at` wins.
+- **A copied database keeps nobody else's identity (ADR-0019).** OS backups (iCloud device backup, Android Auto
+  Backup) copy the whole database, `device_state` included, so a new phone restored from an old one's backup would
+  otherwise share its id and both would number from the same series. Each device therefore keeps a **device
+  marker** — its id, stored where an OS backup never carries it to another device (iOS: a Keychain item with
+  `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`; Android: a file in `noBackupFilesDir`). Whenever the row is
+  loaded, `DeviceIdentity.check(rowId, marker)` decides:
+
+  | Row | Marker | Action |
+  |---|---|---|
+  | none | any | **create** the row with a new id, then write the marker |
+  | present | equal to the row's id | **keep** |
+  | present | missing, or another id | **replace**: write the marker with a new id, then give the row that id (keeping `device_name`, `preferences` and `free_counter_mirror`); if the marker can't be written, **keep** instead, so an id is never replaced on every launch |
+  | present | could not be read (device locked, I/O error) | **keep**, without writing the marker; check again next time |
+
+  After a replace, the series the old id owned are another device's: the first issue offers the usual choice
+  (`sync.md` §3 — start a series of this device's own, or take one over). A reinstall on the same device can also
+  replace the id (the marker or the database did not survive); the same choice handles it.
 - `preferences` is a JSON object; v0 keys: `activeBusinessId` (string).
 - **Active business:** `preferences.activeBusinessId` when it names a live business; otherwise the live business with
   the earliest `created_at` (ties: lowest `id`); none → onboarding. v1 shows no business picker unless there are
@@ -31,6 +49,19 @@ by `fixtures/validation/fields.json` (kind `field`).
 
 Five steps; the business is created only by **Finish**, in one transaction with its numbering series and the
 `activeBusinessId` preference. Nothing is written before Finish; closing the app mid-way restarts onboarding.
+
+**On screen (ADR-0020, `docs/design/design.md` §6.1–6.2):** a **Welcome** screen comes first ("Let's get started";
+"I've used this app before" → restore from a backup file, or, on iOS, the iCloud check of ADR-0015; "Just looking?"
+→ the sample business). The five steps are then shown as three **stages**, each one screen:
+
+| Stage | Steps | Continue / Finish |
+|---|---|---|
+| 1 Where you work | 1 Country, 2 Registration | Country as three cards (India, United Kingdom, Somewhere else → search + home currency); the registration question appears below once a country is chosen. Continue checks steps 1 and 2. |
+| 2 Your business | 3 Business | Continue checks step 3. |
+| 3 Getting paid | 4 Bank & UPI, 5 Logo & signature | Optional: **Finish** and **Skip for now** both finish (Skip keeps nothing typed on this stage). |
+
+A step's problems are shown once Continue (or Finish) was pressed on its stage. Back goes to the previous stage;
+answers are kept.
 
 | Step | Fields | Rules |
 |---|---|---|
@@ -49,6 +80,21 @@ document type (§6).
 The app asks for the tier, never the exact turnover. The first tier stores `turnoverMinor = null` (the engine then
 uses the first tier); tier *k* > 1 stores the previous tier's `maxTurnoverMinor + 1`. Labels come from the tier
 bounds: "Up to ₹5 crore" / "More than ₹5 crore" for `IN.json` v2025-09-22.
+
+### 3.2 First-run home (`FirstRunChecklist`)
+Until the business has issued its first invoice, Home shows a checklist instead of the dashboard:
+
+| Item | Done when |
+|---|---|
+| Set up your business | always (onboarding finished) |
+| Add your first client | the business has a live client |
+| Save something you sell | the business has a live catalogue item |
+| Send your first invoice | the business has a live invoice that is not a draft (issued or void) |
+
+Progress is "*n* of 4". The checklist is shown while the last item is not done; once an invoice has been issued it
+never comes back (issued invoices are never deleted, `documents.md` §1). Under it, the money tiles show the
+business's home currency at 0 (Waiting to be paid, Past due date, Paid this month = `outstanding`, `overdue`,
+`paidThisMonth` of `DashboardTotals`).
 
 ## 4. Business profile (Settings)
 

@@ -3,7 +3,10 @@ import SwiftUI
 
 /// A form row: a caption label above a text field, with the field's problem underneath. VoiceOver reads the label,
 /// the value and the problem as one element.
-struct FormTextField: View {
+///
+/// `focus`/`focusValue` put `.focused` on the text field itself: on the container it only works from iOS 27, so
+/// Return-to-next-field (`onSubmit { focus = … }`) did nothing on iOS 18–26.
+struct FormTextField<Focus: Hashable>: View {
     let title: String
     @Binding var text: String
     var prompt: String?
@@ -13,11 +16,13 @@ struct FormTextField: View {
     var contentType: UITextContentType?
     var autocorrect = true
     var axis: Axis = .horizontal
+    var focus: FocusState<Focus?>.Binding?
+    var focusValue: Focus?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xxs) {
             Text(title)
-                .font(.footnote)
+                .font(Theme.Fonts.footnote)
                 .foregroundStyle(Theme.textSecondary)
                 .accessibilityHidden(true)
             TextField(title, text: keyboard == .decimalPad ? $text.decimalPadInput() : $text,
@@ -27,6 +32,7 @@ struct FormTextField: View {
                 .textContentType(contentType)
                 .autocorrectionDisabled(!autocorrect)
                 .lineLimit(axis == .vertical ? 1...6 : 1...1)
+                .modifier(FieldFocus(focus: focus, value: focusValue))
                 .accessibilityLabel(title)
                 .accessibilityHint(issue ?? "")
             if let issue {
@@ -37,13 +43,38 @@ struct FormTextField: View {
     }
 }
 
+extension FormTextField where Focus == Never {
+    /// A field nothing moves focus to.
+    init(title: String, text: Binding<String>, prompt: String? = nil, issue: String? = nil,
+         keyboard: UIKeyboardType = .default, capitalization: TextInputAutocapitalization = .sentences,
+         contentType: UITextContentType? = nil, autocorrect: Bool = true, axis: Axis = .horizontal) {
+        self.init(title: title, text: text, prompt: prompt, issue: issue, keyboard: keyboard,
+                  capitalization: capitalization, contentType: contentType, autocorrect: autocorrect, axis: axis,
+                  focus: nil, focusValue: nil)
+    }
+}
+
+/// `.focused(_:equals:)` when there is a binding to focus with.
+private struct FieldFocus<Focus: Hashable>: ViewModifier {
+    let focus: FocusState<Focus?>.Binding?
+    let value: Focus?
+
+    func body(content: Content) -> some View {
+        if let focus, let value {
+            content.focused(focus, equals: value)
+        } else {
+            content
+        }
+    }
+}
+
 /// A red problem message under a field.
 struct IssueText: View {
     let message: String
 
     var body: some View {
         Label(message, systemImage: "exclamationmark.circle.fill")
-            .font(.footnote)
+            .font(Theme.Fonts.footnote)
             .foregroundStyle(Theme.danger)
             .accessibilityLabel("Problem: \(message)")
     }
@@ -55,7 +86,7 @@ struct SuccessText: View {
 
     var body: some View {
         Label(message, systemImage: "checkmark.circle.fill")
-            .font(.footnote)
+            .font(Theme.Fonts.footnote)
             .foregroundStyle(Theme.success)
     }
 }
@@ -69,31 +100,11 @@ struct Tag: View {
     var body: some View {
         let onHighlight = prominence == .increased
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(Theme.Fonts.caption.weight(.semibold))
             .padding(.horizontal, Theme.Space.s)
             .padding(.vertical, Theme.Space.xxs)
             .foregroundStyle(onHighlight ? Color.white : color)
             .background(onHighlight ? Color.white.opacity(0.22) : color.opacity(0.12), in: Capsule())
-    }
-}
-
-/// The large full-width button at the bottom of onboarding steps.
-struct PrimaryButton: View {
-    let title: String
-    var isBusy = false
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                Text(title).opacity(isBusy ? 0 : 1)
-                if isBusy { ProgressView().tint(Theme.brandOn) }
-            }
-            .frame(maxWidth: .infinity, minHeight: Theme.Layout.minTouchTarget - 8)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .disabled(isBusy)
     }
 }
 
@@ -210,6 +221,38 @@ extension FieldRule {
         case .postalCodeGB: "Enter a UK postcode, like SW1A 1AA"
         case .companyNumberGB: "A company number has 8 characters, like 01234567 or SC123456"
         case .hsnSac: "HSN and SAC codes have 2 to 8 digits"
+        }
+    }
+}
+
+/// A labelled input outside a form (a label above a boxed text field, the problem underneath), as in the setup and
+/// "Add an item" screens.
+struct BoxedTextField: View {
+    let title: String
+    @Binding var text: String
+    var prompt: String?
+    var issue: String?
+    var hint: String?
+    var keyboard: UIKeyboardType = .default
+    var capitalization: TextInputAutocapitalization = .sentences
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            FieldLabel(text: title)
+            TextField(title, text: keyboard == .decimalPad ? $text.decimalPadInput() : $text,
+                      prompt: Text(prompt ?? "").foregroundStyle(Theme.textSecondary))
+                .keyboardType(keyboard)
+                .textInputAutocapitalization(capitalization)
+                .focused($isFocused)
+                .inputBox(isFocused: isFocused)
+                .accessibilityLabel(title)
+                .accessibilityHint(issue ?? hint ?? "")
+            if let issue {
+                IssueText(message: issue)
+            } else if let hint {
+                Text(hint).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
+            }
         }
     }
 }

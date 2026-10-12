@@ -1,6 +1,7 @@
 import Foundation
 import ImageIO
 import InvoiceCore
+import InvoiceData
 import Testing
 @testable import InvoiceUI
 
@@ -14,13 +15,18 @@ enum TestEnvironment {
         FileManager.default.temporaryDirectory.appending(path: "InvoicePDFTests-\(UUID().uuidString)")
     }
 
-    static func dependencies() throws -> AppDependencies {
-        try AppDependencies.inMemory(time: .fixed(now: 1_789_800_000_000, today: today), ids: .sequential())
+    static func dependencies(notifications: any NotificationScheduling = NoOpNotificationScheduler()) throws
+        -> AppDependencies {
+        try AppDependencies.make(database: AppDatabase.inMemory(), time: .fixed(now: 1_789_800_000_000, today: today),
+                                 ids: .sequential(), notifications: notifications)
     }
 
-    /// A seeded, onboarded business and its session.
-    static func session(_ country: SampleData.Country = .india) async throws -> Session {
-        let dependencies = try dependencies()
+    /// A seeded, onboarded business and its session. `notifications` defaults to a no-op; pass a fake to test
+    /// reminder reconciliation.
+    static func session(_ country: SampleData.Country = .india,
+                        notifications: any NotificationScheduling = NoOpNotificationScheduler()) async throws
+        -> Session {
+        let dependencies = try dependencies(notifications: notifications)
         let device = try await dependencies.deviceState.loadOrCreate(deviceName: "Test")
         let business = try await SampleData.seed(country, dependencies: dependencies, deviceID: device.id)
         return try Session(dependencies: dependencies, business: business, deviceID: device.id,
@@ -63,34 +69,34 @@ struct OnboardingViewModelTests {
         let finished = Box<Business>()
         let model = OnboardingViewModel(dependencies: dependencies, deviceID: device.id) { finished.value = $0 }
 
+        #expect(model.state.showsWelcome)
+        model.start()
+        #expect(!model.state.showsWelcome && model.state.stage == .whereYouWork)
         model.continueTapped()
-        #expect(model.state.step == .country)
+        #expect(model.state.stage == .whereYouWork)
         #expect(model.visibleIssue(.country) == .required)
 
         model.selectCountry("IN")
+        #expect(model.countryCard == "IN")
         #expect(model.state.draft.taxRegistration == "regular")
         #expect(model.state.draft.homeCurrency == .inr)
-        model.continueTapped()
-        #expect(model.state.step == .registration)
-        model.continueTapped()
-        #expect(model.state.step == .business)
-        #expect(model.title(for: .bank) == "Bank and UPI")
+        model.continueTapped() // country and registration are one stage
+        #expect(model.state.stage == .yourBusiness)
+        #expect(model.stageNumber == 2 && model.stageCount == 3)
 
         model.state.draft.name = "Bharat Test Studio"
         model.state.draft.taxId = "29aagcb7383j1z4"
         #expect(model.state.draft.pan == "AAGCB7383J") // derived from the GSTIN
         #expect(model.taxIDFeedback == .valid("Karnataka"))
         model.continueTapped()
-        #expect(model.state.step == .business)
+        #expect(model.state.stage == .yourBusiness)
         #expect(model.visibleIssue(.addressLine1) == .required)
         #expect(model.visibleIssue(.region) == nil) // the GSTIN names the state
 
         model.state.draft.address.line1 = "12 MG Road"
         model.continueTapped()
-        #expect(model.state.step == .bank)
-        model.continueTapped()
-        #expect(model.state.step == .images)
-        #expect(model.isLastStep)
+        #expect(model.state.stage == .gettingPaid)
+        #expect(model.isLastStage)
 
         await model.finish()
         let business = try #require(finished.value)
@@ -113,40 +119,76 @@ struct OnboardingViewModelTests {
         #expect(model.state.draft.taxRegistration == "vatRegistered")
         #expect(model.state.draft.homeCurrency == .gbp)
         #expect(model.state.draft.regionCode == nil)
-        #expect(model.title(for: .bank) == "Bank details")
     }
 
-    @Test func genericCountriesNeedAHomeCurrency() throws {
+    @Test func somewhereElseClearsIndiaAndNeedsAHomeCurrency() throws {
         let model = OnboardingViewModel(dependencies: try TestEnvironment.dependencies(), deviceID: "d") { _ in }
+        model.start()
+        model.selectCountry("IN")
+        model.pickOtherCountry()
+        #expect(model.countryCard == "other" && model.state.draft.countryCode == nil)
         model.selectCountry("US")
+        #expect(model.countryCard == "other" && model.countryName == "United States")
         #expect(model.config?.family == "GENERIC")
         model.continueTapped()
-        #expect(model.state.step == .country)
+        #expect(model.state.stage == .whereYouWork)
         #expect(model.visibleIssue(.homeCurrency) == .required)
+        #expect(model.visibleIssue(.genericTaxPercent) == .required) // the first rate is on the same stage
         model.state.draft.homeCurrency = "USD"
+        model.state.draft.genericTaxPercent = "8.875"
         model.continueTapped()
-        #expect(model.state.step == .registration)
-        #expect(model.issues(for: .registration)[.genericTaxPercent] == .required)
+        #expect(model.state.stage == .yourBusiness)
     }
 
-    @Test func sidebarOnlyOpensCompletedSteps() throws {
+    @Test func sidebarOnlyOpensCompletedStages() throws {
         let model = OnboardingViewModel(dependencies: try TestEnvironment.dependencies(), deviceID: "d") { _ in }
-        #expect(model.canVisit(.country))
-        #expect(!model.canVisit(.registration))
-        model.go(to: .business)
-        #expect(model.state.step == .country)
+        model.start()
+        #expect(model.canVisit(.whereYouWork))
+        #expect(!model.canVisit(.yourBusiness))
+        model.go(to: .gettingPaid)
+        #expect(model.state.stage == .whereYouWork)
         model.selectCountry("GB")
-        #expect(model.canVisit(.business))
-        #expect(!model.canVisit(.bank)) // business details are still empty
+        #expect(model.canVisit(.yourBusiness))
+        #expect(!model.canVisit(.gettingPaid)) // business details are still empty
     }
 
-    @Test func finishJumpsToTheFirstIncompleteStep() async throws {
+    @Test func backFromTheFirstStageShowsTheWelcomeAgainAndKeepsAnswers() throws {
+        let model = OnboardingViewModel(dependencies: try TestEnvironment.dependencies(), deviceID: "d") { _ in }
+        model.start()
+        model.selectCountry("GB")
+        model.continueTapped()
+        model.back()
+        #expect(model.state.stage == .whereYouWork)
+        model.back()
+        #expect(model.state.showsWelcome && model.state.draft.countryCode == "GB")
+    }
+
+    @Test func finishJumpsToTheFirstIncompleteStage() async throws {
         let model = OnboardingViewModel(dependencies: try TestEnvironment.dependencies(), deviceID: "d") { _ in }
         model.selectCountry("GB")
-        model.state.step = .images
+        model.state.stage = .gettingPaid
         await model.finish()
-        #expect(model.state.step == .business)
+        #expect(model.state.stage == .yourBusiness)
         #expect(model.visibleIssue(.name) == .required)
+    }
+
+    @Test func skipForNowFinishesWithoutTheBankDetails() async throws {
+        let dependencies = try TestEnvironment.dependencies()
+        let device = try await dependencies.deviceState.loadOrCreate(deviceName: "Test")
+        let finished = Box<Business>()
+        let model = OnboardingViewModel(dependencies: dependencies, deviceID: device.id) { finished.value = $0 }
+        model.selectCountry("GB")
+        model.state.draft.name = "Leeds Joinery"
+        model.state.draft.taxRegistration = "notRegistered"
+        model.state.draft.address.line1 = "10 High Street"
+        model.state.stage = .gettingPaid
+        model.state.draft.sortCode = "12" // half typed, invalid
+        model.state.draft.bankAccountName = "Leeds Joinery Ltd"
+        await model.finish()
+        #expect(finished.value == nil && model.visibleIssue(.sortCode) != nil)
+        await model.skipAndFinish()
+        let business = try #require(finished.value)
+        #expect(business.bank == nil || business.bank?.isEmpty == true)
     }
 }
 
@@ -195,6 +237,15 @@ struct RouterTests {
         #expect(router.selection == "c1")
         router.didRemove("c1")
         #expect(router.selection == nil)
+    }
+
+    @Test func aRowActionWaitsForItsDocument() {
+        let router = DocumentsRouter()
+        router.open("d1", then: .recordPayment)
+        #expect(router.selection == .existing("d1"))
+        #expect(router.takeAction(for: "d2") == nil)
+        #expect(router.takeAction(for: "d1") == .recordPayment)
+        #expect(router.takeAction(for: "d1") == nil) // consumed
     }
 }
 

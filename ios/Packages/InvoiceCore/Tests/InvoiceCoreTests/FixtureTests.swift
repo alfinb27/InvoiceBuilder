@@ -2,12 +2,13 @@ import Foundation
 import Testing
 @testable import InvoiceCore
 
-/// Runs the golden fixtures that InvoiceCore implements so far. Kinds still waiting for Phase 2a are listed in
+/// Runs the golden fixtures that InvoiceCore implements so far. Kinds still waiting for a runner are listed in
 /// `pendingKinds`, so the fixture count stays an explicit parity metric (`docs/parity.md`).
 @Suite("Spec fixtures")
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
-                                        "distribute", "words", "status", "upi", "document", "pdf"]
+                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup", "series", "billing",
+                                        "autobackup"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -328,5 +329,241 @@ struct FixtureTests {
                                      amountMinor: try #require(fixture.input["amountMinor"]?.intValue),
                                      invoiceNumber: try fixture.string("invoiceNumber"))
         expectFixture(fixture, .object(["url": .string(url)]))
+    }
+
+    // MARK: reminders.md §3
+
+    struct ReminderCandidateInput: Decodable {
+        let documentId: String
+        let dueDate: String?
+        let overrideDays: Int?
+        let status: String
+    }
+
+    struct ReminderPlanInput: Decodable {
+        let businessDefaultDays: Int?
+        let cap: Int
+        let from: String
+        let candidates: [ReminderCandidateInput]
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "reminder"))
+    func reminder(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(ReminderPlanInput.self, from: fixture.inputData)
+        var candidates: [ReminderCandidate] = []
+        for candidate in input.candidates {
+            let status = try #require(DocumentStatus(rawValue: candidate.status))
+            candidates.append(ReminderCandidate(documentId: candidate.documentId,
+                                                dueDate: candidate.dueDate.flatMap(LocalDate.init(iso:)),
+                                                overrideDays: candidate.overrideDays, status: status))
+        }
+        let from = try #require(LocalDate(iso: input.from))
+        let scheduled = ReminderScheduler.plan(businessDefaultDays: input.businessDefaultDays, cap: input.cap,
+                                               candidates: candidates, from: from)
+        expectFixture(fixture, .object([
+            "scheduled": .array(scheduled.map { .object(["documentId": .string($0.documentId),
+                                                          "remindOn": .string($0.remindOn.iso)]) }),
+        ]))
+    }
+
+    // MARK: backup.md §3
+
+    struct BackupInput: Decodable {
+        let appSchemaVersion: Int
+        let base: String?
+        let raw: String?
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "backup"))
+    func backup(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(BackupInput.self, from: fixture.inputData)
+        let bytes: Data
+        if let raw = input.raw {
+            bytes = Data(raw.utf8)
+        } else {
+            let base = try #require(input.base)
+            let object = try JSONSerialization.jsonObject(with: Data(contentsOf: Spec.root.appending(path: base)))
+            let raw = try JSONSerialization.jsonObject(with: fixture.inputData) as? [String: Any] ?? [:]
+            var patched: Any = object
+            for pointer in raw["remove"] as? [String] ?? [] { patched = JSONPointer.remove(pointer, in: patched) }
+            for (pointer, value) in raw["set"] as? [String: Any] ?? [:] {
+                patched = JSONPointer.set(pointer, to: value, in: patched)
+            }
+            bytes = try JSONSerialization.data(withJSONObject: patched)
+        }
+        switch BackupCodec.validate(bytes, appSchemaVersion: input.appSchemaVersion) {
+        case .success(let preview):
+            let live = preview.live
+            expectFixture(fixture, .object(["live": .object([
+                "businesses": .int(Int64(live.businesses)), "clients": .int(Int64(live.clients)),
+                "catalogItems": .int(Int64(live.catalogItems)), "numberingSeries": .int(Int64(live.numberingSeries)),
+                "documents": .int(Int64(live.documents)), "payments": .int(Int64(live.payments)),
+                "assets": .int(Int64(live.assets)),
+            ])]))
+        case .failure(let error):
+            expectFixture(fixture, .object(["error": .string(error.code.rawValue)]))
+        }
+    }
+}
+
+extension FixtureTests {
+    // MARK: sync.md §3–4
+
+    struct SeriesInput: Decodable {
+        struct Row: Decodable {
+            let id: String
+            let docType: String
+            let lifecycle: String
+            let number: String?
+        }
+
+        let op: String
+        let docType: String?
+        let pattern: String?
+        let existingPatterns: [String]?
+        let counters: [String: Int]?
+        let highest: [String: Int]?
+        let documents: [Row]?
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "series"))
+    func series(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(SeriesInput.self, from: fixture.inputData)
+        switch input.op {
+        case "deviceSeries":
+            let result = SeriesOwnership.deviceSeriesPattern(
+                defaultPattern: try #require(input.pattern), docType: DocumentType(rawValue: try #require(input.docType)),
+                existingPatterns: input.existingPatterns ?? [])
+            switch result {
+            case .success(let value):
+                expectFixture(fixture, .object(["pattern": .string(value.pattern), "label": .string(value.label)]))
+            case .failure(let error):
+                expectFixture(fixture, .object(["error": .string(error.rawValue)]))
+            }
+        case "takeOver":
+            let counters = SeriesOwnership.takeOverCounters(input.counters ?? [:], highest: input.highest ?? [:])
+            expectFixture(fixture, .object(["counters": .object(counters.mapValues { .int(Int64($0)) })]))
+        case "duplicates":
+            let rows = (input.documents ?? []).map {
+                DuplicateNumbers.Row(id: $0.id, docType: DocumentType(rawValue: $0.docType),
+                                     lifecycle: DocumentLifecycle(rawValue: $0.lifecycle), number: $0.number)
+            }
+            let groups = DuplicateNumbers.find(rows)
+            expectFixture(fixture, .object(["groups": .array(groups.map {
+                .object(["docType": .string($0.docType.rawValue), "number": .string($0.number),
+                         "ids": .array($0.ids.map(JSONValue.string))])
+            })]))
+        default:
+            Issue.record("\(fixture.id): unknown op \(input.op)")
+        }
+    }
+}
+
+extension FixtureTests {
+    // MARK: billing.md, Transitions
+
+    struct BillingInput: Decodable {
+        let state: String
+        let event: String
+        let count: Int
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "billing"))
+    func billing(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(BillingInput.self, from: fixture.inputData)
+        let state = try #require(EntitlementState(rawValue: input.state))
+        let event = try #require(EntitlementEvent(rawValue: input.event))
+        let next = EntitlementMachine.next(state, event, count: input.count)
+        expectFixture(fixture, .object([
+            "state": .string(next.rawValue),
+            "canIssueInvoice": .bool(EntitlementMachine.canIssueInvoice(next, count: input.count)),
+            "remaining": .int(Int64(FreeTier.remaining(count: input.count))),
+        ]))
+    }
+}
+
+/// RFC 6901 pointers over `JSONSerialization` values, for patching backup fixtures.
+enum JSONPointer {
+    static func set(_ pointer: String, to value: Any, in root: Any) -> Any {
+        update(parts(pointer)[...], in: root) { _ in value }
+    }
+
+    static func remove(_ pointer: String, in root: Any) -> Any {
+        update(parts(pointer)[...], in: root) { _ in nil }
+    }
+
+    private static func parts(_ pointer: String) -> [String] {
+        pointer.split(separator: "/", omittingEmptySubsequences: false).dropFirst()
+            .map { $0.replacingOccurrences(of: "~1", with: "/").replacingOccurrences(of: "~0", with: "~") }
+    }
+
+    private static func update(_ path: ArraySlice<String>, in node: Any, _ change: (Any?) -> Any?) -> Any {
+        guard let key = path.first else { return change(node) ?? NSNull() }
+        let rest = path.dropFirst()
+        if var array = node as? [Any], let index = Int(key), array.indices.contains(index) {
+            if rest.isEmpty {
+                if let value = change(array[index]) { array[index] = value } else { array.remove(at: index) }
+            } else {
+                array[index] = update(rest, in: array[index], change)
+            }
+            return array
+        }
+        var object = node as? [String: Any] ?? [:]
+        if rest.isEmpty {
+            object[key] = change(object[key])
+        } else {
+            object[key] = update(rest, in: object[key] ?? [String: Any](), change)
+        }
+        return object
+    }
+}
+
+extension FixtureTests {
+    // MARK: backup.md §7
+
+    struct AutoBackupInput: Decodable {
+        struct Entry: Decodable {
+            let id: String
+            let name: String
+            let deviceId: String?
+            let createdAt: Int64?
+        }
+        let op: String
+        let now: Int64?
+        let lastBackupAt: Int64?
+        let latestChangeAt: Int64?
+        let lastAttemptAt: Int64?
+        let fileName: String?
+        let deviceId: String?
+        let keep: Int?
+        let entries: [Entry]?
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "autobackup"))
+    func autobackup(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(AutoBackupInput.self, from: fixture.inputData)
+        let entries = (input.entries ?? []).map {
+            CloudBackupEntry(id: $0.id, name: $0.name, deviceID: $0.deviceId, createdAt: $0.createdAt)
+        }
+        switch input.op {
+        case "isDue":
+            let due = AutoBackupRules.isDue(lastBackupAt: input.lastBackupAt, latestChangeAt: input.latestChangeAt,
+                                            lastAttemptAt: input.lastAttemptAt, now: try #require(input.now))
+            expectFixture(fixture, .object(["due": .bool(due)]))
+        case "target":
+            switch AutoBackupRules.target(entries: entries, fileName: try #require(input.fileName),
+                                          deviceID: try #require(input.deviceId)) {
+            case .create: expectFixture(fixture, .object(["action": .string("create")]))
+            case .update(let id): expectFixture(fixture, .object(["action": .string("update"), "id": .string(id)]))
+            }
+        case "filesToDelete":
+            let ids = AutoBackupRules.filesToDelete(entries: entries, deviceID: try #require(input.deviceId),
+                                                    keep: try #require(input.keep))
+            expectFixture(fixture, .object(["delete": .array(ids.map(JSONValue.string))]))
+        case "newestFirst":
+            expectFixture(fixture, .object(["ids": .array(AutoBackupRules.newestFirst(entries).map { .string($0.id) })]))
+        default:
+            Issue.record("\(fixture.id): unknown op \(input.op)")
+        }
     }
 }

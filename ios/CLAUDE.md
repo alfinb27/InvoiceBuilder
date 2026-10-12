@@ -24,12 +24,13 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 
 | Package | Rule |
 |---|---|
-| `InvoiceCore` | Pure Swift + Foundation. No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`) and the repository/service protocols. |
-| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction). |
+| `InvoiceCore` | Pure Swift + Foundation (+ CryptoKit for hashes). No UIKit/SwiftUI/GRDB imports. Money, dates, tax configs, `TaxEngine` (`Tax/`), validators, numbering + `NumberAllocator`, formatting, domain models, **setup rules** (`Setup/`, `spec/setup.md`), **document rules** (`Documents/`: `DocumentRules`, `LinePricing`, `LineItemRules`, per `spec/documents.md`), the backup codec (`Backup/`: `BackupFile`, `BackupCodec.validate`, per `spec/backup.md`) and the repository/service protocols. |
+| `InvoiceData` | GRDB: `AppDatabase` runs the bundled `spec/schema/db/migrations/*.sql` verbatim; records (one per table); repository and service implementations (`GRDBDocumentService` = `IssueDocument`, duplicate, convert, delete draft, each one transaction; `GRDBBackupService` = export and the one-transaction "replace all" restore, plus `BackupSnapshotStore`). |
 | `InvoicePDF` | The renderer: Core Text + `UIGraphicsPDFRenderer` drawing the `PDFDocumentModel` that `InvoiceCore/PDF` builds, laid out by `spec/pdf/layout/*.json`. No database, no view models — a request in, `Data` out. |
-| `InvoiceBilling` | StoreKit 2 + `EntitlementService` implementing `spec/billing.md`. (Phase 5) |
-| `InvoiceSync` | SQLiteData sync engine behind a `SyncService` protocol. `DeviceState` is never synced. (Phase 4b) |
-| `InvoiceUI` | Design system (from `spec/design/tokens.json`) + feature screens (onboarding, invoices/quotes builder, clients, items, settings) + the adaptive shell, `AppModel`, `Session`, routers, `AppDependencies` and `InvoiceCommands` (menu bar + keyboard shortcuts). |
+| `InvoiceBilling` | `StoreEntitlementService` (InvoiceCore's `EntitlementService`): the `spec/billing.md` state machine driven by a `StoreClient` (`StoreKitClient` = StoreKit 2; tests use a fake), the effective free-tier count and the Keychain mirror (`KeychainCounterMirror`). `ios/InvoiceBuilder.storekit` is the scheme's local StoreKit configuration. |
+| `InvoiceSync` | SQLiteData `SyncEngine` behind InvoiceCore's `SyncService` (`LiveSyncService`); `@Table` mirrors of the synced tables (`SyncedTables.swift`, generated from `schema.sql`, tested against it). The only package that imports SQLiteData. `device_state` and `app_state` are never synced. Sync is on only in a build whose Info.plist has `InvoiceSyncContainer` (with the iCloud capability). |
+| `InvoiceDrive` | Automatic backup to the user's Google Drive (`spec/backup.md` §7, ADR-0021) behind InvoiceCore's `CloudBackupDestination`: `GoogleAuth` (OAuth 2.0 + PKCE via `ASWebAuthenticationSession`, tokens in the Keychain) and `GoogleDriveDestination` (Drive REST v3), both over `HTTPClient`. No Google SDK. On only when Info.plist has `GoogleDriveClientID`; `-fakeDrive` gives UI tests an in-memory Drive. |
+| `InvoiceUI` | Design system (`DesignSystem/`: `Theme` from `spec/design/tokens.json` v2, the bundled UI fonts registered from InvoiceCore's `design/fonts`, the components of `docs/design/design.md` §5 in `Components.swift`, `ThemedForm`) + feature screens (onboarding, invoices/quotes builder, clients, items, settings) + the adaptive shell, `AppModel`, `Session`, routers, `AppDependencies` and `InvoiceCommands` (menu bar + keyboard shortcuts). |
 
 ## Conventions
 
@@ -66,6 +67,8 @@ Read the root `CLAUDE.md` first. This file adds iOS-specific conventions.
 ```sh
 make test-core-ios      # swift test InvoiceCore: every implemented fixture kind + unit tests (no simulator)
 make test-data-ios      # swift test InvoiceData: migrations == schema.sql, repositories (no simulator)
+make test-sync-ios      # swift test InvoiceSync: table mirrors == schema, SyncEngine accepts the schema (CloudKit mock)
+make test-billing-ios   # swift test InvoiceBilling: every purchase flow against a fake store
 make test-pdf-ios       # InvoicePDF: the renderer, pagination and fonts (simulator)
 make test-ui-ios        # InvoiceUI view models on a simulator (SIM="iPhone 17 Pro" by default)
 make test-app-ios       # XCUITest smoke flows + screenshot tour
@@ -79,8 +82,12 @@ make test-ios           # all of the above
   before simulators work; until then another installed Xcode can be used with `DEVELOPER_DIR=…`.
 - Switching toolchains (Command Line Tools ↔ Xcode) on the same package: delete its `.build/` first; stale
   products make the Swift Testing macros "not found".
-- **CI is the stricter compiler.** GitHub's `macos-15` runner builds with Xcode 16.4 (iOS 18.5 SDK), which is older
-  than a local beta: a type the newer SDK marks `Sendable` may not be marked there, and Swift 6 then rejects code
-  that built locally (`CIContext` did). A green local build is not proof; the PR check is.
+- **CI runs the local Xcode.** The iOS workflow uses GitHub's `xcode-27` image (macOS 27, public preview) with
+  Xcode 27.1 selected through `DEVELOPER_DIR`, the same build as the local Xcode (27A9269), so the compiler and SDK
+  match; its simulators run iOS 27.0. iOS 18–26 are not covered on CI: run the UI suites on a local iOS 26.x
+  simulator before a release (`make test-app-ios SIM=…`). When the image adds a newer Xcode, update `DEVELOPER_DIR`
+  together with the local Xcode. SQLiteData's dependency graph needs Swift tools ≥ 6.2, so CI can't use Xcode 16.
+- SQLiteData brings Swift macros: xcodebuild needs `-skipMacroValidation` (the Makefile passes it); Xcode asks to
+  trust them once.
 - Offline builds: `xcodebuild … -clonedSourcePackagesDirPath <dir> -disableAutomaticPackageResolution
   -skipPackageUpdates`, with `<dir>` seeded from a SwiftPM `.build` (`checkouts/`, `repositories/`).

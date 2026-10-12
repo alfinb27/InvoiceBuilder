@@ -69,6 +69,43 @@ public enum SampleData {
         return created
     }
 
+    /// The demo business's documents (onboarding's "Try it with a sample business"): a paid invoice, an overdue
+    /// one, a partly paid one and an open quote, so Home, the list and the reminders have something to show.
+    static func addDemoDocuments(business: Business, dependencies: AppDependencies, deviceID: String) async throws {
+        let rules = try DocumentRules(configs: dependencies.taxConfigs, business: business,
+                                      currencies: dependencies.reference.currencies)
+        let today = dependencies.time.today()
+        let clientsList = try await firstValue(dependencies.clients.observeClients(businessID: business.id)) ?? []
+        let catalog = try await firstValue(dependencies.catalog.observeItems(businessID: business.id)) ?? []
+        let clients = clientsList.sorted { $0.name < $1.name }
+        guard !clients.isEmpty, !catalog.isEmpty else { return }
+
+        func make(_ docType: DocumentType, client: Client, items: [CatalogItem], issuedDaysAgo: Int) async throws
+            -> InvoiceCore.Document {
+            var document = rules.newDocument(docType: docType, id: dependencies.ids.make(),
+                                             today: today.adding(days: -issuedDaysAgo), client: client,
+                                             now: dependencies.time.now())
+            for item in items {
+                document.lines.append(rules.line(from: item, for: document, id: dependencies.ids.make()).line)
+            }
+            let saved = try await dependencies.documents.saveDraft(rules.preparedDraft(document, client: client))
+            return try await dependencies.documentService.issue(documentID: saved.id, deviceID: deviceID)
+        }
+
+        let paid = try await make(.invoice, client: clients[0], items: Array(catalog.prefix(1)), issuedDaysAgo: 20)
+        try await dependencies.paymentService.recordPayment(
+            documentID: paid.id, amountMinor: paid.totals.totalMinor, date: today.adding(days: -5),
+            method: business.countryCode == "IN" ? .upi : .bank, reference: nil, note: nil)
+        _ = try await make(.invoice, client: clients[clients.count > 1 ? 1 : 0], items: Array(catalog.prefix(2)),
+                           issuedDaysAgo: 45)
+        let partly = try await make(.invoice, client: clients[0], items: Array(catalog.suffix(1)), issuedDaysAgo: 3)
+        try await dependencies.paymentService.recordPayment(
+            documentID: partly.id, amountMinor: partly.totals.totalMinor / 2, date: today, method: .cash,
+            reference: nil, note: nil)
+        _ = try await make(.quote, client: clients[clients.count > 1 ? 1 : 0], items: Array(catalog.prefix(3)),
+                           issuedDaysAgo: 1)
+    }
+
     static func clients(for country: Country) -> [ClientDraft] {
         func client(_ name: String, country: String, business: Bool = false, taxId: String = "", region: String? = nil,
                     line1: String = "", city: String = "", postal: String = "", email: String = "") -> ClientDraft {
