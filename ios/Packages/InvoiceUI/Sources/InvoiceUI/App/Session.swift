@@ -9,6 +9,8 @@ public final class Session {
     public let dependencies: AppDependencies
     /// This device's id (owner of the numbering series it creates).
     public let deviceID: String
+    /// Automatic Google Drive backup (`spec/backup.md` §7), shared with the app; nil without Drive in this build.
+    public var autoBackup: AutoBackupRunner?
     /// The active business, kept current by `observeBusiness()`.
     public private(set) var business: Business
     public let config: TaxConfig

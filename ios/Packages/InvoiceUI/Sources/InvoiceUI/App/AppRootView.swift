@@ -4,6 +4,7 @@ import SwiftUI
 /// The root of the app: onboarding until a business exists, then the adaptive shell.
 public struct AppRootView: View {
     @State private var model: AppModel
+    @Environment(\.scenePhase) private var scenePhase
 
     public init(model: AppModel) {
         ThemeAppearance.apply()
@@ -37,6 +38,9 @@ public struct AppRootView: View {
         }
         .themedRoot()
         .task { await model.start() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { AutoBackupScheduler.appDidEnterBackground(model) }
+        }
         .onOpenURL { url in
             guard url.isFileURL else { return }
             Task { await model.open(url) }

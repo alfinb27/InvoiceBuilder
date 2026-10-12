@@ -11,7 +11,7 @@ final class AccessibilityAuditTests: XCTestCase {
     @MainActor
     func testMainScreensPassTheAudit() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-seed", "IN"]
+        app.launchArguments = ["-seed", "IN", "-fakeDrive"] // the Backup page shows its Google Drive section
         app.launch()
         XCTAssertTrue(app.staticTexts["Bharat Web Studio"].waitForExistence(timeout: 10))
         try audit("home", app)
@@ -30,6 +30,13 @@ final class AccessibilityAuditTests: XCTestCase {
         try audit("settings", app)
         app.staticTexts["Backup"].firstMatch.tap()
         try audit("backup", app)
+        app.buttons["backup.drive"].tap()
+        XCTAssertTrue(app.buttons["backup.drive.connect"].waitForExistence(timeout: 5))
+        try audit("backup-drive", app)
+        app.buttons["backup.drive.connect"].tap()
+        XCTAssertTrue(app.buttons["backup.drive.backUpNow"].waitForExistence(timeout: 10))
+        try audit("backup-drive-connected", app)
+        app.buttons["backup.drive.done"].tap()
     }
 
     @MainActor

@@ -35,6 +35,7 @@ public struct OnboardingView: View {
             Text(model.state.errorMessage ?? "")
         }
         .backupFlows(model: model.backup)
+        .driveRestoreFlow(drive: model.drive, backup: model.backup)
         .dropDestination(for: DroppedBackup.self) { files, _ in
             guard let file = files.first else { return false }
             Task { await model.backup.open(file.url) }
