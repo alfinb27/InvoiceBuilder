@@ -218,4 +218,46 @@ struct BackupTests {
         #expect(status.isDue(today: today.adding(days: 29), timeZone: utc) == false)
         #expect(status.isDue(today: today.adding(days: 30), timeZone: utc) == true)
     }
+
+    // MARK: §7 automatic cloud backup
+
+    @Test func cloudBackupStateRoundTripsThroughAppState() async throws {
+        let store = try TestStore()
+        let service = try store.backupService()
+        #expect(try await service.cloudBackupState() == CloudBackupState())
+
+        let connected = CloudBackupState(accountEmail: "owner@example.com", folderID: "folder-1",
+                                         lastBackupAt: 1_789_800_000_000, lastAttemptAt: 1_789_800_000_000,
+                                         lastError: .quotaExceeded)
+        try await service.saveCloudBackupState(connected)
+        #expect(try await service.cloudBackupState() == connected)
+
+        // Disconnecting deletes the rows.
+        try await service.saveCloudBackupState(CloudBackupState())
+        #expect(try await service.cloudBackupState() == CloudBackupState())
+    }
+
+    @Test func latestChangeFollowsEditsAndTombstones() async throws {
+        let store = try TestStore()
+        let service = try store.backupService()
+        #expect(try await service.latestChangeAt() == nil)
+
+        _ = try await store.populate()
+        let afterPopulate = try #require(try await service.latestChangeAt())
+        try await store.clients.delete(clientID: "c1")
+        let afterDelete = try #require(try await service.latestChangeAt())
+        #expect(afterDelete > afterPopulate) // a tombstone bumps updated_at
+    }
+
+    @Test func aRestoreLeavesTheCloudStateAlone() async throws {
+        let store = try TestStore()
+        let service = try store.backupService()
+        let device = try await store.populate()
+        let file = try await service.makeBackup(app: TestStore.app)
+        let connected = CloudBackupState(accountEmail: "owner@example.com", folderID: "folder-1",
+                                         lastBackupAt: 1, lastAttemptAt: 1)
+        try await service.saveCloudBackupState(connected)
+        try await service.restore(file, deviceID: device.id)
+        #expect(try await service.cloudBackupState() == connected)
+    }
 }

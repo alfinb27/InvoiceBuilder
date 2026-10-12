@@ -7,7 +7,8 @@ import Testing
 @Suite("Spec fixtures")
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
-                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup", "series", "billing"]
+                                        "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup", "series", "billing",
+                                        "autobackup"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -514,5 +515,55 @@ enum JSONPointer {
             object[key] = update(rest, in: object[key] ?? [String: Any](), change)
         }
         return object
+    }
+}
+
+extension FixtureTests {
+    // MARK: backup.md §7
+
+    struct AutoBackupInput: Decodable {
+        struct Entry: Decodable {
+            let id: String
+            let name: String
+            let deviceId: String?
+            let createdAt: Int64?
+        }
+        let op: String
+        let now: Int64?
+        let lastBackupAt: Int64?
+        let latestChangeAt: Int64?
+        let lastAttemptAt: Int64?
+        let fileName: String?
+        let deviceId: String?
+        let keep: Int?
+        let entries: [Entry]?
+    }
+
+    @Test(arguments: Fixtures.cases(kind: "autobackup"))
+    func autobackup(_ fixture: FixtureCase) throws {
+        let input = try JSONDecoder().decode(AutoBackupInput.self, from: fixture.inputData)
+        let entries = (input.entries ?? []).map {
+            CloudBackupEntry(id: $0.id, name: $0.name, deviceID: $0.deviceId, createdAt: $0.createdAt)
+        }
+        switch input.op {
+        case "isDue":
+            let due = AutoBackupRules.isDue(lastBackupAt: input.lastBackupAt, latestChangeAt: input.latestChangeAt,
+                                            lastAttemptAt: input.lastAttemptAt, now: try #require(input.now))
+            expectFixture(fixture, .object(["due": .bool(due)]))
+        case "target":
+            switch AutoBackupRules.target(entries: entries, fileName: try #require(input.fileName),
+                                          deviceID: try #require(input.deviceId)) {
+            case .create: expectFixture(fixture, .object(["action": .string("create")]))
+            case .update(let id): expectFixture(fixture, .object(["action": .string("update"), "id": .string(id)]))
+            }
+        case "filesToDelete":
+            let ids = AutoBackupRules.filesToDelete(entries: entries, deviceID: try #require(input.deviceId),
+                                                    keep: try #require(input.keep))
+            expectFixture(fixture, .object(["delete": .array(ids.map(JSONValue.string))]))
+        case "newestFirst":
+            expectFixture(fixture, .object(["ids": .array(AutoBackupRules.newestFirst(entries).map { .string($0.id) })]))
+        default:
+            Issue.record("\(fixture.id): unknown op \(input.op)")
+        }
     }
 }

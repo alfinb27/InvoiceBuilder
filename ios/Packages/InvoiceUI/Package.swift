@@ -16,11 +16,12 @@ let package = Package(
         .package(path: "../InvoicePDF"),
         .package(path: "../InvoiceSync"),
         .package(path: "../InvoiceBilling"),
+        .package(path: "../InvoiceDrive"),
     ],
     targets: [
         .target(
             name: "InvoiceUI",
-            dependencies: ["InvoiceCore", "InvoiceData", "InvoicePDF", "InvoiceSync", "InvoiceBilling"]
+            dependencies: ["InvoiceCore", "InvoiceData", "InvoicePDF", "InvoiceSync", "InvoiceBilling", "InvoiceDrive"]
         ),
         .testTarget(
             name: "InvoiceUITests",

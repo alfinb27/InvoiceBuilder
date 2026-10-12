@@ -29,11 +29,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        app.invoicebuilder.android.backup.ConsentLaunchers.register(this) // Google's consent sheet for Drive backup
         // Test launches only: another app can send any extras to an exported activity, so a release build ignores them.
         val debuggable = applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
         model.launch(
             inMemory = debuggable && intent.getBooleanExtra(EXTRA_IN_MEMORY, false),
             seed = if (debuggable) intent.getStringExtra(EXTRA_SEED) else null,
+            fakeDrive = debuggable && intent.getBooleanExtra(EXTRA_FAKE_DRIVE, false),
         )
         if (savedInstanceState == null) handle(intent)
         setContent {
@@ -48,6 +50,14 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handle(intent)
+    }
+
+    /** Leaving the screen: an automatic Google Drive backup if one is due (`spec/backup.md` §7.2). */
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations && (application as InvoiceApplication).container.cloudBackup != null) {
+            app.invoicebuilder.android.backup.DriveBackupWorker.appStopped(this)
+        }
     }
 
     override fun onResume() {
@@ -70,5 +80,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_IN_MEMORY = "inMemory"
         /** UI tests: a seeded sample business, `IN` or `GB` (≈ `-seed IN`). */
         const val EXTRA_SEED = "seed"
+        /** UI tests: an in-memory Google Drive (≈ iOS `-fakeDrive`). */
+        const val EXTRA_FAKE_DRIVE = "fakeDrive"
     }
 }

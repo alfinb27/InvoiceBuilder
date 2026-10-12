@@ -51,6 +51,8 @@ class Session(
         internal set
     /** Rebuilds the app from the database (set by `AppModel`); a restore calls it. */
     var reloadApp: suspend () -> Unit = {}
+    /** Automatic Google Drive backup (`spec/backup.md` §7); null without Drive in this build. iOS: `autoBackup`. */
+    var autoBackup: app.invoicebuilder.core.domain.backup.AutoBackupRunner? = null
     /** Asks for the notification permission (set by `MainActivity`, which owns the permission launcher). */
     var requestNotificationPermission: () -> Unit = {}
 

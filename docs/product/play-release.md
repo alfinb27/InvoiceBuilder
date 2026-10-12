@@ -32,7 +32,7 @@ can never change once an app is published**, and the billing product ID is deriv
 | Government app | No |
 | **Financial features declaration** | The app does **not** provide financial services (no lending, payments processing, banking, crypto, trading). It creates invoices; the UPI QR only encodes the business's own payment link. |
 | Health apps | No |
-| **Data safety** | **No data collected, no data shared.** Everything stays on the device; backups are files the user saves where they choose; Google Auto Backup is the platform's own encrypted backup. Purchases go through Google Play. Crash reports (`ApplicationExitInfo`) stay on the device unless the user shares them. Answer "Data is encrypted in transit": not applicable (no transmission). |
+| **Data safety** | **No data collected, no data shared.** Everything stays on the device; backups are files the user saves where they choose; Google Auto Backup is the platform's own encrypted backup. Optional Google Drive backup (ADR-0021) sends backup files, at the user's request, from the device straight to the user's own Google Drive — nothing reaches the developer; answer "Data is encrypted in transit": yes (HTTPS to Google). Purchases go through Google Play. Crash reports (`ApplicationExitInfo`) stay on the device unless the user shares them. |
 | Permissions | `POST_NOTIFICATIONS` (payment reminders), `com.android.vending.BILLING` (merged from the Billing library). No storage permission: SAF and the photo picker are used. |
 
 ## 3. Store listing

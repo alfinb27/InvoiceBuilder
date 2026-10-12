@@ -2,7 +2,9 @@ import Foundation
 import InvoiceBilling
 import InvoiceCore
 import InvoiceData
+import InvoiceDrive
 import InvoiceSync
+import UIKit
 
 /// Everything the screens need, built once at launch (ADR-0004: manual injection). View models receive it through
 /// their initialisers; tests and previews use `inMemory()` or fakes.
@@ -26,6 +28,11 @@ public struct AppDependencies: Sendable {
     public var sync: any SyncService
     /// The unlock and the free-tier count (`spec/billing.md`).
     public var entitlements: any EntitlementService
+    /// Automatic backup to Google Drive (`spec/backup.md` §7); nil unless the build carries a Google OAuth client
+    /// (`GoogleDriveClientID`) or a UI test asks for the in-memory one (`-fakeDrive`).
+    public var cloudBackup: (any CloudBackupDestination)?
+    /// The §7.7 state and the latest change (the backup service, which owns `app_state`).
+    public var cloudBackupState: any CloudBackupStateStore
     public var taxConfigs: TaxConfigStore
     public var reference: ReferenceData
     public var time: TimeSource
@@ -40,7 +47,8 @@ public struct AppDependencies: Sendable {
                 documents: any DocumentRepository, documentService: any DocumentService,
                 payments: any PaymentRepository, paymentService: any PaymentService, backup: any BackupService,
                 numbering: any NumberingService, sync: any SyncService = UnavailableSyncService(),
-                entitlements: any EntitlementService, taxConfigs: TaxConfigStore,
+                entitlements: any EntitlementService, cloudBackup: (any CloudBackupDestination)? = nil,
+                cloudBackupState: any CloudBackupStateStore, taxConfigs: TaxConfigStore,
                 reference: ReferenceData, time: TimeSource, ids: IDGenerator,
                 notifications: any NotificationScheduling = NoOpNotificationScheduler()) {
         self.businesses = businesses
@@ -58,6 +66,8 @@ public struct AppDependencies: Sendable {
         self.numbering = numbering
         self.sync = sync
         self.entitlements = entitlements
+        self.cloudBackup = cloudBackup
+        self.cloudBackupState = cloudBackupState
         self.taxConfigs = taxConfigs
         self.reference = reference
         self.time = time
@@ -74,10 +84,12 @@ public struct AppDependencies: Sendable {
                             store: any StoreClient = UnavailableStoreClient(),
                             counterMirror: any CounterMirror = MemoryCounterMirror(),
                             deviceMarker: any DeviceMarkerStore = InMemoryDeviceMarkerStore(),
+                            cloudBackup: (any CloudBackupDestination)? = nil,
                             bundleID: String = Bundle.main.bundleIdentifier ?? "app.invoicebuilder.invoices") throws
         -> AppDependencies {
         let taxConfigs = try TaxConfigStore.bundled()
         let reference = try ReferenceData.bundled()
+        let backup = try GRDBBackupService(database: database, time: time, ids: ids, snapshots: snapshots)
         return AppDependencies(
             businesses: GRDBBusinessRepository(database: database, time: time),
             clients: GRDBClientRepository(database: database, time: time),
@@ -91,12 +103,14 @@ public struct AppDependencies: Sendable {
                                                  currencies: reference.currencies),
             payments: GRDBPaymentRepository(database: database, time: time),
             paymentService: GRDBPaymentService(database: database, time: time, ids: ids),
-            backup: try GRDBBackupService(database: database, time: time, ids: ids, snapshots: snapshots),
+            backup: backup,
             numbering: GRDBNumberingService(database: database, time: time, ids: ids, configs: taxConfigs),
             sync: sync,
             entitlements: StoreEntitlementService(
                 productID: StoreEntitlementService.productID(bundleID: bundleID), store: store,
                 counts: GRDBFreeTierRepository(database: database), mirror: counterMirror),
+            cloudBackup: cloudBackup,
+            cloudBackupState: backup,
             taxConfigs: taxConfigs,
             reference: reference,
             time: time,
@@ -109,11 +123,12 @@ public struct AppDependencies: Sendable {
     /// (`InvoiceSyncContainer`, set together with the iCloud capability) syncs it (`spec/sync.md`).
     public static func live(bundle: Bundle = .main) throws -> AppDependencies {
         let url = try AppDatabase.defaultURL()
+        let drive = googleDrive(bundle: bundle)
         guard let container = bundle.object(forInfoDictionaryKey: "InvoiceSyncContainer") as? String,
               !container.isEmpty else {
             return try make(database: AppDatabase.openOnDisk(at: url), notifications: SystemNotificationScheduler(),
                             snapshots: .defaultStore(), store: StoreKitClient(), counterMirror: KeychainCounterMirror(),
-                            deviceMarker: KeychainDeviceMarkerStore())
+                            deviceMarker: KeychainDeviceMarkerStore(), cloudBackup: drive)
         }
         let database = try AppDatabase.openOnDisk(at: url) {
             LiveSyncService.prepare(&$0, containerIdentifier: container)
@@ -125,22 +140,43 @@ public struct AppDependencies: Sendable {
             enabled: false)
         return try make(database: database, notifications: SystemNotificationScheduler(),
                         snapshots: .defaultStore(), sync: sync, store: StoreKitClient(),
-                        counterMirror: KeychainCounterMirror(), deviceMarker: KeychainDeviceMarkerStore())
+                        counterMirror: KeychainCounterMirror(), deviceMarker: KeychainDeviceMarkerStore(),
+                        cloudBackup: drive)
+    }
+
+    /// Google Drive backup when the build carries the OAuth client (ADR-0021); nil otherwise.
+    static func googleDrive(bundle: Bundle) -> (any CloudBackupDestination)? {
+        guard let clientID = bundle.object(forInfoDictionaryKey: "GoogleDriveClientID") as? String,
+              !clientID.isEmpty else { return nil }
+        let http = URLSessionHTTPClient()
+        let auth = GoogleAuth(config: GoogleOAuthConfig(clientID: clientID), http: http, store: KeychainTokenStore(),
+                              authenticator: SystemWebAuthenticator())
+        return GoogleDriveDestination(auth: auth, http: http)
+    }
+
+    /// The runner for this device's automatic cloud backups, or nil without a cloud.
+    @MainActor func autoBackupRunner(deviceID: String, appVersion: String) -> AutoBackupRunner? {
+        guard let cloudBackup else { return nil }
+        return AutoBackupRunner(destination: cloudBackup, backups: backup, state: cloudBackupState, time: time,
+                                device: .init(id: deviceID, name: UIDevice.current.model,
+                                              app: .init(platform: "ios", version: appVersion)))
     }
 
     /// An empty in-memory database (previews, tests, UI tests).
-    public static func inMemory(time: TimeSource = .system, ids: IDGenerator = .random) throws -> AppDependencies {
-        try make(database: AppDatabase.inMemory(), time: time, ids: ids)
+    public static func inMemory(time: TimeSource = .system, ids: IDGenerator = .random,
+                                cloudBackup: (any CloudBackupDestination)? = nil) throws -> AppDependencies {
+        try make(database: AppDatabase.inMemory(), time: time, ids: ids, cloudBackup: cloudBackup)
     }
 
     /// Launch arguments for UI tests and screenshots: `-inMemory` starts with an empty database;
-    /// `-seed IN|GB` also adds a sample business, clients and items.
+    /// `-seed IN|GB` also adds a sample business, clients and items; `-fakeDrive` adds an in-memory Google Drive.
     public static func forLaunch(arguments: [String]) throws -> (AppDependencies, seed: SampleData.Country?) {
         let seed = arguments.firstIndex(of: "-seed").flatMap { index in
             arguments.indices.contains(index + 1) ? SampleData.Country(rawValue: arguments[index + 1]) : nil
         }
         if seed != nil || arguments.contains("-inMemory") {
-            return (try inMemory(), seed)
+            let drive: (any CloudBackupDestination)? = arguments.contains("-fakeDrive") ? DemoCloudBackup.shared : nil
+            return (try inMemory(cloudBackup: drive), seed)
         }
         return (try live(), nil)
     }

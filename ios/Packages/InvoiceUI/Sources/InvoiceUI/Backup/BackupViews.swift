@@ -6,6 +6,9 @@ import UIKit
 struct BackupPage: View {
     let session: Session
     @State private var model: BackupViewModel
+    /// Google Drive backup (§7), when this build has it.
+    @State private var drive: DriveBackupModel?
+    @State private var showsDrive = false
 
     init(session: Session) {
         self.session = session
@@ -15,65 +18,106 @@ struct BackupPage: View {
             await session.pdfLibrary.forgetAll()
             await session.reloadApp()
         })
+        _drive = State(initialValue: session.autoBackup.map {
+            DriveBackupModel(runner: $0, store: session.dependencies.cloudBackupState, time: session.dependencies.time)
+        })
     }
 
     var body: some View {
         @Bindable var router = session.router.settings
-        ThemedForm {
-            Section {
-                Label {
-                    Text(model.lastBackupText)
-                } icon: {
-                    Image(systemName: model.isDue ? "exclamationmark.triangle.fill" : "checkmark.circle")
-                        .foregroundStyle(model.isDue ? Color.orange : Color.secondary)
-                }
-                .accessibilityIdentifier("backup.last")
-                Button {
-                    Task { await model.saveToFiles() }
-                } label: {
-                    Label("Save backup to Files", systemImage: "folder")
-                }
-                .accessibilityIdentifier("backup.saveToFiles")
-                Button {
-                    Task {
-                        guard let export = await model.prepareExport() else { return }
-                        SystemSheets.share([export.url]) { completed in
-                            Task { await model.exportFinished(completed: completed) }
-                        }
-                    }
-                } label: {
-                    Label("Share backup…", systemImage: "square.and.arrow.up")
-                }
-            } header: {
-                Text("Back up")
-            } footer: {
-                Text(model.isDue
-                     ? "You haven't backed up in a while. Save a backup somewhere other than this device."
-                     : "One file with your business, clients, items, invoices, quotes and payments. Keep it somewhere safe, such as iCloud Drive or your email.")
+        form
+            .disabled(model.state.isWorking || drive?.state.isWorking == true)
+            .overlay { if model.state.isWorking || drive?.state.isWorking == true { ProgressView() } }
+            .navigationTitle("Backup")
+            .navigationBarTitleDisplayMode(.inline)
+            .backupFlows(model: model)
+            .driveRestoreFlow(drive: drive, backup: model)
+            .sheet(isPresented: $showsDrive) {
+                if let drive { DriveBackupPage(drive: drive) { showsDrive = false } }
             }
-            Section {
-                Button(role: .destructive) {
-                    model.state.showsImporter = true
-                } label: {
-                    Label("Restore from a backup…", systemImage: "clock.arrow.circlepath")
+            .task { await model.observe() }
+            .task { await drive?.observe() }
+            .task(id: router.incomingBackup) {
+                guard let url = router.incomingBackup else { return }
+                router.incomingBackup = nil
+                await model.open(url)
+            }
+    }
+}
+
+extension BackupPage {
+    /// With Drive backup: its row first and a second restore button. Two whole forms rather than rows that come and
+    /// go, which the accessibility audit measures as clipped.
+    @ViewBuilder var form: some View {
+        if let drive {
+            ThemedForm {
+                backUpSection { DriveBackupRow(drive: drive) { showsDrive = true } }
+                restoreSection {
+                    Button(role: .destructive) {
+                        Task { await drive.showBackups() }
+                    } label: {
+                        Label("Restore from Google Drive…", systemImage: "arrow.down.doc")
+                    }
+                    .accessibilityIdentifier("backup.drive.restore")
                 }
-                .accessibilityIdentifier("backup.restore")
-            } header: {
-                Text("Restore")
-            } footer: {
-                Text("Replaces all the data on this device with the backup. A copy of the current data is kept first.")
+            }
+        } else {
+            ThemedForm {
+                backUpSection { EmptyView() }
+                restoreSection { EmptyView() }
             }
         }
-        .disabled(model.state.isWorking)
-        .overlay { if model.state.isWorking { ProgressView() } }
-        .navigationTitle("Backup")
-        .navigationBarTitleDisplayMode(.inline)
-        .backupFlows(model: model)
-        .task { await model.observe() }
-        .task(id: router.incomingBackup) {
-            guard let url = router.incomingBackup else { return }
-            router.incomingBackup = nil
-            await model.open(url)
+    }
+
+    /// `first` (the Google Drive row) leads the section.
+    func backUpSection<First: View>(@ViewBuilder first: () -> First) -> some View {
+        Section {
+            first()
+            Label {
+                Text(model.lastBackupText)
+            } icon: {
+                Image(systemName: model.isDue ? "exclamationmark.triangle.fill" : "checkmark.circle")
+                    .foregroundStyle(model.isDue ? Color.orange : Color.secondary)
+            }
+            .accessibilityIdentifier("backup.last")
+            Button {
+                Task { await model.saveToFiles() }
+            } label: {
+                Label("Save backup to Files", systemImage: "folder")
+            }
+            .accessibilityIdentifier("backup.saveToFiles")
+            Button {
+                Task {
+                    guard let export = await model.prepareExport() else { return }
+                    SystemSheets.share([export.url]) { completed in
+                        Task { await model.exportFinished(completed: completed) }
+                    }
+                }
+            } label: {
+                Label("Share backup…", systemImage: "square.and.arrow.up")
+            }
+        } header: {
+            Text("Back up")
+        } footer: {
+            Text(model.isDue
+                 ? "You haven't backed up in a while. Save a backup somewhere other than this device."
+                 : "One file with your business, clients, items, invoices, quotes and payments. Keep it somewhere safe, such as iCloud Drive or your email.")
+        }
+    }
+
+    func restoreSection<Extra: View>(@ViewBuilder extra: () -> Extra) -> some View {
+        Section {
+            Button(role: .destructive) {
+                model.state.showsImporter = true
+            } label: {
+                Label("Restore from a backup…", systemImage: "clock.arrow.circlepath")
+            }
+            .accessibilityIdentifier("backup.restore")
+            extra()
+        } header: {
+            Text("Restore")
+        } footer: {
+            Text("Replaces all the data on this device with the backup. A copy of the current data is kept first.")
         }
     }
 }
