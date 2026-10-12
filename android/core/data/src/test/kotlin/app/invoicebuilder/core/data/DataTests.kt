@@ -189,6 +189,28 @@ class DataTests {
         }
     }
 
+    /** `spec/backup.md` §7.7: the Drive state lives in app_state, survives a restore and is deleted on disconnect. */
+    @Test
+    fun theCloudBackupStateRoundTripsAndSurvivesARestore() = runTest {
+        assertEquals(app.invoicebuilder.core.domain.backup.CloudBackupState(), store.backup.cloudBackupState())
+        assertEquals(null, store.backup.latestChangeAt())
+        val (_, device) = store.setUp()
+        val afterSetUp = store.backup.latestChangeAt()!!
+        val connected = app.invoicebuilder.core.domain.backup.CloudBackupState("owner@example.com", "folder-1", 5, 6,
+            app.invoicebuilder.core.domain.backup.CloudBackupError.QuotaExceeded)
+        store.backup.saveCloudBackupState(connected)
+        assertEquals(connected, store.backup.cloudBackupState())
+        assertEquals(connected, store.backup.observeCloudBackupState().first())
+
+        store.clients.delete("c1")
+        assertTrue(store.backup.latestChangeAt()!! > afterSetUp) // a tombstone bumps updated_at
+        store.backup.restore(store.backup.makeBackup(BackupFile.AppInfo("android", "test")), device)
+        assertEquals(connected, store.backup.cloudBackupState())
+
+        store.backup.saveCloudBackupState(app.invoicebuilder.core.domain.backup.CloudBackupState())
+        assertEquals(app.invoicebuilder.core.domain.backup.CloudBackupState(), store.backup.cloudBackupState())
+    }
+
     @Test
     fun theIosSampleBackupRestores() = runTest {
         val bytes = File(System.getProperty("spec.root"), "samples/backup-v1-sample.invoicebackup.json").readBytes()

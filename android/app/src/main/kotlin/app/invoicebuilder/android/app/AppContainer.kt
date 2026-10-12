@@ -85,7 +85,19 @@ class AppContainer(
     /** Long-lived work that must outlive a screen (≈ unstructured `Task`s on iOS). */
     val scope: CoroutineScope,
     val applicationID: String,
+    /** Automatic Google Drive backup (`spec/backup.md` §7); null unless the build has a Google OAuth client. */
+    val cloudBackup: app.invoicebuilder.core.domain.backup.CloudBackupDestination? = null,
+    /** The §7.7 state and the latest change (the backup service, which owns `app_state`). */
+    val cloudBackupState: app.invoicebuilder.core.domain.backup.CloudBackupStateStore,
+    private val appVersionName: String = "0",
 ) {
+    /** The runner for this device's automatic cloud backups, or null without a cloud. */
+    fun autoBackupRunner(deviceID: String): app.invoicebuilder.core.domain.backup.AutoBackupRunner? = cloudBackup?.let {
+        app.invoicebuilder.core.domain.backup.AutoBackupRunner(it, backup, cloudBackupState, time,
+            app.invoicebuilder.core.domain.backup.AutoBackupRunner.Device(deviceID, android.os.Build.MODEL,
+                app.invoicebuilder.core.domain.backup.BackupFile.AppInfo("android", appVersionName)))
+    }
+
     companion object {
         private val taxConfigs by lazy { TaxConfigStore.bundled() }
         private val reference by lazy { ReferenceData.bundled() }
@@ -101,7 +113,9 @@ class AppContainer(
             store: StoreClient = UnavailableStoreClient(),
             counterMirror: CounterMirror = MemoryCounterMirror(),
             deviceMarker: DeviceMarkerStore = InMemoryDeviceMarkerStore(),
+            cloudBackup: app.invoicebuilder.core.domain.backup.CloudBackupDestination? = null,
         ): AppContainer {
+            val backup = RoomBackupService(db, time, ids, snapshots, appVersion(context))
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
             val applicationID = context.packageName.removeSuffix(".debug")
             return AppContainer(
@@ -116,7 +130,7 @@ class AppContainer(
                 documentService = RoomDocumentService(db, time, ids, taxConfigs, reference.currencies),
                 payments = RoomPaymentRepository(db, time),
                 paymentService = RoomPaymentService(db, time, ids),
-                backup = RoomBackupService(db, time, ids, snapshots, appVersion(context)),
+                backup = backup,
                 numbering = RoomNumberingService(db, time, ids, taxConfigs),
                 entitlements = StoreEntitlementService(
                     StoreEntitlementService.productID(applicationID), store, RoomFreeTierRepository(db), counterMirror, scope,
@@ -129,6 +143,9 @@ class AppContainer(
                 cacheDirectory = context.cacheDir,
                 scope = scope,
                 applicationID = applicationID,
+                cloudBackup = cloudBackup,
+                cloudBackupState = backup,
+                appVersionName = appVersion(context),
             )
         }
 
@@ -140,11 +157,17 @@ class AppContainer(
             store = PlayBillingClient(context),
             counterMirror = BlockStoreCounterMirror(context),
             deviceMarker = FileDeviceMarkerStore(context.noBackupFilesDir),
+            cloudBackup = if (app.invoicebuilder.android.BuildConfig.GOOGLE_DRIVE_BACKUP) {
+                app.invoicebuilder.core.drive.GoogleDriveDestination(
+                    app.invoicebuilder.core.drive.GoogleAuth(context.applicationContext) { app.invoicebuilder.android.backup.ConsentLaunchers.current },
+                    app.invoicebuilder.core.drive.UrlConnectionTransport())
+            } else null,
         )
 
         /** An empty in-memory database (previews, tests, the demo business). */
-        fun inMemory(context: Context, time: TimeSource = TimeSource.system, ids: IDGenerator = IDGenerator.random): AppContainer =
-            make(context, AppDatabase.inMemory(context), time, ids)
+        fun inMemory(context: Context, time: TimeSource = TimeSource.system, ids: IDGenerator = IDGenerator.random,
+                     cloudBackup: app.invoicebuilder.core.domain.backup.CloudBackupDestination? = null): AppContainer =
+            make(context, AppDatabase.inMemory(context), time, ids, cloudBackup = cloudBackup)
 
         fun appVersion(context: Context): String = runCatching {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName

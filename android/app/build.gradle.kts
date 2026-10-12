@@ -17,6 +17,9 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Automatic Google Drive backup (spec/backup.md §7, ADR-0021) only in a build whose package and signing key
+        // have an Android OAuth client in the app's Google Cloud project: `./gradlew … -PgoogleDriveBackup=true`.
+        buildConfigField("boolean", "GOOGLE_DRIVE_BACKUP", (findProperty("googleDriveBackup") ?: "false").toString())
     }
 
     buildTypes {
@@ -36,7 +39,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
@@ -51,6 +57,7 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:pdf"))
     implementation(project(":core:billing"))
+    implementation(project(":core:drive"))
     implementation(project(":core:designsystem"))
 
     implementation(platform(libs.compose.bom))

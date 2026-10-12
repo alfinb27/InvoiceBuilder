@@ -60,7 +60,7 @@ class FixtureTests {
     companion object {
         val implementedKinds = mutableSetOf(
             "validation", "field", "input", "format", "numbering", "tax", "rounding", "distribute", "words", "status",
-            "upi", "reminder", "series", "billing", "document", "pdf", "backup",
+            "upi", "reminder", "series", "billing", "document", "pdf", "backup", "autobackup",
         )
         /** Kinds with no runner yet (none: every spec fixture kind runs on Android). */
         val pendingKinds = mutableSetOf<String>()
@@ -236,6 +236,30 @@ class FixtureTests {
             from = parseIsoDate(fixture.input["from"]!!.jsonPrimitive.content)!!,
         )
         expectFixture(fixture, obj("scheduled" to scheduled.map { mapOf("documentId" to it.documentId, "remindOn" to it.remindOn.toString()) }))
+    }
+
+    // backup.md §7
+    @TestFactory
+    fun autobackup() = cases("autobackup") { fixture ->
+        fun long(key: String) = fixture.input[key]?.jsonPrimitive?.long
+        val entries = fixture.input["entries"]?.jsonArray?.map { element ->
+            val entry = element.jsonObject
+            app.invoicebuilder.core.domain.backup.CloudBackupEntry(
+                entry["id"]!!.jsonPrimitive.content, entry["name"]!!.jsonPrimitive.content,
+                deviceID = entry["deviceId"]?.jsonPrimitive?.content, createdAt = entry["createdAt"]?.jsonPrimitive?.long,
+            )
+        } ?: emptyList()
+        val rules = app.invoicebuilder.core.domain.backup.AutoBackupRules
+        when (fixture.string("op")) {
+            "isDue" -> expectFixture(fixture, obj("due" to rules.isDue(long("lastBackupAt"), long("latestChangeAt"), long("lastAttemptAt"), long("now")!!)))
+            "target" -> when (val target = rules.target(entries, fixture.string("fileName"), fixture.string("deviceId"))) {
+                app.invoicebuilder.core.domain.backup.CloudBackupTarget.Create -> expectFixture(fixture, obj("action" to "create"))
+                is app.invoicebuilder.core.domain.backup.CloudBackupTarget.Update -> expectFixture(fixture, obj("action" to "update", "id" to target.id))
+            }
+            "filesToDelete" -> expectFixture(fixture, obj("delete" to rules.filesToDelete(entries, fixture.string("deviceId"), fixture.input["keep"]!!.jsonPrimitive.int)))
+            "newestFirst" -> expectFixture(fixture, obj("ids" to rules.newestFirst(entries).map { it.id }))
+            else -> error("${fixture.id}: unknown op")
+        }
     }
 
     // sync.md §3–4

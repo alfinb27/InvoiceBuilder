@@ -39,6 +39,7 @@ class OnboardingViewModel(
     appVersion: String,
     onRestored: suspend () -> Unit,
     private val onTryDemo: suspend (SampleData.Country) -> Unit,
+    autoBackup: app.invoicebuilder.core.domain.backup.AutoBackupRunner? = null,
     private val onFinished: (Business) -> Unit,
 ) {
     var showsWelcome by mutableStateOf(true)
@@ -64,6 +65,8 @@ class OnboardingViewModel(
 
     /** "Restore from a backup" instead of setting up (`spec/backup.md` §4). */
     val backup = BackupViewModel(container, deviceID, scope, appVersion, onRestored)
+    /** "Restore from Google Drive" (`spec/backup.md` §7.6), when this build has Drive backup. */
+    val drive = autoBackup?.let { app.invoicebuilder.android.backup.DriveBackupModel(it, container.cloudBackupState, container.time, scope) }
 
     /** IN → `IN.json`, GB → `GB.json`, anything else → `GENERIC.json`. */
     val config: TaxConfig?

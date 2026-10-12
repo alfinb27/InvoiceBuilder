@@ -100,6 +100,7 @@ fun OnboardingScreen(model: OnboardingViewModel) {
     }
     if (model.showsWelcome) {
         WelcomeScreen(model, onRestore = flows.pickFile)
+        model.drive?.let { app.invoicebuilder.android.backup.DriveRestoreFlow(it, model.backup) }
         return
     }
     BoxWithConstraints(Modifier.fillMaxSize().background(Theme.colors.background)) {
