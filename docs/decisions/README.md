@@ -17,11 +17,11 @@
 | [0013](ADR-0013-backup-restore-reminders.md) | Portable JSON backup; local reminders | Accepted |
 | [0014](ADR-0014-ipad-support.md) | Universal, adaptive iPad app | Accepted |
 | [0015](ADR-0015-icloud-sync.md) | SQLiteData sync on GRDB, device-owned series | Accepted in code (device run pending) |
+| [0016](ADR-0016-foldable-iphone-duo-support.md) | Fold-aware builder split on the iPhone Duo | Accepted in code (device run pending) |
 | [0017](ADR-0017-ios-release-and-lessons-for-android.md) | iOS 1.0 scope; lessons the Android port inherits | Accepted |
 | [0018](ADR-0018-android-ui-architecture.md) | Android UI as iOS: routers + snapshot state; compile/target SDK 37 | Accepted |
 | [0019](ADR-0019-device-identity-across-os-backups.md) | A device marker outside OS backups; a copied database takes a new device id | Accepted |
 | [0020](ADR-0020-friendly-first-run-and-visual-design.md) | Friendly first run (welcome, 3-stage setup, guided builder, Review & send) and the coral/peach theme with bundled UI fonts | Accepted |
-
 | [0021](ADR-0021-automatic-backup-to-google-drive.md) | Automatic backup to the user's own Google Drive (`drive.file`), restore on any phone; no server | Accepted |
 
 New decisions: copy [`TEMPLATE.md`](TEMPLATE.md) to the next number.
