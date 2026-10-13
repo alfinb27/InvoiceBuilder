@@ -7,6 +7,16 @@ import app.invoicebuilder.core.domain.backup.BackupFile
 import app.invoicebuilder.core.domain.backup.BackupStatus
 import app.invoicebuilder.core.domain.backup.CloudBackupState
 import app.invoicebuilder.core.domain.backup.CloudBackupStateStore
+import app.invoicebuilder.core.domain.backup.DriveSync
+import app.invoicebuilder.core.domain.backup.DriveSyncState
+import app.invoicebuilder.core.domain.backup.DriveSyncStore
+import app.invoicebuilder.core.domain.backup.wins
+import app.invoicebuilder.core.domain.documents.Document
+import app.invoicebuilder.core.domain.documents.Payment
+import app.invoicebuilder.core.domain.models.Asset
+import app.invoicebuilder.core.domain.models.Business
+import app.invoicebuilder.core.domain.models.CatalogItem
+import app.invoicebuilder.core.domain.models.Client
 import app.invoicebuilder.core.domain.billing.FreeTierCounts
 import app.invoicebuilder.core.domain.decimal.Outcome
 import app.invoicebuilder.core.domain.documents.DocumentLifecycle
@@ -35,7 +45,7 @@ class RoomBackupService(
     private val ids: IDGenerator,
     private val snapshots: BackupSnapshotStore,
     private val appVersion: String,
-) : BackupService, CloudBackupStateStore {
+) : BackupService, CloudBackupStateStore, DriveSyncStore {
     override val schemaVersion: Int = SpecMigrations.VERSION
 
     // Automatic cloud backup (§7)
@@ -52,6 +62,109 @@ class RoomBackupService(
             .map { rows -> CloudBackupState.fromRows(rows.associate { it.key to it.value }) }.distinctUntilChanged()
 
     override suspend fun latestChangeAt(): Long? = db.appState().latestChangeAt()
+
+    // Live sync through Google Drive (`spec/drive-sync.md`)
+
+    override suspend fun driveSyncState(): DriveSyncState =
+        DriveSyncState.fromRows(db.appState().entries(DriveSyncState.ROW_KEYS).associate { it.key to it.value })
+
+    override suspend fun saveDriveSyncState(state: DriveSyncState) = db.withTransaction { saveRows(state.rows) }
+
+    override fun observeDriveSyncState(): Flow<DriveSyncState> =
+        db.appState().observeEntries(DriveSyncState.ROW_KEYS)
+            .map { rows -> DriveSyncState.fromRows(rows.associate { it.key to it.value }) }.distinctUntilChanged()
+
+    override suspend fun changes(since: Long): BackupData = db.withTransaction {
+        val all = exportData()
+        BackupData(
+            businesses = all.businesses.filter { it.updatedAt >= since },
+            clients = all.clients.filter { it.updatedAt >= since },
+            catalogItems = all.catalogItems.filter { it.updatedAt >= since },
+            numberingSeries = all.numberingSeries.filter { it.updatedAt >= since },
+            documents = all.documents.filter { it.updatedAt >= since },
+            payments = all.payments.filter { it.updatedAt >= since },
+            assets = all.assets.filter { it.updatedAt >= since },
+        )
+    }
+
+    override suspend fun allRecords(): BackupData = db.withTransaction { exportData() }
+
+    override suspend fun merge(data: BackupData, state: DriveSyncState): Int {
+        val now = time.now()
+        return db.withTransaction {
+            val changed = mergeRecords(data, now)
+            saveRows(state.rows)
+            changed
+        }
+    }
+
+    private suspend fun saveRows(rows: Map<String, String?>) {
+        for ((key, value) in rows) if (value != null) db.appState().set(key, value) else db.appState().delete(key)
+    }
+
+    /** §5: each record replaces the local one when [DriveSync.wins]; a winning document replaces its lines and tax lines. */
+    private suspend fun mergeRecords(data: BackupData, now: Long): Int {
+        db.openHelper.writableDatabase.execSQL("PRAGMA defer_foreign_keys = ON")
+        var written = 0
+        for (row in data.businesses) {
+            val local = db.businesses().any(row.id)
+            if (DriveSync.wins(Business.serializer(), local?.toDomain(), row, "businesses")) {
+                if (local != null) db.businesses().update(row.toEntity()) else db.businesses().insert(row.toEntity()); written++
+            }
+        }
+        for (row in data.assets) {
+            val local = db.assets().any(row.id)
+            if (DriveSync.wins(Asset.serializer(), local?.toDomain(), row, "assets")) {
+                if (local != null) db.assets().update(row.toEntity()) else db.assets().insert(row.toEntity()); written++
+            }
+        }
+        for (row in data.clients) {
+            val local = db.clients().any(row.id)
+            if (DriveSync.wins(Client.serializer(), local?.toDomain(), row, "clients")) {
+                if (local != null) db.clients().update(row.toEntity()) else db.clients().insert(row.toEntity()); written++
+            }
+        }
+        for (row in data.catalogItems) {
+            val local = db.catalog().any(row.id)
+            if (DriveSync.wins(CatalogItem.serializer(), local?.toDomain(), row, "catalogItems")) {
+                if (local != null) db.catalog().update(row.toEntity()) else db.catalog().insert(row.toEntity()); written++
+            }
+        }
+        for (row in data.numberingSeries) {
+            val local = db.series().any(row.id)
+            if (DriveSync.wins(NumberingSeries.serializer(), local?.toDomain(), row, "numberingSeries")) {
+                if (local != null) db.series().update(row.toEntity()) else db.series().insert(row.toEntity()); written++
+            }
+        }
+        val sql = db.openHelper.writableDatabase
+        for (document in data.documents) {
+            val local = db.documents().any(document.id)
+            val localDocument = local?.toDomain(db.documents().liveLines(document.id).map { it.toDomain() })
+            if (!DriveSync.wins(Document.serializer(), localDocument, document, "documents")) continue
+            if (local != null) db.documents().update(document.toEntity()) else db.documents().insert(document.toEntity())
+            for (line in document.lines) {
+                val entity = line.toEntity(document.id, document.updatedAt, document.updatedAt)
+                if (db.documents().anyLine(line.id) != null) db.documents().updateLine(entity) else db.documents().insertLine(entity)
+            }
+            val kept = document.lines.map { it.id }.toSet()
+            for (stale in db.documents().liveLines(document.id)) if (stale.id !in kept) {
+                sql.execSQL("UPDATE line_item SET deleted_at = ?, updated_at = ? WHERE id = ?", arrayOf<Any>(now, now, stale.id))
+            }
+            sql.execSQL("UPDATE tax_line SET deleted_at = ?, updated_at = ? WHERE document_id = ? AND deleted_at IS NULL",
+                arrayOf<Any>(now, now, document.id))
+            for (taxLine in document.computed?.taxLines ?: emptyList()) {
+                db.documents().insertTaxLine(taxLineEntity(ids.make(), document.id, taxLine, now))
+            }
+            written++
+        }
+        for (row in data.payments) {
+            val local = db.payments().any(row.id)
+            if (DriveSync.wins(Payment.serializer(), local?.toDomain(), row, "payments")) {
+                if (local != null) db.payments().update(row.toEntity()) else db.payments().insert(row.toEntity()); written++
+            }
+        }
+        return written
+    }
 
     override suspend fun makeBackup(app: BackupFile.AppInfo): BackupFile {
         val now = time.now()

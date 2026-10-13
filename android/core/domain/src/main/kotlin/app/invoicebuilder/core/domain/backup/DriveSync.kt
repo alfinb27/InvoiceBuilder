@@ -33,6 +33,13 @@ data class DriveSyncEntry(
     }
 }
 
+/** §5 for typed records: encodes both with the backup encoding first. */
+fun <T> DriveSync.wins(serializer: kotlinx.serialization.KSerializer<T>, local: T?, incoming: T, collection: String): Boolean {
+    val json = app.invoicebuilder.core.domain.support.SpecJson
+    return wins(local?.let { json.encodeToJsonElement(serializer, it) as JsonObject },
+        json.encodeToJsonElement(serializer, incoming) as JsonObject, collection)
+}
+
 /** The pure rules of live sync through Google Drive (`spec/drive-sync.md`; fixtures kind `drivesync`). iOS: `DriveSync`. */
 object DriveSync {
     /** §8: own change files older than this, and covered by the snapshot, may go. */

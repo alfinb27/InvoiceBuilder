@@ -3,6 +3,7 @@ package app.invoicebuilder.core.drive
 import app.invoicebuilder.core.domain.backup.CloudBackupError
 import app.invoicebuilder.core.domain.backup.CloudBackupException
 import app.invoicebuilder.core.domain.backup.CloudBackupTarget
+import app.invoicebuilder.core.domain.backup.DriveSyncEntry
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -140,5 +141,25 @@ class GoogleDriveTests {
     fun aRevokedGrantIsSignedOut() {
         assertEquals(CloudBackupError.SignedOut, GoogleError.map(400, """{"error":"invalid_grant"}""".toByteArray()))
         assertEquals(CloudBackupError.Other, GoogleError.map(500, ByteArray(0)))
+    }
+
+    @Test
+    fun theSyncFolderIsItsOwnAndItsFilesAreTagged() = runTest {
+        val http = FakeHttp { request ->
+            val q = query(request)["q"] ?: ""
+            if (q.contains("mimeType")) {
+                assertTrue(q.contains("name = 'InvoiceBuilder sync'"))
+                json("""{"files":[{"id":"sync-1"}]}""")
+            } else {
+                assertEquals("'sync-1' in parents and trashed = false", q)
+                json("""{"files":[{"id":"c1","name":"changes-dev-a-00000001.json","appProperties":{"ibKind":"changes",
+                    "ibDeviceId":"dev-a","ibSeq":"1","ibCreatedAt":"5"}},{"id":"x","name":"notes.txt"}]}""")
+            }
+        }
+        val drive = GoogleDriveDestination(FakeAuth(), http)
+        val folder = drive.syncFolder(null)
+        assertEquals("sync-1", folder)
+        assertEquals(listOf(DriveSyncEntry("c1", DriveSyncEntry.Kind.Changes, "dev-a", 1, 5), DriveSyncEntry("x", null, null)),
+            drive.syncEntries(folder))
     }
 }

@@ -5,6 +5,8 @@ import app.invoicebuilder.core.domain.backup.CloudBackupEntry
 import app.invoicebuilder.core.domain.backup.CloudBackupError
 import app.invoicebuilder.core.domain.backup.CloudBackupException
 import app.invoicebuilder.core.domain.backup.CloudBackupTarget
+import app.invoicebuilder.core.domain.backup.DriveSyncDestination
+import app.invoicebuilder.core.domain.backup.DriveSyncEntry
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -30,14 +32,16 @@ interface DriveAuth {
 }
 
 /**
- * Backups in a visible "InvoiceBuilder backups" folder of the user's Google Drive (`spec/backup.md` §7), through
- * Drive REST v3 with the `drive.file` scope: the app sees only the files it created. iOS: `GoogleDriveDestination`.
+ * Backups in a visible "InvoiceBuilder backups" folder of the user's Google Drive (`spec/backup.md` §7), and sync files
+ * in "InvoiceBuilder sync" (`spec/drive-sync.md` §3), through Drive REST v3 with the `drive.file` scope: the app sees
+ * only the files it created. iOS: `GoogleDriveDestination`.
  */
-class GoogleDriveDestination(private val auth: DriveAuth, private val http: HttpTransport) : CloudBackupDestination {
+class GoogleDriveDestination(private val auth: DriveAuth, private val http: HttpTransport) : CloudBackupDestination, DriveSyncDestination {
     companion object {
         const val API = "https://www.googleapis.com/drive/v3/"
         const val UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/"
         const val FOLDER_NAME = "InvoiceBuilder backups"
+        const val SYNC_FOLDER_NAME = "InvoiceBuilder sync"
         const val FOLDER_TYPE = "application/vnd.google-apps.folder"
         const val FILE_TYPE = "application/json"
     }
@@ -54,7 +58,14 @@ class GoogleDriveDestination(private val auth: DriveAuth, private val http: Http
 
     override suspend fun disconnect() = auth.signOut()
 
-    override suspend fun folder(knownID: String?): String {
+    override suspend fun folder(knownID: String?): String = folder(FOLDER_NAME, knownID)
+
+    override suspend fun syncFolder(knownID: String?): String = folder(SYNC_FOLDER_NAME, knownID)
+
+    override suspend fun syncEntries(folderID: String): List<DriveSyncEntry> =
+        files(folderID).map { (id, _, properties) -> DriveSyncEntry.of(id, properties) }
+
+    private suspend fun folder(name: String, knownID: String?): String {
         if (knownID != null) {
             try {
                 val meta = json(get("files/$knownID", mapOf("fields" to "id,trashed")))
@@ -62,11 +73,11 @@ class GoogleDriveDestination(private val auth: DriveAuth, private val http: Http
             } catch (_: NotFound) {
             }
         }
-        val query = "mimeType = '$FOLDER_TYPE' and name = '$FOLDER_NAME' and trashed = false and 'root' in parents"
+        val query = "mimeType = '$FOLDER_TYPE' and name = '$name' and trashed = false and 'root' in parents"
         val found = json(get("files", mapOf("q" to query, "orderBy" to "createdTime", "fields" to "files(id)", "spaces" to "drive")))
         found["files"]?.jsonArray?.firstOrNull()?.let { return it.jsonObject["id"]!!.jsonPrimitive.content }
         val body = buildJsonObject {
-            put("name", FOLDER_NAME)
+            put("name", name)
             put("mimeType", FOLDER_TYPE)
             putJsonArray("parents") { add(JsonPrimitive("root")) }
         }
@@ -75,8 +86,12 @@ class GoogleDriveDestination(private val auth: DriveAuth, private val http: Http
         return created["id"]!!.jsonPrimitive.content
     }
 
-    override suspend fun list(folderID: String): List<CloudBackupEntry> {
-        val entries = mutableListOf<CloudBackupEntry>()
+    override suspend fun list(folderID: String): List<CloudBackupEntry> =
+        files(folderID).map { (id, name, properties) -> CloudBackupEntry.of(id, name, properties) }
+
+    /** Every file in the folder: id, name, appProperties. */
+    private suspend fun files(folderID: String): List<Triple<String, String, Map<String, String>>> {
+        val entries = mutableListOf<Triple<String, String, Map<String, String>>>()
         var pageToken: String? = null
         do {
             val query = mutableMapOf("q" to "'$folderID' in parents and trashed = false", "pageSize" to "200", "spaces" to "drive",
@@ -86,7 +101,7 @@ class GoogleDriveDestination(private val auth: DriveAuth, private val http: Http
             page["files"]?.jsonArray?.forEach { element ->
                 val file = element.jsonObject
                 val properties = file["appProperties"]?.jsonObject?.mapValues { it.value.jsonPrimitive.content } ?: emptyMap()
-                entries += CloudBackupEntry.of(file["id"]!!.jsonPrimitive.content, file["name"]?.jsonPrimitive?.contentOrNull ?: "", properties)
+                entries += Triple(file["id"]!!.jsonPrimitive.content, file["name"]?.jsonPrimitive?.contentOrNull ?: "", properties)
             }
             pageToken = page["nextPageToken"]?.jsonPrimitive?.contentOrNull
         } while (pageToken != null)
