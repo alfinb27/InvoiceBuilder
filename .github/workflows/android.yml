@@ -1,21 +1,27 @@
 name: android
 
-# The Android port (Phase 7). Runs on Ubuntu (cheap minutes): every spec fixture against :core:domain on the JVM,
-# the other modules' unit tests, Android Lint and the R8 release build; then, on an emulator, the PDF renderer and the
-# app's UI smoke tests.
+# The Android port (Phase 7), on Ubuntu (1x minutes): every spec fixture against :core:domain on the JVM, the other
+# modules' unit tests, Android Lint and the R8 release build, on pull requests (~6 minutes). The emulator tests (PDF
+# renderer, UI smoke tests; ~7 minutes) run on demand — Actions → android → Run workflow — or on a pull request
+# labelled `device-test`; locally: `make test-device-android`.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "android/**"
-      - "spec/**"
-      - ".github/workflows/android.yml"
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - "android/**"
       - "spec/**"
       - ".github/workflows/android.yml"
   workflow_dispatch:
+    inputs:
+      device:
+        description: "Also run the emulator tests (PDF renderer, UI smoke tests)"
+        type: boolean
+        default: true
+
+# A newer push to the same branch cancels the run in progress (no minutes spent on superseded commits).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -39,6 +45,9 @@ jobs:
 
   device:
     needs: test
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.device) ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'device-test'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -64,3 +73,13 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           working-directory: android
           script: ./gradlew :core:pdf:connectedDebugAndroidTest :app:connectedDebugAndroidTest --console=plain
+      # Name the failing test instead of guessing: the Gradle log only says "There were failing tests".
+      - name: Keep the device test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-device-tests
+          path: |
+            android/app/build/reports/androidTests
+            android/core/pdf/build/reports/androidTests
+          retention-days: 7

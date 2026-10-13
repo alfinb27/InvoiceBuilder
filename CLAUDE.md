@@ -53,6 +53,11 @@ make validate-spec    # schemas (strict), configs, fixtures, samples, DB schema 
 
 Platform commands live in `ios/CLAUDE.md` and `android/CLAUDE.md`.
 
+**CI is kept inside the free private-repo Actions allowance** (2,000 minutes/month; macOS counts 10x). Pull requests
+run only the Linux jobs: spec validation and the Android JVM tests. Nothing runs on pushes to `main`. iOS CI and the
+Android emulator tests run on demand (Actions → Run workflow, or the `device-test` PR label). So run them locally
+before pushing: `make check-ios` for iOS changes, `make test-device-android` (emulator running) for Android UI changes.
+
 ## Working on fixtures
 
 - A fixture is the answer key for both platforms. Expected values must be derived from `ENGINE.md` and the

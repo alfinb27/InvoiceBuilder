@@ -1,16 +1,7 @@
 name: spec
 
-# Runs when the spec changes, and whenever an app core module changes (its bundled spec copy must stay in sync).
+# Pull requests only (main gets the same commits through them), on Linux: ~1 minute. Runs when the spec changes, and whenever an app core module changes (its bundled spec copy must stay in sync).
 on:
-  push:
-    branches: [main]
-    paths:
-      - "spec/**"
-      - "ios/Packages/InvoiceCore/**"
-      - "ios/Packages/InvoiceData/**"
-      - "android/core/domain/**"
-      - ".github/workflows/spec.yml"
-      - "Makefile"
   pull_request:
     paths:
       - "spec/**"
@@ -20,6 +11,11 @@ on:
       - ".github/workflows/spec.yml"
       - "Makefile"
   workflow_dispatch:
+
+# A newer push to the same branch cancels the run in progress (no minutes spent on superseded commits).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
