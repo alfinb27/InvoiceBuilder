@@ -73,3 +73,13 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           working-directory: android
           script: ./gradlew :core:pdf:connectedDebugAndroidTest :app:connectedDebugAndroidTest --console=plain
+      # Name the failing test instead of guessing: the Gradle log only says "There were failing tests".
+      - name: Keep the device test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-device-tests
+          path: |
+            android/app/build/reports/androidTests
+            android/core/pdf/build/reports/androidTests
+          retention-days: 7
