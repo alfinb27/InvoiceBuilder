@@ -1,6 +1,7 @@
 # iCloud sync between Apple devices (v0)
 
 Normative for iOS/iPadOS sync (ADR-0015, `docs/plan.md` Phase 4b). Android has no sync in v1: its schema carries
+Live sync between iOS and Android through Google Drive is `drive-sync.md` (ADR-0022); a device uses one or the other.
 the same sync-safe columns, unused. The device-owned numbering rules (§3) and the duplicate-number check (§4) are
 pure functions both platforms implement (Android uses them when a restored backup brings in another device's
 series); they are proven by `fixtures/series/*.json` (kind `series`).

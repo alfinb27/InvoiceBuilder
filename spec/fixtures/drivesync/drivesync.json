@@ -1,0 +1,659 @@
+{
+  "$schema": "../../schema/fixtures.schema.json",
+  "kind": "drivesync",
+  "description": "Live sync through Google Drive (drive-sync.md): which record wins a merge, which files a pull reads, which own files compaction deletes.",
+  "cases": [
+    {
+      "id": "drivesync-wins-new-row",
+      "description": "No local record: the incoming record is written.",
+      "input": {
+        "op": "wins",
+        "incoming": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": true
+      }
+    },
+    {
+      "id": "drivesync-wins-newer-wins",
+      "description": "Incoming updated later: it wins.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "c1",
+          "name": "Bina",
+          "updatedAt": 200
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": true
+      }
+    },
+    {
+      "id": "drivesync-wins-older-loses",
+      "description": "Incoming updated earlier: the local record stays.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 200
+        },
+        "incoming": {
+          "id": "c1",
+          "name": "Bina",
+          "updatedAt": 100
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": false
+      }
+    },
+    {
+      "id": "drivesync-wins-tie-tombstone-wins",
+      "description": "Same updatedAt, incoming is a tombstone: the delete wins.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100,
+          "deletedAt": 100
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": true
+      }
+    },
+    {
+      "id": "drivesync-wins-tie-local-tombstone-stays",
+      "description": "Same updatedAt, local is a tombstone: the live incoming record loses.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100,
+          "deletedAt": 100
+        },
+        "incoming": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": false
+      }
+    },
+    {
+      "id": "drivesync-wins-tie-greater-text-wins",
+      "description": "Same updatedAt, both live: canonical text {\"id\":\"c1\",\"name\":\"Bina\",\"updatedAt\":100} is greater than {\"id\":\"c1\",\"name\":\"Asha\",\"updatedAt\":100}: incoming wins.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "c1",
+          "name": "Bina",
+          "updatedAt": 100
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": true
+      }
+    },
+    {
+      "id": "drivesync-wins-tie-lesser-text-loses",
+      "description": "The same pair the other way round: the local record stays, so both devices converge on \"Bina\".",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "c1",
+          "name": "Bina",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": false
+      }
+    },
+    {
+      "id": "drivesync-wins-identical-no-change",
+      "description": "Identical records: no change.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "c1",
+          "name": "Asha",
+          "updatedAt": 100
+        },
+        "collection": "clients"
+      },
+      "expected": {
+        "wins": false
+      }
+    },
+    {
+      "id": "drivesync-wins-issued-beats-newer-draft",
+      "description": "Local issued, incoming draft edited later on a device that had not seen the issue: issued stays.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "d1",
+          "lifecycle": "issued",
+          "number": "INV/26-27/0042",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "d1",
+          "lifecycle": "draft",
+          "updatedAt": 200
+        },
+        "collection": "documents"
+      },
+      "expected": {
+        "wins": false
+      }
+    },
+    {
+      "id": "drivesync-wins-issued-beats-older-draft",
+      "description": "Local draft, incoming issued earlier than the local draft edit: issued wins (the mirror of the case above).",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "d1",
+          "lifecycle": "draft",
+          "updatedAt": 200
+        },
+        "incoming": {
+          "id": "d1",
+          "lifecycle": "issued",
+          "number": "INV/26-27/0042",
+          "updatedAt": 100
+        },
+        "collection": "documents"
+      },
+      "expected": {
+        "wins": true
+      }
+    },
+    {
+      "id": "drivesync-wins-void-beats-issued",
+      "description": "Local void, incoming issued and newer: void stays.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "d1",
+          "lifecycle": "void",
+          "number": "INV/26-27/0042",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "d1",
+          "lifecycle": "issued",
+          "number": "INV/26-27/0042",
+          "updatedAt": 300
+        },
+        "collection": "documents"
+      },
+      "expected": {
+        "wins": false
+      }
+    },
+    {
+      "id": "drivesync-wins-issued-beats-deleted-draft",
+      "description": "Local draft tombstoned, incoming issued earlier: the issued document wins and is live.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "d1",
+          "lifecycle": "draft",
+          "updatedAt": 200,
+          "deletedAt": 200
+        },
+        "incoming": {
+          "id": "d1",
+          "lifecycle": "issued",
+          "number": "INV/26-27/0042",
+          "updatedAt": 100
+        },
+        "collection": "documents"
+      },
+      "expected": {
+        "wins": true
+      }
+    },
+    {
+      "id": "drivesync-wins-same-lifecycle-newer-wins",
+      "description": "Both issued: updatedAt decides as for other tables.",
+      "input": {
+        "op": "wins",
+        "local": {
+          "id": "d1",
+          "lifecycle": "issued",
+          "number": "INV/26-27/0042",
+          "updatedAt": 100
+        },
+        "incoming": {
+          "id": "d1",
+          "lifecycle": "issued",
+          "number": "INV/26-27/0042",
+          "updatedAt": 200
+        },
+        "collection": "documents"
+      },
+      "expected": {
+        "wins": true
+      }
+    },
+    {
+      "id": "drivesync-read-nothing-new",
+      "description": "Everything already seen: nothing to read.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "a",
+        "seen": {
+          "b": 2
+        },
+        "entries": [
+          {
+            "id": "b1",
+            "kind": "changes",
+            "deviceId": "b",
+            "seq": 1
+          },
+          {
+            "id": "b2",
+            "kind": "changes",
+            "deviceId": "b",
+            "seq": 2
+          }
+        ]
+      },
+      "expected": {
+        "ids": []
+      }
+    },
+    {
+      "id": "drivesync-read-in-device-then-seq-order",
+      "description": "Two other devices: by device id, then seq; own files skipped.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "b",
+        "seen": {
+          "a": 1
+        },
+        "entries": [
+          {
+            "id": "c1",
+            "kind": "changes",
+            "deviceId": "c",
+            "seq": 1
+          },
+          {
+            "id": "a3",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 3
+          },
+          {
+            "id": "a2",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 2
+          },
+          {
+            "id": "b5",
+            "kind": "changes",
+            "deviceId": "b",
+            "seq": 5
+          },
+          {
+            "id": "a1",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 1
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "a2",
+          "a3",
+          "c1"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-read-stops-at-gap",
+      "description": "Device a's seq 3 isn't visible yet: read 2, stop before 4.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "b",
+        "seen": {
+          "a": 1
+        },
+        "entries": [
+          {
+            "id": "a2",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 2
+          },
+          {
+            "id": "a4",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 4
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "a2"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-read-snapshot-when-pruned",
+      "description": "Device a's files 1–200 were deleted; only 201 onwards and its snapshot remain: read the snapshot alone.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "b",
+        "seen": {},
+        "entries": [
+          {
+            "id": "sa",
+            "kind": "snapshot",
+            "deviceId": "a"
+          },
+          {
+            "id": "a201",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 201
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "sa"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-read-snapshot-only",
+      "description": "Device a has only a snapshot: read it.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "b",
+        "seen": {},
+        "entries": [
+          {
+            "id": "sa",
+            "kind": "snapshot",
+            "deviceId": "a"
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "sa"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-read-snapshot-lowest-device-first",
+      "description": "Two devices need catching up: the lower device id's snapshot first.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "b",
+        "seen": {},
+        "entries": [
+          {
+            "id": "sc",
+            "kind": "snapshot",
+            "deviceId": "c"
+          },
+          {
+            "id": "sa",
+            "kind": "snapshot",
+            "deviceId": "a"
+          },
+          {
+            "id": "c9",
+            "kind": "changes",
+            "deviceId": "c",
+            "seq": 9
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "sa"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-read-snapshot-ignored-when-up-to-date",
+      "description": "A snapshot exists but the next change file is there: read changes, not the snapshot.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "b",
+        "seen": {
+          "a": 200
+        },
+        "entries": [
+          {
+            "id": "sa",
+            "kind": "snapshot",
+            "deviceId": "a"
+          },
+          {
+            "id": "a201",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 201
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "a201"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-read-ignores-untagged",
+      "description": "Files without ibKind are ignored.",
+      "input": {
+        "op": "toRead",
+        "thisDevice": "b",
+        "seen": {},
+        "entries": [
+          {
+            "id": "x",
+            "deviceId": "a"
+          },
+          {
+            "id": "a1",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 1
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "a1"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-prune-covered-and-old",
+      "description": "Own files covered by the snapshot and over 30 days old go; a newer covered one and an uncovered one stay.",
+      "input": {
+        "op": "filesToDelete",
+        "thisDevice": "a",
+        "now": 1791600000000,
+        "snapshotCovers": 3,
+        "entries": [
+          {
+            "id": "a1",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 1,
+            "createdAt": 1789007999998
+          },
+          {
+            "id": "a2",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 2,
+            "createdAt": 1789007999999
+          },
+          {
+            "id": "a3",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 3,
+            "createdAt": 1789008000001
+          },
+          {
+            "id": "a4",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 4,
+            "createdAt": 1786416000000
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "a1",
+          "a2"
+        ]
+      }
+    },
+    {
+      "id": "drivesync-prune-exactly-30-days-stays",
+      "description": "Created exactly 30 days ago: kept (more than 30 days is required).",
+      "input": {
+        "op": "filesToDelete",
+        "thisDevice": "a",
+        "now": 1791600000000,
+        "snapshotCovers": 1,
+        "entries": [
+          {
+            "id": "a1",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 1,
+            "createdAt": 1789008000000
+          }
+        ]
+      },
+      "expected": {
+        "ids": []
+      }
+    },
+    {
+      "id": "drivesync-prune-no-snapshot",
+      "description": "No snapshot yet: nothing is deleted.",
+      "input": {
+        "op": "filesToDelete",
+        "thisDevice": "a",
+        "now": 1791600000000,
+        "entries": [
+          {
+            "id": "a1",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 1,
+            "createdAt": 1786416000000
+          }
+        ]
+      },
+      "expected": {
+        "ids": []
+      }
+    },
+    {
+      "id": "drivesync-prune-never-others-or-untagged",
+      "description": "Other devices' files, snapshots and untagged files are never deleted.",
+      "input": {
+        "op": "filesToDelete",
+        "thisDevice": "a",
+        "now": 1791600000000,
+        "snapshotCovers": 9,
+        "entries": [
+          {
+            "id": "b1",
+            "kind": "changes",
+            "deviceId": "b",
+            "seq": 1,
+            "createdAt": 1786416000000
+          },
+          {
+            "id": "sa",
+            "kind": "snapshot",
+            "deviceId": "a",
+            "createdAt": 1786416000000
+          },
+          {
+            "id": "x",
+            "deviceId": "a",
+            "createdAt": 1786416000000
+          },
+          {
+            "id": "a1",
+            "kind": "changes",
+            "deviceId": "a",
+            "seq": 1,
+            "createdAt": 1786416000000
+          }
+        ]
+      },
+      "expected": {
+        "ids": [
+          "a1"
+        ]
+      }
+    }
+  ]
+}

@@ -23,5 +23,6 @@
 | [0019](ADR-0019-device-identity-across-os-backups.md) | A device marker outside OS backups; a copied database takes a new device id | Accepted |
 | [0020](ADR-0020-friendly-first-run-and-visual-design.md) | Friendly first run (welcome, 3-stage setup, guided builder, Review & send) and the coral/peach theme with bundled UI fonts | Accepted |
 | [0021](ADR-0021-automatic-backup-to-google-drive.md) | Automatic backup to the user's own Google Drive (`drive.file`), restore on any phone; no server | Accepted |
+| [0022](ADR-0022-live-sync-through-google-drive.md) | Live sync through the user's Google Drive across iOS and Android; one sync method per device | Proposed |
 
 New decisions: copy [`TEMPLATE.md`](TEMPLATE.md) to the next number.
