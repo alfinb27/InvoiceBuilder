@@ -125,6 +125,8 @@ public protocol DriveSyncStore: Sendable {
     func driveSyncState() async throws -> DriveSyncState
     func saveDriveSyncState(_ state: DriveSyncState) async throws
     func observeDriveSyncState() -> AsyncThrowingStream<DriveSyncState, any Error>
+    /// The highest `updated_at` over the synced tables, each time it changes (§4: a push follows a local write).
+    func observeLatestChange() -> AsyncThrowingStream<Int64?, any Error>
     /// §4: every record with `updatedAt >= since`, tombstones included (a document with its live lines).
     func changes(since: Int64) async throws -> BackupData
     /// Every record, for a snapshot.

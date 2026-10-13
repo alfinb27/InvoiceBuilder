@@ -18,6 +18,10 @@ public final class AppModel {
     public private(set) var phase: Phase = .loading
     /// Automatic Google Drive backup for this device (`spec/backup.md` §7); nil without Drive in this build.
     public private(set) var autoBackup: AutoBackupRunner?
+    /// Live sync through Google Drive (`spec/drive-sync.md`); nil without Drive in this build.
+    public private(set) var driveSync: DriveSyncEngine?
+    /// The push that follows a local write by 5 s (`spec/drive-sync.md` §4).
+    private var pendingPush: Task<Void, Never>?
     private let dependencies: AppDependencies?
     private let seed: SampleData.Country?
     private var skipICloudCheck = false
@@ -63,6 +67,7 @@ public final class AppModel {
             if autoBackup == nil {
                 autoBackup = dependencies.autoBackupRunner(deviceID: device.id, appVersion: AppInfo.version)
             }
+            if driveSync == nil { driveSync = dependencies.driveSyncEngine(deviceID: device.id) }
             // Never wait for the store at launch: offline, the price lookup waits for a network timeout. Until it
             // answers the state is `unknown`, which still lets anyone under the free limit issue (`spec/billing.md`).
             let entitlements = dependencies.entitlements
@@ -79,7 +84,7 @@ public final class AppModel {
                     dependencies: dependencies, deviceID: deviceID,
                     onRestored: { [weak self] in await self?.reload() },
                     onTryDemo: { [weak self] country in await self?.startDemo(country) },
-                    autoBackup: autoBackup,
+                    autoBackup: autoBackup, driveSync: driveSync,
                     onFinished: { [weak self] in self?.finishOnboarding(with: $0, deviceID: deviceID) }))
             }
         } catch {
@@ -165,6 +170,7 @@ public final class AppModel {
         let session = try Session(dependencies: dependencies, business: business, deviceID: deviceID)
         session.reloadApp = { [weak self] in await self?.reload() }
         session.autoBackup = autoBackup
+        session.driveSync = driveSync
         return session
     }
 
@@ -179,5 +185,67 @@ public final class AppModel {
             autoBackup = dependencies.autoBackupRunner(deviceID: device.id, appVersion: AppInfo.version)
         }
         _ = try? await autoBackup?.backUpIfDue() // the result is in the state; the next trigger tries again
+    }
+
+    // MARK: Live sync through Google Drive (spec/drive-sync.md §4, §6)
+
+    /// One pull and push when Drive sync is on. Works in a background launch too.
+    func syncDrive() async {
+        guard let dependencies, dependencies.cloudBackup != nil else { return }
+        if driveSync == nil, let device = try? await dependencies.deviceState.loadOrCreate(deviceName: UIDevice.current.name) {
+            driveSync = dependencies.driveSyncEngine(deviceID: device.id)
+        }
+        guard let driveSync, let state = try? await dependencies.driveSyncStore.driveSyncState(), state.isConnected,
+              state.lastError != .signedOut else { return }
+        guard let changed = try? await driveSync.syncNow(), changed > 0 else { return }
+        await driveSyncMerged()
+    }
+
+    /// `sync.md` §5 after a pull that changed records: reminders for the open business, or the app reloads when
+    /// a business arrived during onboarding.
+    func driveSyncMerged() async {
+        switch phase {
+        case .ready(let session): await session.reconcileReminders()
+        case .onboarding:
+            if let businesses = try? await dependencies?.businesses.fetchBusinesses(), !businesses.isEmpty {
+                await reload()
+            }
+        case .loading, .checkingICloud, .failed: break
+        }
+    }
+
+    /// While the app is in front: a sync now, then every 60 s and 5 s after each local write. Ends when the task
+    /// is cancelled (the app left the foreground).
+    func syncDriveWhileActive() async {
+        guard let dependencies, dependencies.cloudBackup != nil else { return }
+        await syncDrive()
+        let store = dependencies.driveSyncStore
+        let poll = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                if Task.isCancelled { break }
+                await self.syncDrive()
+            }
+        }
+        let watch = Task { @MainActor in
+            var first = true
+            do {
+                for try await _ in store.observeLatestChange() {
+                    if first { first = false; continue }
+                    self.pendingPush?.cancel()
+                    self.pendingPush = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(5))
+                        if !Task.isCancelled { await self.syncDrive() }
+                    }
+                }
+            } catch {}
+        }
+        await withTaskCancellationHandler {
+            while !Task.isCancelled { try? await Task.sleep(for: .seconds(3600)) }
+        } onCancel: {
+            poll.cancel()
+            watch.cancel()
+        }
+        pendingPush?.cancel()
     }
 }

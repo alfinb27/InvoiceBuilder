@@ -34,13 +34,15 @@ public final class OnboardingViewModel {
     let backup: BackupViewModel
     /// "Restore from Google Drive" (`spec/backup.md` §7.6), when this build has Drive backup.
     let drive: DriveBackupModel?
+    /// "Sync with Google Drive" (`spec/drive-sync.md` §7): join the phones already syncing.
+    let driveSync: DriveSyncModel?
     /// "Try it with a sample business": explore a seeded business that is never saved.
     let tryDemo: @MainActor (SampleData.Country) async -> Void
 
     public init(dependencies: AppDependencies, deviceID: String,
                 onRestored: @escaping @MainActor () async -> Void = {},
                 onTryDemo: @escaping @MainActor (SampleData.Country) async -> Void = { _ in },
-                autoBackup: AutoBackupRunner? = nil,
+                autoBackup: AutoBackupRunner? = nil, driveSync: DriveSyncEngine? = nil,
                 onFinished: @escaping @MainActor (Business) -> Void) {
         self.dependencies = dependencies
         self.deviceID = deviceID
@@ -49,6 +51,10 @@ public final class OnboardingViewModel {
         backup = BackupViewModel(dependencies: dependencies, deviceID: deviceID, onRestored: onRestored)
         drive = autoBackup.map {
             DriveBackupModel(runner: $0, store: dependencies.cloudBackupState, time: dependencies.time)
+        }
+        self.driveSync = driveSync.map {
+            DriveSyncModel(engine: $0, store: dependencies.driveSyncStore, iCloud: dependencies.sync,
+                           autoBackup: autoBackup, time: dependencies.time, onMerged: { _ in await onRestored() })
         }
     }
 

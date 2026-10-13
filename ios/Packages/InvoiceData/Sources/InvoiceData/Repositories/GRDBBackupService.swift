@@ -187,10 +187,14 @@ extension GRDBBackupService: CloudBackupStateStore {
     }
 
     public func latestChangeAt() async throws -> Int64? {
-        let sql = "SELECT MAX(changed) FROM ("
-            + Self.changeTables.map { "SELECT MAX(updated_at) AS changed FROM \($0)" }.joined(separator: " UNION ALL ")
-            + ")"
+        let sql = Self.latestChangeSQL
         return try await database.writer.read { db in try Int64.fetchOne(db, sql: sql) }
+    }
+
+    static var latestChangeSQL: String {
+        "SELECT MAX(changed) FROM ("
+            + changeTables.map { "SELECT MAX(updated_at) AS changed FROM \($0)" }.joined(separator: " UNION ALL ")
+            + ")"
     }
 
     static func cloudState(_ db: Database) throws -> CloudBackupState {
@@ -269,6 +273,11 @@ extension GRDBBackupService: DriveSyncStore {
 
     public func observeDriveSyncState() -> AsyncThrowingStream<DriveSyncState, any Error> {
         database.observe { db in try Self.syncState(db) }
+    }
+
+    public func observeLatestChange() -> AsyncThrowingStream<Int64?, any Error> {
+        let sql = Self.latestChangeSQL
+        return database.observe { db in try Int64.fetchOne(db, sql: sql) }
     }
 
     public func changes(since: Int64) async throws -> BackupData {

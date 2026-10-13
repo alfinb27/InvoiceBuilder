@@ -3,7 +3,7 @@ import InvoiceCore
 
 /// An in-memory Google Drive for UI tests and screenshots (`-fakeDrive`): sign-in always succeeds and files live
 /// until the app quits.
-actor DemoCloudBackup: CloudBackupDestination {
+actor DemoCloudBackup: DriveSyncDestination {
     static let shared = DemoCloudBackup()
 
     private struct File {
@@ -27,6 +27,12 @@ actor DemoCloudBackup: CloudBackupDestination {
         let id = nextID("folder")
         folders.append(id)
         return id
+    }
+
+    func syncFolder(knownID: String?) async throws -> String { "sync-folder" }
+
+    func syncEntries(folderID: String) async throws -> [DriveSyncEntry] {
+        files.filter { $0.value.folder == folderID }.map { DriveSyncEntry(id: $0.key, properties: $0.value.properties) }
     }
 
     func list(folderID: String) async throws -> [CloudBackupEntry] {

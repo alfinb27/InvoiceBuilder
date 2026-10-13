@@ -43,6 +43,10 @@ struct WelcomeView: View {
         .background(Theme.background)
         .safeAreaInset(edge: .bottom) { actions }
         .confirmationDialog("Welcome back", isPresented: $showsRestore, titleVisibility: .visible) {
+            if let driveSync = model.driveSync {
+                Button("Sync with Google Drive") { Task { await driveSync.connect() } }
+                    .accessibilityIdentifier("onboarding.syncDrive")
+            }
             if let drive = model.drive {
                 Button("Restore from Google Drive") { Task { await drive.showBackups() } }
                     .accessibilityIdentifier("onboarding.restoreDrive")
@@ -53,7 +57,8 @@ struct WelcomeView: View {
             Text(model.drive == nil
                  ? "Used iCloud on another iPhone or iPad? Your business appears here by itself once this device is "
                    + "signed in to the same Apple Account. Otherwise, start from an InvoiceBuilder backup file."
-                 : "Backed up to Google Drive on another phone, iPhone or Android? Restore it here. Used iCloud on "
+                 : "Syncing or backing up to Google Drive on another phone, iPhone or Android? Sync with it, or "
+                   + "restore a backup. Used iCloud on "
                    + "another iPhone or iPad? Your business appears by itself once this device is signed in to the "
                    + "same Apple Account.")
         }

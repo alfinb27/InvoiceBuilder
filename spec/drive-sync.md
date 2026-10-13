@@ -7,14 +7,13 @@ proven by `fixtures/drivesync/*.json` (kind `drivesync`).
 
 ## 1. One sync method per device
 
-- `device_state.preferences.syncMethod`: `none` · `icloud` · `drive` (default: `icloud` on a build with iCloud
-  sync and the user signed in to iCloud, otherwise `none`). Not synced, not in backups.
+- A device syncs one way at a time: **iCloud** when `device_state.preferences.syncEnabled` is on (`sync.md` §2),
+  **Google Drive** when `app_state` `drive_sync_account_email` is set (§4), otherwise not at all. No new preference
+  is stored; the two are kept exclusive by the switches below.
 - Settings → Sync offers **iCloud** (Apple devices only) or **Google Drive** (any phone). Choosing one turns the other
   off on this device; local rows are kept and the newly chosen method merges with what it finds (§7).
-- Android offers `none` and `drive` only. Drive sync is free, like iCloud sync.
+- Android offers Google Drive only (Settings → Sync appears in a build with Drive). Drive sync is free, like iCloud sync.
 - Turning Drive sync on also turns Drive backup on (`backup.md` §7) if it is off: one connection, one account.
-- `preferences.syncEnabled` (`sync.md` §2) keeps its meaning for iCloud: it is `true` exactly when `syncMethod` is
-  `icloud`.
 
 ## 2. What syncs
 
@@ -88,7 +87,7 @@ Records merge in the order `businesses`, `assets`, `clients`, `catalogItems`, `n
 - After each file merges, `seen` advances (to the snapshot's `covers`, or to the file's `seq`) in the same
   transaction, so an interrupted pull resumes cleanly.
 - A pull runs when the app opens or returns to the foreground, every 60 s while it is in front, on "Sync now",
-  and before every push.
+  before every push, and in the background work of `backup.md` §7 (before the backup, so it includes what arrived).
 - After a pull that merged anything, the steps of `sync.md` §5 run (reminders, duplicate-number check, free-tier
   check).
 

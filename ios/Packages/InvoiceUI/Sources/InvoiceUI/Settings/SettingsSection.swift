@@ -78,7 +78,7 @@ extension SettingsPage {
         case .defaults: "Invoice defaults"
         case .taxRates: "Tax rates"
         case .unlock: "Unlimited invoices"
-        case .sync: "iCloud sync"
+        case .sync: "Sync"
         case .backup: "Backup"
         case .about: "About"
         }
@@ -92,7 +92,7 @@ extension SettingsPage {
         case .defaults: "doc.text"
         case .taxRates: "percent"
         case .unlock: "infinity"
-        case .sync: "icloud"
+        case .sync: "arrow.triangle.2.circlepath"
         case .backup: "externaldrive"
         case .about: "info.circle"
         }
