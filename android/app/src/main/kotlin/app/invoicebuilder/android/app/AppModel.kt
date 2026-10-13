@@ -164,6 +164,8 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
     /** One pull and push when Drive sync is on; then `sync.md` §5 when it changed records. */
     suspend fun syncDrive() {
         val container = container ?: return
+        // The loop can start (onStart) before `start()` has loaded the device: make the engine here too, as iOS does.
+        if (driveSync == null) driveSync = container.driveSyncEngine(container.deviceState.loadOrCreate(Build.MODEL).id)
         val engine = driveSync ?: return
         val state = container.driveSyncStore.driveSyncState()
         if (!state.isConnected || state.lastError == CloudBackupError.SignedOut) return
