@@ -1,30 +1,28 @@
 name: ios
 
-# InvoiceCore and InvoiceData run on macOS without a simulator (fast); InvoiceUI and the app's UI smoke tests run on
-# the first available iPhone simulator of the runner image. Runs on pull requests and pushes to main only: macOS
-# minutes count 10x against a private repository's Actions allowance.
+# On demand only (Actions → ios → Run workflow): macOS minutes count 10x against a private repository's free
+# allowance, and the full suite takes ~45 minutes (≈ 450 of the 2,000 free minutes). Run the iOS tests locally
+# before pushing instead: `make check-ios` (see the root Makefile). Without the `ui` input this runs only the package
+# tests that need no simulator (~5 minutes, ≈ 50 minutes of allowance).
 on:
-  push:
-    branches: [main]
-    paths:
-      - "ios/**"
-      - "spec/**"
-      - ".github/workflows/ios.yml"
-      - "Makefile"
-  pull_request:
-    paths:
-      - "ios/**"
-      - "spec/**"
-      - ".github/workflows/ios.yml"
-      - "Makefile"
   workflow_dispatch:
+    inputs:
+      ui:
+        description: "Also run the simulator tests (PDF, InvoiceUI, app UI smoke tests and audits; ~40 more minutes)"
+        type: boolean
+        default: false
+
+# A newer push to the same branch cancels the run in progress (no minutes spent on superseded commits).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     # The xcode-27 image (macOS 27, public preview) with Xcode 27.1 selected: the same build as the local Xcode, so CI
     # and local builds compile with the same Swift and iOS 27.1 SDK. The image's simulators run iOS 27.0.
     runs-on: xcode-27
-    timeout-minutes: 45
+    timeout-minutes: ${{ inputs.ui && 70 || 20 }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
@@ -37,6 +35,7 @@ jobs:
           make test-data-ios
           make test-drive-ios
       - name: Pick a simulator
+        if: inputs.ui
         id: sim
         run: |
           name=$(xcrun simctl list devices available | grep -m1 -oE 'iPhone [0-9]+( Pro)?' || true)
@@ -46,10 +45,13 @@ jobs:
           xcrun simctl boot "$name" || true
           xcrun simctl bootstatus "$name" -b
       - name: PDF renderer tests
+        if: inputs.ui
         run: make test-pdf-ios SIM="${{ steps.sim.outputs.name }}"
       - name: InvoiceUI view-model tests
+        if: inputs.ui
         run: make test-ui-ios SIM="${{ steps.sim.outputs.name }}"
       - name: App UI smoke tests
+        if: inputs.ui
         run: make test-app-ios SIM="${{ steps.sim.outputs.name }}"
       # A failed simulator test leaves its result bundle (logs, the failing screen, the accessibility tree) in
       # DerivedData: keep it, so a CI-only failure can be read instead of guessed at.

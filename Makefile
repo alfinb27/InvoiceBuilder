@@ -1,4 +1,4 @@
-.PHONY: setup validate-spec sync-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-drive-ios test-pdf-ios test-ui-ios \
+.PHONY: check-ios setup validate-spec sync-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-drive-ios test-pdf-ios test-ui-ios \
 	test-app-ios test-ios pdf-samples build-ios test-core-android test-data-android test-unit-android test-device-android pdf-samples-android check
 
 # Simulator for iOS tests; override with `make test-ios SIM="iPhone 16"`.
@@ -44,6 +44,8 @@ test-ui-ios:      ## InvoiceUI: view models, routers, image processing (simulato
 
 test-app-ios:     ## the app's UI smoke tests (simulator)
 	xcodebuild $(XCODEBUILD_FLAGS) -project ios/InvoiceApp.xcodeproj -scheme InvoiceApp -destination '$(IOS_DESTINATION)' test
+
+check-ios: validate-spec test-ios ## before pushing iOS changes: CI runs no iOS tests unless asked (macOS minutes)
 
 test-ios: test-core-ios test-data-ios test-sync-ios test-billing-ios test-drive-ios test-pdf-ios test-ui-ios test-app-ios ## every iOS test
 
