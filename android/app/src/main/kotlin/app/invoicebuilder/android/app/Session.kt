@@ -53,6 +53,8 @@ class Session(
     var reloadApp: suspend () -> Unit = {}
     /** Automatic Google Drive backup (`spec/backup.md` §7); null without Drive in this build. iOS: `autoBackup`. */
     var autoBackup: app.invoicebuilder.core.domain.backup.AutoBackupRunner? = null
+    /** Live sync through Google Drive (`spec/drive-sync.md`); null without Drive in this build. iOS: `driveSync`. */
+    var driveSync: app.invoicebuilder.core.domain.backup.DriveSyncEngine? = null
     /** Asks for the notification permission (set by `MainActivity`, which owns the permission launcher). */
     var requestNotificationPermission: () -> Unit = {}
 

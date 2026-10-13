@@ -86,9 +86,11 @@ class AppContainer(
     val scope: CoroutineScope,
     val applicationID: String,
     /** Automatic Google Drive backup (`spec/backup.md` §7); null unless the build has a Google OAuth client. */
-    val cloudBackup: app.invoicebuilder.core.domain.backup.CloudBackupDestination? = null,
+    val cloudBackup: app.invoicebuilder.core.domain.backup.DriveSyncDestination? = null,
     /** The §7.7 state and the latest change (the backup service, which owns `app_state`). */
     val cloudBackupState: app.invoicebuilder.core.domain.backup.CloudBackupStateStore,
+    /** Drive sync's database side (`spec/drive-sync.md`; the backup service too). */
+    val driveSyncStore: app.invoicebuilder.core.domain.backup.DriveSyncStore,
     private val appVersionName: String = "0",
 ) {
     /** The runner for this device's automatic cloud backups, or null without a cloud. */
@@ -96,6 +98,11 @@ class AppContainer(
         app.invoicebuilder.core.domain.backup.AutoBackupRunner(it, backup, cloudBackupState, time,
             app.invoicebuilder.core.domain.backup.AutoBackupRunner.Device(deviceID, android.os.Build.MODEL,
                 app.invoicebuilder.core.domain.backup.BackupFile.AppInfo("android", appVersionName)))
+    }
+
+    /** Live sync through this device's Google Drive connection (`spec/drive-sync.md`), or null without Drive. */
+    fun driveSyncEngine(deviceID: String): app.invoicebuilder.core.domain.backup.DriveSyncEngine? = cloudBackup?.let {
+        app.invoicebuilder.core.domain.backup.DriveSyncEngine(it, driveSyncStore, time, deviceID)
     }
 
     companion object {
@@ -113,7 +120,7 @@ class AppContainer(
             store: StoreClient = UnavailableStoreClient(),
             counterMirror: CounterMirror = MemoryCounterMirror(),
             deviceMarker: DeviceMarkerStore = InMemoryDeviceMarkerStore(),
-            cloudBackup: app.invoicebuilder.core.domain.backup.CloudBackupDestination? = null,
+            cloudBackup: app.invoicebuilder.core.domain.backup.DriveSyncDestination? = null,
         ): AppContainer {
             val backup = RoomBackupService(db, time, ids, snapshots, appVersion(context))
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -145,6 +152,7 @@ class AppContainer(
                 applicationID = applicationID,
                 cloudBackup = cloudBackup,
                 cloudBackupState = backup,
+                driveSyncStore = backup,
                 appVersionName = appVersion(context),
             )
         }
@@ -166,7 +174,7 @@ class AppContainer(
 
         /** An empty in-memory database (previews, tests, the demo business). */
         fun inMemory(context: Context, time: TimeSource = TimeSource.system, ids: IDGenerator = IDGenerator.random,
-                     cloudBackup: app.invoicebuilder.core.domain.backup.CloudBackupDestination? = null): AppContainer =
+                     cloudBackup: app.invoicebuilder.core.domain.backup.DriveSyncDestination? = null): AppContainer =
             make(context, AppDatabase.inMemory(context), time, ids, cloudBackup = cloudBackup)
 
         fun appVersion(context: Context): String = runCatching {

@@ -74,6 +74,11 @@ class RoomBackupService(
         db.appState().observeEntries(DriveSyncState.ROW_KEYS)
             .map { rows -> DriveSyncState.fromRows(rows.associate { it.key to it.value }) }.distinctUntilChanged()
 
+    override fun observeLatestChange(): Flow<Long?> =
+        db.observe("business", "asset", "client", "catalog_item", "numbering_series", "document", "line_item", "tax_line", "payment") {
+            db.appState().latestChangeAt()
+        }
+
     override suspend fun changes(since: Long): BackupData = db.withTransaction {
         val all = exportData()
         BackupData(

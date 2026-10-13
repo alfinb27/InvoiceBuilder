@@ -70,7 +70,7 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 
 /** An in-memory Google Drive for UI tests (`fakeDrive` extra ≈ iOS `-fakeDrive`): sign-in always succeeds. */
-class DemoCloudBackup : CloudBackupDestination {
+class DemoCloudBackup : app.invoicebuilder.core.domain.backup.DriveSyncDestination {
     private class File(val name: String, val properties: Map<String, String>, val data: ByteArray, val folder: String)
     private val lock = Mutex()
     private val files = linkedMapOf<String, File>()
@@ -82,6 +82,10 @@ class DemoCloudBackup : CloudBackupDestination {
     override suspend fun folder(knownID: String?): String = lock.withLock {
         if (knownID != null && knownID in folders) return knownID
         folders.firstOrNull() ?: "folder-${++counter}".also { folders += it }
+    }
+    override suspend fun syncFolder(knownID: String?) = "sync-folder"
+    override suspend fun syncEntries(folderID: String) = lock.withLock {
+        files.filter { it.value.folder == folderID }.map { (id, file) -> app.invoicebuilder.core.domain.backup.DriveSyncEntry.of(id, file.properties) }
     }
     override suspend fun list(folderID: String) = lock.withLock {
         files.filter { it.value.folder == folderID }.map { CloudBackupEntry.of(it.key, it.value.name, it.value.properties) }
@@ -304,6 +308,11 @@ class DriveBackupWorker(context: Context, params: WorkerParameters) : CoroutineW
     override suspend fun doWork(): Result = try {
         val container = (applicationContext as InvoiceApplication).container
         val device = container.deviceState.loadOrCreate(Build.MODEL)
+        // Drive sync first (`spec/drive-sync.md` §4), so the backup includes what it brought.
+        val sync = container.driveSyncStore.driveSyncState()
+        if (sync.isConnected && sync.lastError != CloudBackupError.SignedOut) {
+            runCatching { container.driveSyncEngine(device.id)?.syncNow() }
+        }
         container.autoBackupRunner(device.id)?.backUpIfDue()
         Result.success()
     } catch (cancelled: kotlinx.coroutines.CancellationException) {

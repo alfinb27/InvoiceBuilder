@@ -1,5 +1,6 @@
 package app.invoicebuilder.android.app
 
+import app.invoicebuilder.core.domain.backup.CloudBackupError
 import android.app.Application
 import android.net.Uri
 import android.os.Build
@@ -43,6 +44,12 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
     /** Automatic Google Drive backup for this device (`spec/backup.md` §7); null without Drive in this build. */
     var autoBackup: app.invoicebuilder.core.domain.backup.AutoBackupRunner? = null
         private set
+    /** Live sync through Google Drive (`spec/drive-sync.md`); null without Drive in this build. */
+    var driveSync: app.invoicebuilder.core.domain.backup.DriveSyncEngine? = null
+        private set
+    /** The foreground sync loop (§6) and the push 5 s after a local write (§4). */
+    private var driveSyncLoop: kotlinx.coroutines.Job? = null
+    private var pendingPush: kotlinx.coroutines.Job? = null
     private var sessionScope = newScope()
 
     private fun newScope() = kotlinx.coroutines.CoroutineScope(viewModelScope.coroutineContext + kotlinx.coroutines.SupervisorJob())
@@ -82,6 +89,7 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
                 // limit issue (`spec/billing.md`).
                 container.scope.launch { container.entitlements.start() }
                 if (autoBackup == null) autoBackup = container.autoBackupRunner(device.id)
+                if (driveSync == null) driveSync = container.driveSyncEngine(device.id)
                 val businesses = container.businesses.fetchBusinesses()
                 val business = BusinessSetup.activeBusiness(device.preferences, businesses)
                 phase = if (business != null) {
@@ -92,7 +100,7 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
                         container, deviceID, sessionScope, appVersion(app),
                         onRestored = { reload() },
                         onTryDemo = { startDemo(it) },
-                        autoBackup = autoBackup,
+                        autoBackup = autoBackup, driveSync = driveSync,
                         onFinished = { finishOnboarding(container, it, deviceID) },
                     ))
                 }
@@ -151,6 +159,58 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
         start()
     }
 
+    // Live sync through Google Drive (spec/drive-sync.md §4, §6)
+
+    /** One pull and push when Drive sync is on; then `sync.md` §5 when it changed records. */
+    suspend fun syncDrive() {
+        val container = container ?: return
+        val engine = driveSync ?: return
+        val state = container.driveSyncStore.driveSyncState()
+        if (!state.isConnected || state.lastError == CloudBackupError.SignedOut) return
+        val changed = runCatching { engine.syncNow() }.getOrDefault(0)
+        if (changed > 0) driveSyncMerged()
+    }
+
+    private suspend fun driveSyncMerged() {
+        when (val phase = phase) {
+            is Phase.Ready -> phase.session.reconcileReminders()
+            is Phase.Onboarding -> if (container?.businesses?.fetchBusinesses()?.isNotEmpty() == true) reload()
+            else -> {}
+        }
+    }
+
+    /** The app came to the front (≈ iOS `scenePhase == .active`): sync now, every 60 s, and 5 s after each local write. */
+    fun startDriveSync() {
+        val container = container ?: return
+        if (container.cloudBackup == null || driveSyncLoop?.isActive == true) return
+        driveSyncLoop = viewModelScope.launch {
+            launch {
+                while (true) {
+                    syncDrive()
+                    kotlinx.coroutines.delay(60_000)
+                }
+            }
+            launch {
+                var first = true
+                container.driveSyncStore.observeLatestChange().collect {
+                    if (first) { first = false; return@collect }
+                    pendingPush?.cancel()
+                    pendingPush = launch {
+                        kotlinx.coroutines.delay(5_000)
+                        syncDrive()
+                    }
+                }
+            }
+        }
+    }
+
+    /** The app left the front: the loop stops (the background worker syncs once more, `DriveBackupWorker`). */
+    fun stopDriveSync() {
+        driveSyncLoop?.cancel()
+        driveSyncLoop = null
+        pendingPush = null
+    }
+
     private fun finishOnboarding(container: AppContainer, business: Business, deviceID: String) {
         phase = try {
             Phase.Ready(makeSession(container, business, deviceID))
@@ -164,6 +224,7 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
         return Session(container, business, deviceID, sessionScope, posted).also {
             it.reloadApp = { reload() }
             it.autoBackup = autoBackup
+            it.driveSync = driveSync
             it.start()
             RouterState.restore(it.router, savedState)
             RouterState.save(it.router, savedState, sessionScope)

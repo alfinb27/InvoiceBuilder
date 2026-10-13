@@ -103,6 +103,8 @@ interface DriveSyncStore {
     suspend fun driveSyncState(): DriveSyncState
     suspend fun saveDriveSyncState(state: DriveSyncState)
     fun observeDriveSyncState(): Flow<DriveSyncState>
+    /** The highest `updated_at` over the synced tables, each time it changes (§4: a push follows a local write). */
+    fun observeLatestChange(): Flow<Long?>
     /** §4: every record with `updatedAt >= since`, tombstones included (a document with its live lines). */
     suspend fun changes(since: Long): BackupData
     /** Every record, for a snapshot. */
