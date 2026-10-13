@@ -257,4 +257,27 @@ struct GoogleDriveTests {
     @Test func theRedirectSchemeIsTheReversedClientID() {
         #expect(Self.config.redirectScheme == "com.googleusercontent.apps.1234-abc")
     }
+
+    @Test func theSyncFolderIsItsOwnAndItsFilesAreTagged() async throws {
+        let http = FakeHTTP { request in
+            let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let q = query.first { $0.name == "q" }?.value ?? ""
+            if q.contains("mimeType") {
+                #expect(q.contains("name = 'InvoiceBuilder sync'"))
+                return .json(["files": [["id": "sync-1"]]])
+            }
+            #expect(q == "'sync-1' in parents and trashed = false")
+            return .json(["files": [
+                ["id": "c1", "name": "changes-dev-a-00000001.json",
+                 "appProperties": ["ibKind": "changes", "ibDeviceId": "dev-a", "ibSeq": "1", "ibCreatedAt": "5"]],
+                ["id": "x", "name": "notes.txt"],
+            ]])
+        }
+        let drive = GoogleDriveDestination(auth: auth(http), http: http)
+        let folder = try await drive.syncFolder(knownID: nil)
+        #expect(folder == "sync-1")
+        let entries = try await drive.syncEntries(folderID: folder)
+        #expect(entries == [DriveSyncEntry(id: "c1", kind: .changes, deviceID: "dev-a", seq: 1, createdAt: 5),
+                            DriveSyncEntry(id: "x", kind: nil, deviceID: nil)])
+    }
 }

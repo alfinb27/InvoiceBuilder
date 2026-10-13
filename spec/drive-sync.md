@@ -31,20 +31,22 @@ A second visible folder, **"InvoiceBuilder sync"**, in My Drive, found or create
 
 | File | Written by | Content |
 |---|---|---|
-| `changes-<deviceId>-<seq>.json` (`seq` zero-padded to 8 digits, from 1) | that device only, never rewritten | `{ "formatVersion": 1, "deviceId", "seq", "createdAt", "data": { "<collection>": [record, …] } }` (`data` as in a backup, only the collections with records) |
-| `snapshot-<deviceId>.json` | that device only, updated in place | a backup file (`backup.md` §2) plus `"covers": { "<deviceId>": seq, … }` |
+| `changes-<deviceId>-<seq>.json` (`seq` zero-padded to 8 digits, from 1) | that device only, never rewritten | `{ "formatVersion": 1, "deviceId", "seq", "createdAt", "data": { "<collection>": [record, …] } }` (`data` as in a backup: every collection, most of them empty) |
+| `snapshot-<deviceId>.json` | that device only, updated in place | `{ "formatVersion": 1, "deviceId", "createdAt", "covers": { "<deviceId>": seq, … }, "data" }` with every record |
 
 Every file carries `appProperties` `ibKind` (`changes` · `snapshot`), `ibDeviceId`, `ibSeq` (changes only), `ibCreatedAt`, so a
 listing tells what to read without downloading. Files without `ibKind` are ignored.
 
 ## 4. Pushing local changes
 
-- `app_state` `drive_sync_pushed_at` (epoch ms, starts at 0) and `drive_sync_next_seq` (starts at 1).
-- A push collects every record with `updatedAt > pushed_at` (tombstones included; a document when it or any of its lines changed) as of a start time `t`, writes
+- `app_state` `drive_sync_pushed_at` (epoch ms, starts at 0) and `drive_sync_next_seq` (starts at 1). The other
+  keys: `drive_sync_account_email`, `drive_sync_folder_id`, `drive_sync_seen` (§6), `drive_sync_snapshot_id` and
+  `drive_sync_snapshot_covers` (§8), `drive_sync_last_sync_at`, `drive_sync_last_error` (§9).
+- A push collects every record with `updatedAt >= pushed_at` (tombstones included; a document when it or any of its lines changed) as of a start time `t`, writes
   them as the next `changes-…` file, then sets `pushed_at = t` and advances `next_seq`. Nothing to send → no file.
 - A push runs 5 s after the last local write (debounced), when the app goes to the background, on "Sync now", and
   with the background work of `backup.md` §7.
-- Records received from other devices are not echoed back on purpose; if one is sent again (its `updated_at` is after
+- Records received from other devices are not echoed back on purpose; if one is sent again (its `updatedAt` is at or after
   `pushed_at`), §5 makes it a no-op everywhere.
 
 ## 5. Merging a record — `DriveSync.wins(local, incoming)`
