@@ -8,7 +8,7 @@ import Testing
 struct FixtureTests {
     static let implementedKinds: Set = ["validation", "field", "input", "format", "numbering", "tax", "rounding",
                                         "distribute", "words", "status", "upi", "document", "pdf", "reminder", "backup", "series", "billing",
-                                        "autobackup"]
+                                        "autobackup", "drivesync"]
     /// Kinds with no runner yet (none: every spec fixture kind runs on iOS).
     static let pendingKinds: Set<String> = []
 
@@ -520,6 +520,36 @@ enum JSONPointer {
 
 extension FixtureTests {
     // MARK: backup.md §7
+
+    // MARK: drive-sync.md
+
+    @Test(arguments: Fixtures.cases(kind: "drivesync"))
+    func drivesync(_ fixture: FixtureCase) throws {
+        let input = try #require(try JSONSerialization.jsonObject(with: fixture.inputData) as? [String: Any])
+        let entries = (input["entries"] as? [[String: Any]] ?? []).map {
+            DriveSyncEntry(id: $0["id"] as! String, kind: ($0["kind"] as? String).flatMap(DriveSyncEntry.Kind.init(rawValue:)),
+                           deviceID: $0["deviceId"] as? String, seq: $0["seq"] as? Int,
+                           createdAt: ($0["createdAt"] as? NSNumber)?.int64Value)
+        }
+        switch input["op"] as? String {
+        case "wins":
+            let wins = DriveSync.wins(local: input["local"] as? [String: Any],
+                                      incoming: try #require(input["incoming"] as? [String: Any]),
+                                      collection: try #require(input["collection"] as? String))
+            expectFixture(fixture, .object(["wins": .bool(wins)]))
+        case "toRead":
+            let ids = DriveSync.toRead(entries: entries, seen: input["seen"] as? [String: Int] ?? [:],
+                                       thisDevice: try #require(input["thisDevice"] as? String))
+            expectFixture(fixture, .object(["ids": .array(ids.map { .string($0) })]))
+        case "filesToDelete":
+            let ids = DriveSync.filesToDelete(entries: entries, thisDevice: try #require(input["thisDevice"] as? String),
+                                              snapshotCovers: input["snapshotCovers"] as? Int,
+                                              now: try #require((input["now"] as? NSNumber)?.int64Value))
+            expectFixture(fixture, .object(["ids": .array(ids.map { .string($0) })]))
+        case let op:
+            Issue.record("unknown drivesync op \(String(describing: op))")
+        }
+    }
 
     struct AutoBackupInput: Decodable {
         struct Entry: Decodable {
