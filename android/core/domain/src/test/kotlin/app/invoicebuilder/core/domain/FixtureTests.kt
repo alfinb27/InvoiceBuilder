@@ -60,7 +60,7 @@ class FixtureTests {
     companion object {
         val implementedKinds = mutableSetOf(
             "validation", "field", "input", "format", "numbering", "tax", "rounding", "distribute", "words", "status",
-            "upi", "reminder", "series", "billing", "document", "pdf", "backup", "autobackup",
+            "upi", "reminder", "series", "billing", "document", "pdf", "backup", "autobackup", "drivesync",
         )
         /** Kinds with no runner yet (none: every spec fixture kind runs on Android). */
         val pendingKinds = mutableSetOf<String>()
@@ -258,6 +258,29 @@ class FixtureTests {
             }
             "filesToDelete" -> expectFixture(fixture, obj("delete" to rules.filesToDelete(entries, fixture.string("deviceId"), fixture.input["keep"]!!.jsonPrimitive.int)))
             "newestFirst" -> expectFixture(fixture, obj("ids" to rules.newestFirst(entries).map { it.id }))
+            else -> error("${fixture.id}: unknown op")
+        }
+    }
+
+    // drive-sync.md
+    @TestFactory
+    fun drivesync() = cases("drivesync") { fixture ->
+        val sync = app.invoicebuilder.core.domain.backup.DriveSync
+        val entries = fixture.input["entries"]?.jsonArray?.map { element ->
+            val entry = element.jsonObject
+            app.invoicebuilder.core.domain.backup.DriveSyncEntry(
+                entry["id"]!!.jsonPrimitive.content,
+                app.invoicebuilder.core.domain.backup.DriveSyncEntry.Kind.of(entry["kind"]?.jsonPrimitive?.content),
+                entry["deviceId"]?.jsonPrimitive?.content, entry["seq"]?.jsonPrimitive?.int, entry["createdAt"]?.jsonPrimitive?.long,
+            )
+        } ?: emptyList()
+        when (fixture.string("op")) {
+            "wins" -> expectFixture(fixture, obj("wins" to sync.wins(fixture.input["local"]?.jsonObject,
+                fixture.input["incoming"]!!.jsonObject, fixture.string("collection"))))
+            "toRead" -> expectFixture(fixture, obj("ids" to sync.toRead(entries,
+                fixture.input["seen"]?.jsonObject?.mapValues { it.value.jsonPrimitive.int } ?: emptyMap(), fixture.string("thisDevice"))))
+            "filesToDelete" -> expectFixture(fixture, obj("ids" to sync.filesToDelete(entries, fixture.string("thisDevice"),
+                fixture.input["snapshotCovers"]?.jsonPrimitive?.int, fixture.input["now"]!!.jsonPrimitive.long)))
             else -> error("${fixture.id}: unknown op")
         }
     }

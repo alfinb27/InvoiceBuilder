@@ -122,7 +122,7 @@ sealed interface EditorRoute {
 
 enum class SettingsPage(val title: String) {
     profile("Business profile"), images("Logo and signature"), numbering("Invoice numbering"), defaults("Invoice defaults"),
-    taxRates("Tax rates"), unlock("Unlimited invoices"), backup("Backup"), about("About"),
+    taxRates("Tax rates"), unlock("Unlimited invoices"), sync("Sync"), backup("Backup"), about("About"),
 }
 
 class SettingsRouter {

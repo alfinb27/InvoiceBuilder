@@ -100,11 +100,16 @@ fun WelcomeScreen(model: OnboardingViewModel, onRestore: () -> Unit) {
         AlertDialog(
             { showsRestore = false }, title = { Text("Welcome back") },
             text = {
-                Text(if (model.drive != null) "Backed up to Google Drive on another phone, Android or iPhone? Restore it here. "
+                Text(if (model.drive != null) "Syncing or backing up to Google Drive on another phone, Android or iPhone? Sync with it, or restore a backup. "
                     + "Or start from an InvoiceBuilder backup file." else "Start from an InvoiceBuilder backup file, saved from this app on any phone or iPhone.")
             },
             confirmButton = {
                 Column(horizontalAlignment = Alignment.End) {
+                    model.driveSync?.let { sync ->
+                        TextButton({ showsRestore = false; sync.connect() }, Modifier.testTag("onboarding.syncDrive")) {
+                            Text("Sync with Google Drive")
+                        }
+                    }
                     model.drive?.let { drive ->
                         TextButton({ showsRestore = false; drive.showBackups() }, Modifier.testTag("onboarding.restoreDrive")) {
                             Text("Restore from Google Drive")

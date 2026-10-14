@@ -38,6 +38,10 @@ public struct AppRootView: View {
         }
         .themedRoot()
         .task { await model.start() }
+        // Drive sync while in front (`spec/drive-sync.md` §6); the task ends when the app leaves the foreground.
+        .task(id: scenePhase == .active) {
+            if scenePhase == .active { await model.syncDriveWhileActive() }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { AutoBackupScheduler.appDidEnterBackground(model) }
         }

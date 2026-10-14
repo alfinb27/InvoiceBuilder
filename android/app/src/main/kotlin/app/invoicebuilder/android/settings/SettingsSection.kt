@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -117,6 +118,7 @@ private val SettingsPage.icon: ImageVector
         SettingsPage.defaults -> Icons.Filled.Description
         SettingsPage.taxRates -> Icons.Filled.Percent
         SettingsPage.unlock -> Icons.Filled.AllInclusive
+        SettingsPage.sync -> Icons.Filled.Sync
         SettingsPage.backup -> Icons.Filled.Save
         SettingsPage.about -> Icons.Filled.Info
     }
@@ -129,7 +131,10 @@ fun SettingsSection(session: Session) {
     val status by remember(session) { session.container.backup.observeStatus() }.collectAsStateWithLifecycle(null)
     val backupDue = status?.isDue(session.today) ?: false
     // Tax rates appear only for businesses that define their own (GENERIC).
-    val pages = SettingsPage.entries.filter { it != SettingsPage.taxRates || session.config.ratesFrom == RatesSource.business }
+    val pages = SettingsPage.entries.filter {
+        (it != SettingsPage.taxRates || session.config.ratesFrom == RatesSource.business) &&
+            (it != SettingsPage.sync || session.driveSync != null) // Android syncs only through Google Drive
+    }
     ListDetail(
         hasSelection = router.selection != null,
         onCloseDetail = { router.selection = null },
@@ -195,6 +200,14 @@ private fun SettingsPageScreen(session: Session, page: SettingsPage, showsBack: 
                         }.also { it.observe() }
                     }
                     BackupPage(session, model)
+                }
+                SettingsPage.sync -> {
+                    val model = session.retained("driveSync") {
+                        app.invoicebuilder.android.backup.DriveSyncModel(session.driveSync!!, session.container.driveSyncStore,
+                            session.autoBackup, session.container.cloudBackupState, session.container.time, session.scope,
+                            onMerged = { session.reconcileReminders() })
+                    }
+                    app.invoicebuilder.android.backup.DriveSyncPage(model)
                 }
                 SettingsPage.about -> AboutPage(session)
             }

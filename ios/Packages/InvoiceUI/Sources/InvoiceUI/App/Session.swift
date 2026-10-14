@@ -11,6 +11,8 @@ public final class Session {
     public let deviceID: String
     /// Automatic Google Drive backup (`spec/backup.md` §7), shared with the app; nil without Drive in this build.
     public var autoBackup: AutoBackupRunner?
+    /// Live sync through Google Drive (`spec/drive-sync.md`), shared with the app; nil without Drive in this build.
+    public var driveSync: DriveSyncEngine?
     /// The active business, kept current by `observeBusiness()`.
     public private(set) var business: Business
     public let config: TaxConfig

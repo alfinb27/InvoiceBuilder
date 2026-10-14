@@ -187,10 +187,14 @@ extension GRDBBackupService: CloudBackupStateStore {
     }
 
     public func latestChangeAt() async throws -> Int64? {
-        let sql = "SELECT MAX(changed) FROM ("
-            + Self.changeTables.map { "SELECT MAX(updated_at) AS changed FROM \($0)" }.joined(separator: " UNION ALL ")
-            + ")"
+        let sql = Self.latestChangeSQL
         return try await database.writer.read { db in try Int64.fetchOne(db, sql: sql) }
+    }
+
+    static var latestChangeSQL: String {
+        "SELECT MAX(changed) FROM ("
+            + changeTables.map { "SELECT MAX(updated_at) AS changed FROM \($0)" }.joined(separator: " UNION ALL ")
+            + ")"
     }
 
     static func cloudState(_ db: Database) throws -> CloudBackupState {
@@ -253,5 +257,143 @@ public struct BackupSnapshotStore: Sendable {
 
     private static func stamp(_ url: URL) -> Int64 {
         Int64(url.deletingPathExtension().lastPathComponent.dropFirst("pre-restore-".count)) ?? 0
+    }
+}
+
+// MARK: Live sync through Google Drive (`spec/drive-sync.md`)
+
+extension GRDBBackupService: DriveSyncStore {
+    public func driveSyncState() async throws -> DriveSyncState {
+        try await database.writer.read { db in try Self.syncState(db) }
+    }
+
+    public func saveDriveSyncState(_ state: DriveSyncState) async throws {
+        try await database.writer.write { db in try Self.saveAppState(state.rows, db: db) }
+    }
+
+    public func observeDriveSyncState() -> AsyncThrowingStream<DriveSyncState, any Error> {
+        database.observe { db in try Self.syncState(db) }
+    }
+
+    public func observeLatestChange() -> AsyncThrowingStream<Int64?, any Error> {
+        let sql = Self.latestChangeSQL
+        return database.observe { db in try Int64.fetchOne(db, sql: sql) }
+    }
+
+    public func changes(since: Int64) async throws -> BackupData {
+        try await database.writer.read { db in try Self.exportData(db, changedSince: since) }
+    }
+
+    public func allRecords() async throws -> BackupData {
+        try await database.writer.read { db in try Self.exportData(db) }
+    }
+
+    @discardableResult
+    public func merge(_ data: BackupData, state: DriveSyncState) async throws -> Int {
+        let now = time.now(), ids = self.ids
+        return try await database.writer.write { db in
+            let changed = try Self.merge(data, now: now, ids: ids, db: db)
+            try Self.saveAppState(state.rows, db: db)
+            return changed
+        }
+    }
+
+    static func syncState(_ db: Database) throws -> DriveSyncState {
+        let keys = DriveSyncState.rowKeys
+        let placeholders = Array(repeating: "?", count: keys.count).joined(separator: ", ")
+        let rows = try Row.fetchAll(db, sql: "SELECT key, value FROM app_state WHERE key IN (\(placeholders))",
+                                    arguments: StatementArguments(keys))
+        return DriveSyncState(rows: Dictionary(uniqueKeysWithValues: rows.map { ($0["key"] as String, $0["value"] as String) }))
+    }
+
+    static func saveAppState(_ rows: [String: String?], db: Database) throws {
+        for (key, value) in rows {
+            if let value {
+                try db.execute(sql: """
+                    INSERT INTO app_state (key, value) VALUES (?, ?)
+                    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                    """, arguments: [key, value])
+            } else {
+                try db.execute(sql: "DELETE FROM app_state WHERE key = ?", arguments: [key])
+            }
+        }
+    }
+
+    /// §4: the records with `updated_at >= since`, as an export (§1) has them.
+    static func exportData(_ db: Database, changedSince since: Int64) throws -> BackupData {
+        let changed = DBColumns.updatedAt >= since
+        let byCreation = [DBColumns.createdAt, DBColumns.id]
+        let documents = try DocumentRecord.filter(changed).order(byCreation).fetchAll(db)
+        var linesByDocument: [String: [LineItem]] = [:]
+        if !documents.isEmpty {
+            for record in try LineItemRecord.live.filter(documents.map(\.id).contains(DBColumns.documentID))
+                .order(DBColumns.position, DBColumns.id).fetchAll(db) {
+                linesByDocument[record.documentId, default: []].append(try record.line())
+            }
+        }
+        return BackupData(
+            businesses: try BusinessRecord.filter(changed).order(byCreation).fetchAll(db).map { try $0.business() },
+            clients: try ClientRecord.filter(changed).order(byCreation).fetchAll(db).map { try $0.client() },
+            catalogItems: try CatalogItemRecord.filter(changed).order(byCreation).fetchAll(db).map { $0.item() },
+            numberingSeries: try NumberingSeriesRecord.filter(changed).order(byCreation).fetchAll(db).map { try $0.series() },
+            documents: try documents.map { try $0.document(lines: linesByDocument[$0.id] ?? []) },
+            payments: try PaymentRecord.filter(changed).order(byCreation).fetchAll(db).map { try $0.payment() },
+            assets: try AssetRecord.filter(changed).order(byCreation).fetchAll(db).map { $0.asset() }
+        ).sorted()
+    }
+
+    /// §5: each record replaces the local one when `DriveSync.wins`; a winning document replaces its lines and
+    /// tax lines. Series ownership is never changed here. Returns how many records were written.
+    static func merge(_ data: BackupData, now: Int64, ids: IDGenerator, db: Database) throws -> Int {
+        try db.execute(sql: "PRAGMA defer_foreign_keys = ON")
+        var written = 0
+        func apply<Value: Encodable, Record: SnakeCaseRecord>(
+            _ values: [Value], _ collection: String, id: (Value) -> String, local: (String) throws -> Value?,
+            record: (Value) throws -> Record
+        ) throws {
+            for value in values where try DriveSync.wins(local: try local(id(value)), incoming: value,
+                                                         collection: collection) {
+                try record(value).save(db)
+                written += 1
+            }
+        }
+        try apply(data.businesses, "businesses", id: \.id, local: { try BusinessRecord.fetchOne(db, key: $0)?.business() },
+                  record: BusinessRecord.init)
+        try apply(data.assets, "assets", id: \.id, local: { try AssetRecord.fetchOne(db, key: $0)?.asset() },
+                  record: AssetRecord.init)
+        try apply(data.clients, "clients", id: \.id, local: { try ClientRecord.fetchOne(db, key: $0)?.client() },
+                  record: ClientRecord.init)
+        try apply(data.catalogItems, "catalogItems", id: \.id,
+                  local: { try CatalogItemRecord.fetchOne(db, key: $0)?.item() }, record: CatalogItemRecord.init)
+        try apply(data.numberingSeries, "numberingSeries", id: \.id,
+                  local: { try NumberingSeriesRecord.fetchOne(db, key: $0)?.series() }, record: NumberingSeriesRecord.init)
+
+        for document in data.documents {
+            let local = try DocumentRecord.fetchOne(db, key: document.id).map { record in
+                try record.document(lines: LineItemRecord.live.filter(DBColumns.documentID == record.id)
+                    .order(DBColumns.position, DBColumns.id).fetchAll(db).map { try $0.line() })
+            }
+            guard try DriveSync.wins(local: local, incoming: document, collection: "documents") else { continue }
+            try DocumentRecord(document).save(db)
+            for line in document.lines {
+                try LineItemRecord(line, documentID: document.id, createdAt: document.updatedAt,
+                                   updatedAt: document.updatedAt).save(db)
+            }
+            let kept = Set(document.lines.map(\.id))
+            for stale in try LineItemRecord.live.filter(DBColumns.documentID == document.id).fetchAll(db)
+            where !kept.contains(stale.id) {
+                try LineItemRecord.filter(key: stale.id)
+                    .updateAll(db, DBColumns.deletedAt.set(to: now), DBColumns.updatedAt.set(to: now))
+            }
+            try TaxLineRecord.live.filter(DBColumns.documentID == document.id)
+                .updateAll(db, DBColumns.deletedAt.set(to: now), DBColumns.updatedAt.set(to: now))
+            for taxLine in document.computed?.taxLines ?? [] {
+                try TaxLineRecord(id: ids.make(), documentID: document.id, taxLine: taxLine, now: now).insert(db)
+            }
+            written += 1
+        }
+        try apply(data.payments, "payments", id: \.id, local: { try PaymentRecord.fetchOne(db, key: $0)?.payment() },
+                  record: PaymentRecord.init)
+        return written
     }
 }

@@ -37,6 +37,16 @@ final class AccessibilityAuditTests: XCTestCase {
         XCTAssertTrue(app.buttons["backup.drive.backUpNow"].waitForExistence(timeout: 10))
         try audit("backup-drive-connected", app)
         app.buttons["backup.drive.done"].tap()
+
+        // Settings → Sync with its Google Drive section (`spec/drive-sync.md`).
+        if app.navigationBars.buttons["Settings"].exists { app.navigationBars.buttons["Settings"].tap() }
+        app.staticTexts["Sync"].firstMatch.tap()
+        XCTAssertTrue(app.switches["sync.drive"].waitForExistence(timeout: 5))
+        try audit("sync", app)
+        app.switches["sync.drive"].switches.firstMatch.tap()
+        app.buttons["sync.drive.confirm"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["sync.drive.now"].waitForExistence(timeout: 10))
+        try audit("sync-drive-on", app)
     }
 
     @MainActor

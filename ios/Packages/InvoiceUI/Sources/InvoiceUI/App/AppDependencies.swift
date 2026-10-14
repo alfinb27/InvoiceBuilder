@@ -30,9 +30,11 @@ public struct AppDependencies: Sendable {
     public var entitlements: any EntitlementService
     /// Automatic backup to Google Drive (`spec/backup.md` §7); nil unless the build carries a Google OAuth client
     /// (`GoogleDriveClientID`) or a UI test asks for the in-memory one (`-fakeDrive`).
-    public var cloudBackup: (any CloudBackupDestination)?
+    public var cloudBackup: (any DriveSyncDestination)?
     /// The §7.7 state and the latest change (the backup service, which owns `app_state`).
     public var cloudBackupState: any CloudBackupStateStore
+    /// Drive sync's database side (`spec/drive-sync.md`; the backup service too).
+    public var driveSyncStore: any DriveSyncStore
     public var taxConfigs: TaxConfigStore
     public var reference: ReferenceData
     public var time: TimeSource
@@ -47,8 +49,9 @@ public struct AppDependencies: Sendable {
                 documents: any DocumentRepository, documentService: any DocumentService,
                 payments: any PaymentRepository, paymentService: any PaymentService, backup: any BackupService,
                 numbering: any NumberingService, sync: any SyncService = UnavailableSyncService(),
-                entitlements: any EntitlementService, cloudBackup: (any CloudBackupDestination)? = nil,
-                cloudBackupState: any CloudBackupStateStore, taxConfigs: TaxConfigStore,
+                entitlements: any EntitlementService, cloudBackup: (any DriveSyncDestination)? = nil,
+                cloudBackupState: any CloudBackupStateStore, driveSyncStore: any DriveSyncStore,
+                taxConfigs: TaxConfigStore,
                 reference: ReferenceData, time: TimeSource, ids: IDGenerator,
                 notifications: any NotificationScheduling = NoOpNotificationScheduler()) {
         self.businesses = businesses
@@ -68,6 +71,7 @@ public struct AppDependencies: Sendable {
         self.entitlements = entitlements
         self.cloudBackup = cloudBackup
         self.cloudBackupState = cloudBackupState
+        self.driveSyncStore = driveSyncStore
         self.taxConfigs = taxConfigs
         self.reference = reference
         self.time = time
@@ -84,7 +88,7 @@ public struct AppDependencies: Sendable {
                             store: any StoreClient = UnavailableStoreClient(),
                             counterMirror: any CounterMirror = MemoryCounterMirror(),
                             deviceMarker: any DeviceMarkerStore = InMemoryDeviceMarkerStore(),
-                            cloudBackup: (any CloudBackupDestination)? = nil,
+                            cloudBackup: (any DriveSyncDestination)? = nil,
                             bundleID: String = Bundle.main.bundleIdentifier ?? "app.invoicebuilder.invoices") throws
         -> AppDependencies {
         let taxConfigs = try TaxConfigStore.bundled()
@@ -111,6 +115,7 @@ public struct AppDependencies: Sendable {
                 counts: GRDBFreeTierRepository(database: database), mirror: counterMirror),
             cloudBackup: cloudBackup,
             cloudBackupState: backup,
+            driveSyncStore: backup,
             taxConfigs: taxConfigs,
             reference: reference,
             time: time,
@@ -145,7 +150,7 @@ public struct AppDependencies: Sendable {
     }
 
     /// Google Drive backup when the build carries the OAuth client (ADR-0021); nil otherwise.
-    static func googleDrive(bundle: Bundle) -> (any CloudBackupDestination)? {
+    static func googleDrive(bundle: Bundle) -> (any DriveSyncDestination)? {
         guard let clientID = bundle.object(forInfoDictionaryKey: "GoogleDriveClientID") as? String,
               !clientID.isEmpty else { return nil }
         let http = URLSessionHTTPClient()
@@ -162,9 +167,15 @@ public struct AppDependencies: Sendable {
                                               app: .init(platform: "ios", version: appVersion)))
     }
 
+    /// Live sync through this device's Google Drive connection (`spec/drive-sync.md`), or nil without Drive.
+    func driveSyncEngine(deviceID: String) -> DriveSyncEngine? {
+        guard let cloudBackup else { return nil }
+        return DriveSyncEngine(destination: cloudBackup, store: driveSyncStore, time: time, deviceID: deviceID)
+    }
+
     /// An empty in-memory database (previews, tests, UI tests).
     public static func inMemory(time: TimeSource = .system, ids: IDGenerator = .random,
-                                cloudBackup: (any CloudBackupDestination)? = nil) throws -> AppDependencies {
+                                cloudBackup: (any DriveSyncDestination)? = nil) throws -> AppDependencies {
         try make(database: AppDatabase.inMemory(), time: time, ids: ids, cloudBackup: cloudBackup)
     }
 
@@ -175,7 +186,7 @@ public struct AppDependencies: Sendable {
             arguments.indices.contains(index + 1) ? SampleData.Country(rawValue: arguments[index + 1]) : nil
         }
         if seed != nil || arguments.contains("-inMemory") {
-            let drive: (any CloudBackupDestination)? = arguments.contains("-fakeDrive") ? DemoCloudBackup.shared : nil
+            let drive: (any DriveSyncDestination)? = arguments.contains("-fakeDrive") ? DemoCloudBackup.shared : nil
             return (try inMemory(cloudBackup: drive), seed)
         }
         return (try live(), nil)

@@ -28,6 +28,7 @@ Every file is validated by `make validate-spec` against `spec/schema/fixtures.sc
 | `billing` | `EntitlementMachine.next`, `canIssueInvoice` and `remaining` — every state transition | `spec/billing.md` |
 | `backup` | `BackupCodec.validate` — the checks in order and the live counts a valid file previews; inputs are `spec/samples` files patched with JSON Pointers | `spec/backup.md` §3 |
 | `autobackup` | `AutoBackupRules` — when a Drive backup is due, which file it writes, which old files go, the restore list's order | `spec/backup.md` §7 |
+| `drivesync` | `DriveSync` — which synced record wins a merge, which files a pull reads, which own files compaction deletes | `spec/drive-sync.md` |
 
 ## How runners compare results
 

@@ -35,6 +35,7 @@ enum AutoBackupScheduler {
         let id = UIApplication.shared.beginBackgroundTask(withName: "drive-backup")
         Task {
             try? await Task.sleep(for: .seconds(1)) // let the draft autosave land first
+            await model.syncDrive()
             await model.backUpIfDue()
             UIApplication.shared.endBackgroundTask(id)
         }
@@ -43,6 +44,7 @@ enum AutoBackupScheduler {
     private static func run(_ box: TaskBox, model: AppModel) {
         scheduleDaily()
         let work = Task {
+            await model.syncDrive()
             await model.backUpIfDue()
             box.task.setTaskCompleted(success: true)
         }

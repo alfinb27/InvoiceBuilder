@@ -52,9 +52,15 @@ class MainActivity : ComponentActivity() {
         handle(intent)
     }
 
-    /** Leaving the screen: an automatic Google Drive backup if one is due (`spec/backup.md` §7.2). */
+    override fun onStart() {
+        super.onStart()
+        model.startDriveSync() // `spec/drive-sync.md` §6
+    }
+
+    /** Leaving the screen: Drive sync, then an automatic Google Drive backup if one is due (`spec/backup.md` §7.2). */
     override fun onStop() {
         super.onStop()
+        if (!isChangingConfigurations) model.stopDriveSync()
         if (!isChangingConfigurations && (application as InvoiceApplication).container.cloudBackup != null) {
             app.invoicebuilder.android.backup.DriveBackupWorker.appStopped(this)
         }

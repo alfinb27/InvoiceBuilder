@@ -1,12 +1,14 @@
 import Foundation
 import InvoiceCore
 
-/// Backups in a visible "InvoiceBuilder backups" folder of the user's Google Drive (`spec/backup.md` §7), through
-/// Drive REST v3 with the `drive.file` scope: the app sees only the files it created.
-public struct GoogleDriveDestination: CloudBackupDestination {
+/// Backups in a visible "InvoiceBuilder backups" folder of the user's Google Drive (`spec/backup.md` §7), and sync
+/// files in "InvoiceBuilder sync" (`spec/drive-sync.md` §3), through Drive REST v3 with the `drive.file` scope: the
+/// app sees only the files it created.
+public struct GoogleDriveDestination: CloudBackupDestination, DriveSyncDestination {
     static let api = URL(string: "https://www.googleapis.com/drive/v3/")!
     static let uploadAPI = URL(string: "https://www.googleapis.com/upload/drive/v3/")!
     static let folderName = "InvoiceBuilder backups"
+    static let syncFolderName = "InvoiceBuilder sync"
     static let folderType = "application/vnd.google-apps.folder"
     static let fileType = "application/json"
 
@@ -36,6 +38,10 @@ public struct GoogleDriveDestination: CloudBackupDestination {
     }
 
     public func folder(knownID: String?) async throws -> String {
+        try await folder(named: Self.folderName, knownID: knownID)
+    }
+
+    private func folder(named name: String, knownID: String?) async throws -> String {
         if let knownID {
             struct Meta: Decodable { let id: String; let trashed: Bool? }
             do {
@@ -43,7 +49,7 @@ public struct GoogleDriveDestination: CloudBackupDestination {
                 if meta.trashed != true { return meta.id }
             } catch DriveFailure.notFound {}
         }
-        let query = "mimeType = '\(Self.folderType)' and name = '\(Self.folderName)' and trashed = false and 'root' in parents"
+        let query = "mimeType = '\(Self.folderType)' and name = '\(name)' and trashed = false and 'root' in parents"
         let found: FileList = try await json(get("files", ["q": query, "orderBy": "createdTime",
                                                              "fields": "files(id)", "spaces": "drive"]))
         if let first = found.files.first { return first.id }
@@ -52,21 +58,35 @@ public struct GoogleDriveDestination: CloudBackupDestination {
         request.httpMethod = "POST"
         request.setValue("application/json; charset=UTF-8", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "name": Self.folderName, "mimeType": Self.folderType, "parents": ["root"],
+            "name": name, "mimeType": Self.folderType, "parents": ["root"],
         ])
         let created: Created = try await json(request)
         return created.id
     }
 
     public func list(folderID: String) async throws -> [CloudBackupEntry] {
-        var entries: [CloudBackupEntry] = []
+        try await files(in: folderID).map { CloudBackupEntry(id: $0.id, name: $0.name ?? "", properties: $0.appProperties ?? [:]) }
+    }
+
+    // MARK: DriveSyncDestination
+
+    public func syncFolder(knownID: String?) async throws -> String {
+        try await folder(named: Self.syncFolderName, knownID: knownID)
+    }
+
+    public func syncEntries(folderID: String) async throws -> [DriveSyncEntry] {
+        try await files(in: folderID).map { DriveSyncEntry(id: $0.id, properties: $0.appProperties ?? [:]) }
+    }
+
+    private func files(in folderID: String) async throws -> [FileList.File] {
+        var entries: [FileList.File] = []
         var pageToken: String?
         repeat {
             var query = ["q": "'\(folderID)' in parents and trashed = false", "pageSize": "200", "spaces": "drive",
                          "fields": "nextPageToken,files(id,name,appProperties)"]
             query["pageToken"] = pageToken
             let page: FileList = try await json(get("files", query))
-            entries += page.files.map { CloudBackupEntry(id: $0.id, name: $0.name ?? "", properties: $0.appProperties ?? [:]) }
+            entries += page.files
             pageToken = page.nextPageToken
         } while pageToken != nil
         return entries
