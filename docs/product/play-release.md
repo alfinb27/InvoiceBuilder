@@ -66,5 +66,5 @@ Reuse the copy in `app-store-listing.md` (UK and India sections), adjusted for P
 - [ ] Restore a backup made on an iPhone, and restore an Android backup on an iPhone.
 - [ ] Low-end phone: a 3-page PDF renders in ≤ 2 s; 30-minute `adb shell monkey` run with no ANR.
 - [ ] TalkBack through: onboarding → new invoice → issue → share; font size at 200%.
-- [ ] Foldable emulator (folded/unfolded mid-edit) and a freeform window resized across 600 dp and 840 dp.
+- [x] Foldable emulator (folded/unfolded mid-edit) and a freeform window resized across 600 dp and 840 dp.
 - [ ] Pre-launch report (Play runs the app on real devices automatically) has no crashes.
