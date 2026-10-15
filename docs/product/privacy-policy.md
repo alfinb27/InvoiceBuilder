@@ -24,6 +24,12 @@ You can stop at any time in Settings → Backup → Google Drive; files already 
 Your device's own backups (iCloud device backup, Android Auto Backup to your Google Drive) may include the app's data
 according to your device settings.
 
+**Google Drive sync (optional).** If you turn on "Sync with Google Drive", the app keeps your phones and tablets
+(Android, iPhone or iPad) in step through a folder named "InvoiceBuilder sync" in *your own* Google Drive. It writes
+small change files there when you edit, and reads the files your other devices wrote. As with backup, it uses only the
+`drive.file` permission, talks directly to Google over an encrypted connection, and sends nothing to us. You can turn
+it off at any time in Settings → Sync; the files stay in your Drive until you delete them.
+
 **Purchases.** Purchases are processed by Apple or Google. We receive only confirmation that the unlock was purchased,
 not your payment details.
 
@@ -36,6 +42,7 @@ choose.
 **Children.** The app is intended for businesses and is not directed at children.
 
 **Your choices.** You can delete your data at any time by deleting it in the app or deleting the app (and, if you use
-sync, the app's data in iCloud settings).
+sync, the app's data in iCloud settings or the "InvoiceBuilder sync" and "InvoiceBuilder backups" folders in
+Google Drive).
 
 **Contact.** <contact email>
