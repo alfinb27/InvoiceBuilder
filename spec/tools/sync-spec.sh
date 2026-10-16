@@ -30,8 +30,11 @@ for target in "${TARGETS[@]}"; do
   for src in "${SOURCES[@]}"; do
     from="$ROOT/spec/$src"; to="$ROOT/$dest/$src"
     if [[ "$MODE" == "--check" ]]; then
-      # A checksum dry run with the same rules as the copy: any line it prints is a file that differs.
-      if [[ ! -d "$to" ]] || [[ -n "$(rsync -anci --delete "${EXCLUDES[@]}" "$from/" "$to/" 2>&1)" ]]; then
+      # A checksum dry run with the same rules as the copy: any line it prints is a file whose contents differ, or
+      # one missing or extra. A difference in the modification time alone (`.f..t…`) doesn't count: a fresh checkout
+      # (CI) writes the two copies of a large font seconds apart.
+      changes=$(rsync -rnci --delete "${EXCLUDES[@]}" "$from/" "$to/" 2>&1 | grep -vE '^\.[a-zA-Z]\.\.[tT]\.* ' || true)
+      if [[ ! -d "$to" ]] || [[ -n "$changes" ]]; then
         echo "out of date: $dest/$src (run make sync-spec)"; status=1
       fi
     else
