@@ -148,6 +148,21 @@ class DataTests {
         } catch (expected: DocumentServiceError.NotADraft) {}
     }
 
+    @Test
+    fun paymentsDriveTheStatusAndTheDashboard() = runTest {
+        val (business, device) = store.setUp()
+        store.draft(business, "d1", DocumentType.invoice, store.line("l1", 1_000_000))
+        val issued = store.documentService.issue("d1", device)
+        store.paymentService.recordPayment(issued.id, 500_000, store.time.today(), PaymentMethod.upi, " REF ", null)
+        val paid = store.payments.fetchPayments(issued.id).sumOf { it.amountMinor }
+        assertEquals(DocumentStatus.partiallyPaid, issued.status(store.time.today(), paid))
+        val dashboard = store.documents.observeDashboard(business.id, CurrencyCode.INR).first()
+        assertEquals(680_000L, dashboard.outstandingMinor)
+        assertEquals(500_000L, dashboard.paidThisMonthMinor)
+        val summaries = store.documents.observeDocuments(business.id).first()
+        assertEquals(500_000L, summaries.single().paidMinor)
+    }
+
     /** iOS: `theFirstRunChecklistFollowsClientsItemsAndTheFirstInvoice`. */
     @Test
     fun theFirstRunChecklistFollowsClientsItemsAndTheFirstInvoice() = runTest {
@@ -171,21 +186,6 @@ class DataTests {
         assertTrue(read().hasClient)
         store.clients.delete("c1")
         assertEquals(false, read().hasClient)
-    }
-
-    @Test
-    fun paymentsDriveTheStatusAndTheDashboard() = runTest {
-        val (business, device) = store.setUp()
-        store.draft(business, "d1", DocumentType.invoice, store.line("l1", 1_000_000))
-        val issued = store.documentService.issue("d1", device)
-        store.paymentService.recordPayment(issued.id, 500_000, store.time.today(), PaymentMethod.upi, " REF ", null)
-        val paid = store.payments.fetchPayments(issued.id).sumOf { it.amountMinor }
-        assertEquals(DocumentStatus.partiallyPaid, issued.status(store.time.today(), paid))
-        val dashboard = store.documents.observeDashboard(business.id, CurrencyCode.INR).first()
-        assertEquals(680_000L, dashboard.outstandingMinor)
-        assertEquals(500_000L, dashboard.paidThisMonthMinor)
-        val summaries = store.documents.observeDocuments(business.id).first()
-        assertEquals(500_000L, summaries.single().paidMinor)
     }
 
     @Test
