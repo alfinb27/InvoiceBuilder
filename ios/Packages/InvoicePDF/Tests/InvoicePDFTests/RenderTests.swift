@@ -151,6 +151,14 @@ struct RenderTests {
                 "the bundled Devanagari font must be embedded, not a system substitute")
     }
 
+    /// The bundled Noto Sans covers Latin and symbols only (ADR-0023): other scripts fall back to the system's
+    /// fonts and still print as real text.
+    @Test func textOutsideTheBundledFontsFallsBackAndStaysSelectable() throws {
+        let data = PDFRenderer.render(SampleModel.request(SampleModel.invoice(description: "Ελληνικά Кириллица")))
+        let text = try pageTexts(data).joined()
+        #expect(text.contains("Ελληνικά") && text.contains("Кириллица"))
+    }
+
     @Test func draftsCarryTheWatermark() throws {
         let data = PDFRenderer.render(SampleModel.request(SampleModel.invoice(isDraft: true)))
         let text = try pageTexts(data).joined()

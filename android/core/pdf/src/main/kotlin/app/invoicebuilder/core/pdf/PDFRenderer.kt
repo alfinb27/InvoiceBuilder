@@ -44,7 +44,7 @@ data class PDFRenderRequest(
  * geometry, same templates — so a document reads the same on both platforms.
  */
 object PDFRenderer {
-    /** [fontDirectory]: where the bundled Noto fonts are unpacked once (the app's cache directory). */
+    /** [fontDirectory]: where the bundled Noto fonts are unpacked (the app's cache directory); see [PDFFonts]. */
     fun render(request: PDFRenderRequest, fontDirectory: File): ByteArray {
         val fonts = PDFFonts.get(fontDirectory)
         val pages = PDFComposer(request, fonts).run(null, null)
@@ -66,9 +66,7 @@ class PDFFonts private constructor(directory: File) {
 
     init {
         directory.mkdirs()
-        fun file(name: String): File = File(directory, "$name.ttf").also { target ->
-            if (!target.exists()) target.writeBytes(SpecResources.bytes("pdf/fonts/$name.ttf"))
-        }
+        fun file(name: String): File = unpack(directory, name)
         val files = mapOf(
             PDFTemplate.Weight.regular to ("NotoSans-Regular" to "NotoSansDevanagari-Regular"),
             PDFTemplate.Weight.semibold to ("NotoSans-SemiBold" to "NotoSansDevanagari-SemiBold"),
@@ -93,6 +91,19 @@ class PDFFonts private constructor(directory: File) {
     companion object {
         @Volatile private var shared: PDFFonts? = null
         fun get(directory: File): PDFFonts = shared ?: synchronized(this) { shared ?: PDFFonts(File(directory, "pdf-fonts")).also { shared = it } }
+
+        /**
+         * The bundled font [name] as a file in [directory], written again whenever it differs from the bundled one: an
+         * app update can bring new fonts (ADR-0023), and a write cut short must not leave a broken file that drops
+         * every later PDF to the system font.
+         */
+        internal fun unpack(directory: File, name: String): File = File(directory, "$name.ttf").also { target ->
+            val bundled = SpecResources.bytes("pdf/fonts/$name.ttf")
+            if (!target.exists() || !target.readBytes().contentEquals(bundled)) {
+                val partial = File(directory, "$name.ttf.part").apply { writeBytes(bundled) }
+                if (!partial.renameTo(target)) target.writeBytes(bundled)
+            }
+        }
     }
 }
 

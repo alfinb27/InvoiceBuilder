@@ -10,6 +10,7 @@ import app.invoicebuilder.core.domain.pdf.PDFDocumentModel.Align
 import app.invoicebuilder.core.domain.pdf.PDFDocumentModel.Column
 import app.invoicebuilder.core.domain.pdf.PDFDocumentModel.Field
 import app.invoicebuilder.core.domain.pdf.PDFTemplateStore
+import app.invoicebuilder.core.domain.support.SpecResources
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
@@ -117,6 +118,20 @@ class RenderTests {
         val data = render(request(invoice(description = "वेबसाइट विकास")))
         assertTrue("Hindi text must be embedded and extractable", pageTexts(data).joinToString("").contains("वेबसाइट"))
         assertTrue("the bundled Devanagari font must be embedded", String(data, Charsets.ISO_8859_1).contains("NotoSansDevanagari"))
+    }
+
+    /** After an app update (new fonts, ADR-0023) or an interrupted write, the unpacked copy is replaced. */
+    @Test fun anOutdatedUnpackedFontIsReplaced() {
+        val directory = File(context.cacheDir, "font-refresh-test").apply { deleteRecursively(); mkdirs() }
+        File(directory, "NotoSans-Regular.ttf").writeBytes(ByteArray(10)) // an old or half-written file
+        val unpacked = PDFFonts.unpack(directory, "NotoSans-Regular")
+        assertTrue(unpacked.readBytes().contentEquals(SpecResources.bytes("pdf/fonts/NotoSans-Regular.ttf")))
+    }
+
+    /** The bundled Noto Sans covers Latin and symbols only (ADR-0023): other scripts fall back to system fonts and still print. */
+    @Test fun textOutsideTheBundledFontsFallsBackAndStaysSelectable() {
+        val text = pageTexts(render(request(invoice(description = "Ελληνικά Кириллица")))).joinToString("")
+        assertTrue(text, text.contains("Ελληνικά") && text.contains("Кириллица"))
     }
 
     /**
