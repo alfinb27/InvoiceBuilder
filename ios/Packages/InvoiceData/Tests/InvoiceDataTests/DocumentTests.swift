@@ -99,6 +99,34 @@ struct DocumentTests {
         #expect(rows[0].status(today: store.time.today()) == .draft)
     }
 
+    @Test func theFirstRunChecklistFollowsClientsItemsAndTheFirstInvoice() async throws {
+        let store = try TestStore()
+        let (business, device) = try await store.setUpInvoicing() // adds client c1
+        var updates = store.documents.observeFirstRunChecklist(businessID: business.id).makeAsyncIterator()
+        #expect(try await updates.next() == FirstRunChecklist(hasClient: true))
+
+        try await store.catalog.save(CatalogItem(id: "i1", businessId: business.id, name: "Milk", kind: .goods,
+                                                 unit: "LTR", unitPriceMinor: 5_600, currency: .inr, rateId: "exempt"))
+        #expect(try await updates.next() == FirstRunChecklist(hasClient: true, hasItem: true))
+
+        // A sent quote or a draft invoice is not "Send your first invoice".
+        try await store.saveDraft(business, docType: .quote, id: "q1", lines: [TestStore.line("l9", "Audit", price: 100)])
+        _ = try await store.documentService.issue(documentID: "q1", deviceID: device.id)
+        try await store.saveDraft(business, lines: [TestStore.line("l1", "Website", price: 100_000)])
+        let read = { try await store.database.writer.read { db in
+            try GRDBDocumentRepository.firstRunChecklist(businessID: business.id, db: db)
+        } }
+        #expect(try await read().hasIssuedInvoice == false)
+        _ = try await store.documentService.issue(documentID: "d1", deviceID: device.id)
+        #expect(try await read() == FirstRunChecklist(hasClient: true, hasItem: true, hasIssuedInvoice: true))
+
+        // Archived still counts, as it does in the lists; a deleted client does not.
+        try await store.clients.setArchived(true, clientID: "c1")
+        #expect(try await read().hasClient)
+        try await store.clients.delete(clientID: "c1")
+        #expect(try await read().hasClient == false)
+    }
+
     @Test func issuingNumbersFreezesAndCounts() async throws {
         let store = try TestStore()
         let (business, device) = try await store.setUpInvoicing()

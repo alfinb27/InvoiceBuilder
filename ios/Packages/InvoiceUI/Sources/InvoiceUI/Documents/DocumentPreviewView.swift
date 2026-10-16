@@ -284,12 +284,14 @@ struct DocumentPreviewPane: View {
     let session: Session
     let document: InvoiceCore.Document
     let computed: ComputedDocument?
-    @State private var data: Data?
+    /// Parsed once per render. The pane's body runs on every keystroke in the form beside it; building the
+    /// `PDFDocument` there made PDFKit re-parse and redraw the same file while the user typed.
+    @State private var pdf: PDFDocument?
     @State private var isRendering = false
 
     var body: some View {
         Group {
-            if let data, let pdf = PDFDocument(data: data) {
+            if let pdf {
                 PDFDataPreview(document: pdf)
             } else if computed == nil {
                 ContentUnavailableView("No preview yet", systemImage: "doc.richtext",
@@ -316,7 +318,10 @@ struct DocumentPreviewPane: View {
         guard !Task.isCancelled else { return }
         isRendering = true
         defer { isRendering = false }
-        data = try? await session.pdfLibrary.data(for: document, business: session.business, computed: computed)
+        guard let data = try? await session.pdfLibrary.data(for: document, business: session.business,
+                                                             computed: computed),
+              !Task.isCancelled else { return }
+        pdf = PDFDocument(data: data)
     }
 }
 
@@ -334,6 +339,7 @@ struct PDFDataPreview: UIViewRepresentable {
     }
 
     func updateUIView(_ view: PDFView, context: Context) {
+        guard view.document !== document else { return } // the same render: nothing to reload
         let page = view.currentPage.flatMap { view.document?.index(for: $0) }
         view.document = document
         if let page, let restored = document.page(at: min(page, document.pageCount - 1)) {

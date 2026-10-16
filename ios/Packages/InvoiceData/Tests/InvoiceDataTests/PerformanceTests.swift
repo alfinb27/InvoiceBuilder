@@ -61,8 +61,17 @@ struct PerformanceTests {
                                                      today: LocalDate(iso: "2026-09-19")!, db: db)
             }
         }
-        print("1,000 invoices: list \(listTime), dashboard \(dashboardTime)")
+        // Home's checklist used to load the list above (and every client and item) to answer three yes/no questions.
+        var checklist = FirstRunChecklist()
+        let checklistTime = try await clock.measure {
+            checklist = try await store.database.writer.read { db in
+                try GRDBDocumentRepository.firstRunChecklist(businessID: business.id, db: db)
+            }
+        }
+        #expect(checklist == FirstRunChecklist(hasClient: true, hasIssuedInvoice: true))
+        print("1,000 invoices: list \(listTime), dashboard \(dashboardTime), checklist \(checklistTime)")
         #expect(listTime < .seconds(1))
         #expect(dashboardTime < .seconds(1))
+        #expect(checklistTime < .milliseconds(100))
     }
 }

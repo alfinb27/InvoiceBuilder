@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -303,6 +304,8 @@ fun DocumentPreviewPane(session: Session, document: Document, computed: Computed
         }
         previous?.delete()
     }
+    // The last render's file goes with the pane (closing the builder, a narrower window), not on the next cache sweep.
+    DisposableEffect(Unit) { onDispose { file?.delete() } }
     Box(modifier.fillMaxSize().background(Theme.colors.surfaceMuted), contentAlignment = Alignment.Center) {
         val current = file
         when {

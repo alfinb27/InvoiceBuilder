@@ -123,6 +123,9 @@ data class StatusRow(
     val paid_minor: Long,
 )
 
+/** Home's first-run checklist (iOS: `GRDBDocumentRepository.firstRunChecklist`). */
+data class ChecklistRow(val has_client: Boolean, val has_item: Boolean, val has_issued_invoice: Boolean)
+
 @Dao
 interface DocumentDao {
     @Query("SELECT * FROM document WHERE id = :id AND deleted_at IS NULL") suspend fun live(id: String): DocumentEntity?
@@ -180,6 +183,17 @@ interface DocumentDao {
     @Query("SELECT COUNT(*) FROM document WHERE converted_from_id = :quoteID AND deleted_at IS NULL") suspend fun liveConversions(quoteID: String): Int
 
     @Query("SELECT EXISTS (SELECT 1 FROM document WHERE lifecycle <> 'draft' AND deleted_at IS NULL)") fun observeHasIssued(): Flow<Boolean>
+
+    /** Three `EXISTS` in one row. Archived clients and items count, as they do in the lists. */
+    @Query(
+        """
+        SELECT EXISTS (SELECT 1 FROM client WHERE business_id = :businessID AND deleted_at IS NULL) AS has_client,
+               EXISTS (SELECT 1 FROM catalog_item WHERE business_id = :businessID AND deleted_at IS NULL) AS has_item,
+               EXISTS (SELECT 1 FROM document WHERE business_id = :businessID AND deleted_at IS NULL
+                       AND doc_type = 'invoice' AND lifecycle <> 'draft') AS has_issued_invoice
+        """,
+    )
+    suspend fun firstRunChecklist(businessID: String): ChecklistRow
 
     @Query("SELECT COUNT(*) FROM document WHERE doc_type = 'invoice' AND lifecycle <> 'draft'") suspend fun everIssuedInvoices(): Int
 

@@ -137,6 +137,8 @@ final class DocumentViewModel {
     /// The place of supply the engine derives when none is set (shown as "Automatic (…)").
     var derivedPlaceOfSupply: String? {
         guard showsPlaceOfSupply else { return nil }
+        // With none chosen, the builder's own result is the automatic one: no second computation per redraw.
+        if state.document.placeOfSupply == nil, let computed { return computed.placeOfSupply }
         var automatic = state.document
         automatic.placeOfSupply = nil
         let seller = rules.sellerSnapshot(config: config)

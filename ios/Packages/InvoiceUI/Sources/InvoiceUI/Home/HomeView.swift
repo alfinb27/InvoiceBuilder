@@ -7,17 +7,12 @@ import SwiftUI
 @MainActor @Observable
 final class HomeViewModel {
     struct State: Equatable {
-        var clientCount = 0
-        var itemCount = 0
-        var documents: [DocumentSummary] = []
-        var documentsLoaded = false
+        var checklist = FirstRunChecklist()
+        /// The checklist has been read once; until then Home shows neither it nor the dashboard.
+        var checklistLoaded = false
         var dashboard = DashboardTotals()
         /// Issued documents sharing a number (`spec/sync.md` §4); normally empty.
         var duplicateNumbers: [DuplicateNumbers.Group] = []
-
-        var checklist: FirstRunChecklist {
-            FirstRunChecklist(clientCount: clientCount, itemCount: itemCount, documents: documents)
-        }
     }
 
     private(set) var state = State()
@@ -28,26 +23,18 @@ final class HomeViewModel {
     }
 
     func observe() async {
-        let dependencies = session.dependencies
-        let businessID = session.business.id
-        async let clients: Void = observeCount(dependencies.clients.observeClients(businessID: businessID)) {
-            self.state.clientCount = $0
-        }
-        async let items: Void = observeCount(dependencies.catalog.observeItems(businessID: businessID)) {
-            self.state.itemCount = $0
-        }
-        async let documents: Void = observeDocuments()
+        async let checklist: Void = observeChecklist()
         async let dashboard: Void = observeDashboard()
         async let duplicates: Void = observeDuplicates()
-        _ = await (clients, items, documents, dashboard, duplicates)
+        _ = await (checklist, dashboard, duplicates)
     }
 
-    private func observeDocuments() async {
+    private func observeChecklist() async {
         do {
-            for try await documents in session.dependencies.documents.observeDocuments(
+            for try await checklist in session.dependencies.documents.observeFirstRunChecklist(
                 businessID: session.business.id) {
-                state.documents = documents
-                state.documentsLoaded = true
+                state.checklist = checklist
+                state.checklistLoaded = true
             }
         } catch {}
     }
@@ -67,13 +54,6 @@ final class HomeViewModel {
                 businessID: session.business.id, homeCurrency: session.business.homeCurrency) {
                 state.dashboard = totals
             }
-        } catch {}
-    }
-
-    private func observeCount<Row: Sendable>(_ stream: AsyncThrowingStream<[Row], any Error>,
-                                             update: @MainActor (Int) -> Void) async {
-        do {
-            for try await rows in stream { update(rows.count) }
         } catch {}
     }
 }
@@ -101,7 +81,7 @@ struct HomeView: View {
                     ForEach(model.state.duplicateNumbers, id: \.self) { group in
                         DuplicateNumberWarning(group: group, session: session)
                     }
-                    if model.state.documentsLoaded {
+                    if model.state.checklistLoaded {
                         if model.state.checklist.isShown { firstRun } else { dashboard }
                     }
                     if session.config.reviewStatus != "reviewed" {

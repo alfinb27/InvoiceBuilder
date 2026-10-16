@@ -12,6 +12,7 @@ import app.invoicebuilder.core.domain.documents.LineItem
 import app.invoicebuilder.core.domain.documents.PaymentMethod
 import app.invoicebuilder.core.domain.models.Address
 import app.invoicebuilder.core.domain.models.Business
+import app.invoicebuilder.core.domain.models.CatalogItem
 import app.invoicebuilder.core.domain.models.Client
 import app.invoicebuilder.core.domain.models.DocumentType
 import app.invoicebuilder.core.domain.models.ImagePayload
@@ -19,6 +20,7 @@ import app.invoicebuilder.core.domain.money.CurrencyCode
 import app.invoicebuilder.core.domain.reference.ReferenceData
 import app.invoicebuilder.core.domain.repositories.DocumentServiceError
 import app.invoicebuilder.core.domain.setup.BusinessSetup
+import app.invoicebuilder.core.domain.setup.FirstRunChecklist
 import app.invoicebuilder.core.domain.support.IDGenerator
 import app.invoicebuilder.core.domain.support.TimeSource
 import app.invoicebuilder.core.domain.tax.TaxConfigStore
@@ -144,6 +146,31 @@ class DataTests {
             store.documentService.issue("d1", device)
             fail("issued twice")
         } catch (expected: DocumentServiceError.NotADraft) {}
+    }
+
+    /** iOS: `theFirstRunChecklistFollowsClientsItemsAndTheFirstInvoice`. */
+    @Test
+    fun theFirstRunChecklistFollowsClientsItemsAndTheFirstInvoice() = runTest {
+        val (business, device) = store.setUp() // adds client c1
+        suspend fun read() = store.documents.observeFirstRunChecklist(business.id).first()
+        assertEquals(FirstRunChecklist(hasClient = true), read())
+        RoomCatalogRepository(store.db, store.time).save(CatalogItem(id = "i1", businessId = business.id, name = "Milk",
+            unit = "LTR", unitPriceMinor = 5_600, currency = CurrencyCode.INR, rateId = "exempt"))
+        assertEquals(FirstRunChecklist(hasClient = true, hasItem = true), read())
+
+        // A sent quote or a draft invoice is not "Send your first invoice".
+        store.draft(business, "q1", DocumentType.quote, store.line("l9", 100))
+        store.documentService.issue("q1", device)
+        store.draft(business, "d1", DocumentType.invoice, store.line("l1", 100_000))
+        assertEquals(false, read().hasIssuedInvoice)
+        store.documentService.issue("d1", device)
+        assertEquals(FirstRunChecklist(hasClient = true, hasItem = true, hasIssuedInvoice = true), read())
+
+        // Archived still counts, as it does in the lists; a deleted client does not.
+        store.clients.setArchived(true, "c1")
+        assertTrue(read().hasClient)
+        store.clients.delete("c1")
+        assertEquals(false, read().hasClient)
     }
 
     @Test

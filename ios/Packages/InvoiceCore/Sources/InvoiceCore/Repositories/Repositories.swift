@@ -78,6 +78,9 @@ public protocol DocumentRepository: Sendable {
     func markSent(documentID: String, at timestamp: Int64?) async throws
     /// Home dashboard totals (`docs/plan.md` Phase 4); home-currency invoices only, see `DashboardTotals`.
     func observeDashboard(businessID: String, homeCurrency: CurrencyCode) -> AsyncThrowingStream<DashboardTotals, any Error>
+    /// Home's first-run checklist (`spec/setup.md` §3.2): is there a live client, a live item, an issued invoice.
+    /// One cheap query, so Home never loads every client, item and document just to tick three boxes.
+    func observeFirstRunChecklist(businessID: String) -> AsyncThrowingStream<FirstRunChecklist, any Error>
     /// Live, issued invoices as reminder candidates (`spec/reminders.md` §2), status already derived.
     func fetchReminderCandidates(businessID: String) async throws -> [ReminderCandidate]
 }

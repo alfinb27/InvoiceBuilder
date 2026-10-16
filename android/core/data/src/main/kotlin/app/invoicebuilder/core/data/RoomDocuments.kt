@@ -27,6 +27,7 @@ import app.invoicebuilder.core.domain.repositories.DocumentServiceError
 import app.invoicebuilder.core.domain.repositories.PaymentRepository
 import app.invoicebuilder.core.domain.repositories.PaymentService
 import app.invoicebuilder.core.domain.repositories.PaymentServiceError
+import app.invoicebuilder.core.domain.setup.FirstRunChecklist
 import app.invoicebuilder.core.domain.support.IDGenerator
 import app.invoicebuilder.core.domain.support.TimeSource
 import app.invoicebuilder.core.domain.support.trimmedOrNull
@@ -113,6 +114,12 @@ class RoomDocumentRepository(private val db: AppDatabase, private val time: Time
 
     override fun observeDashboard(businessID: String, homeCurrency: CurrencyCode): Flow<DashboardTotals> =
         db.observe("document", "payment") { dashboard(businessID, homeCurrency, time.today()) }
+
+    override fun observeFirstRunChecklist(businessID: String): Flow<FirstRunChecklist> =
+        db.observe("client", "catalog_item", "document") {
+            val row = db.documents().firstRunChecklist(businessID)
+            FirstRunChecklist(row.has_client, row.has_item, row.has_issued_invoice)
+        }
 
     override suspend fun fetchReminderCandidates(businessID: String): List<ReminderCandidate> {
         val today = time.today()
