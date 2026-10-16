@@ -134,6 +134,11 @@ view model's job) and never contains rules (that is this document).
 
 - Text is drawn with the bundled static Noto Sans (Regular / SemiBold / Bold) and Noto Sans Devanagari for
   Devanagari runs (`pdf/fonts/`, OFL). Variable fonts are not used (they broke text extraction in the spike).
+- The bundled fonts are already subset (ADR-0023, `spec/tools/subset-pdf-fonts.sh`), because Android up to at least
+  11 embeds a font whole: Noto Sans keeps Latin (Basic Latin, Latin-1, Latin Extended-A, Romanian ș ț, Latin
+  Extended Additional), combining marks, punctuation, currency signs, letterlike symbols and a few arrows; Noto Sans
+  Devanagari keeps every glyph; neither keeps TrueType hinting. Any other script (Greek, Cyrillic, Tamil, Bengali, …)
+  is drawn with the platform's own fonts and must still be real, extractable text.
 - Every string must be selectable and searchable in the output, including `₹`, `£` and Devanagari. Devanagari is
   drawn with the bundled font and embedded, but a PDF stores glyphs in visual order, so extracting text that
   contains a pre-base vowel sign (`वि`) can reorder that cluster. That is a limit of the format, not of the
