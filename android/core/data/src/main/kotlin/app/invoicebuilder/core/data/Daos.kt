@@ -92,9 +92,16 @@ interface DeviceStateDao {
 interface AppStateDao {
     @Query("SELECT value FROM app_state WHERE `key` = :key") suspend fun value(key: String): String?
     @Query("SELECT value FROM app_state WHERE `key` = :key") fun observe(key: String): Flow<String?>
-    @Query("INSERT INTO app_state (`key`, value) VALUES (:key, :value) ON CONFLICT(`key`) DO UPDATE SET value = excluded.value")
+    // No upsert (`ON CONFLICT … DO UPDATE` needs SQLite 3.24; Android 8.0 has 3.18): the row is replaced instead, which
+    // for this local key/value table (no foreign keys, no triggers) is the same as updating it.
+    @Query("INSERT OR REPLACE INTO app_state (`key`, value) VALUES (:key, :value)")
     suspend fun set(key: String, value: String)
-    @Query("INSERT INTO app_state (`key`, value) VALUES (:key, '1') ON CONFLICT(`key`) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)")
+    @Query(
+        """
+        INSERT OR REPLACE INTO app_state (`key`, value)
+        VALUES (:key, CAST(COALESCE((SELECT CAST(value AS INTEGER) FROM app_state WHERE `key` = :key), 0) + 1 AS TEXT))
+        """,
+    )
     suspend fun increment(key: String)
     @Query("SELECT * FROM app_state WHERE `key` IN (:keys)") suspend fun entries(keys: List<String>): List<AppStateEntity>
     @Query("SELECT * FROM app_state WHERE `key` IN (:keys)") fun observeEntries(keys: List<String>): Flow<List<AppStateEntity>>
@@ -183,13 +190,12 @@ interface DocumentDao {
 
     @Query("SELECT COUNT(*) FROM document WHERE doc_type = 'invoice' AND lifecycle <> 'draft'") suspend fun everIssuedInvoices(): Int
 
-    @Query(
-        """
-        SELECT COUNT(*) FROM document WHERE deleted_at IS NULL AND lifecycle <> 'draft' AND
-        (json_extract(seller_snapshot, '$.logoAssetId') = :assetID OR json_extract(seller_snapshot, '$.signatureAssetId') = :assetID)
-        """,
-    )
-    suspend fun issuedUsingAsset(assetID: String): Int
+    /**
+     * Seller snapshots of live issued documents whose text contains [assetID]; the caller decodes them to check the
+     * fields. No `json_extract`: Android's SQLite has no JSON functions before Android 14.
+     */
+    @Query("SELECT seller_snapshot FROM document WHERE deleted_at IS NULL AND lifecycle <> 'draft' AND seller_snapshot LIKE '%' || :assetID || '%'")
+    suspend fun issuedSnapshotsMentioning(assetID: String): List<String>
 }
 
 @Dao

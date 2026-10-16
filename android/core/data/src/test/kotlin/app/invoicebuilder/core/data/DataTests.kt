@@ -11,6 +11,7 @@ import app.invoicebuilder.core.domain.documents.DocumentStatus
 import app.invoicebuilder.core.domain.documents.LineItem
 import app.invoicebuilder.core.domain.documents.PaymentMethod
 import app.invoicebuilder.core.domain.models.Address
+import app.invoicebuilder.core.domain.models.AssetKind
 import app.invoicebuilder.core.domain.models.Business
 import app.invoicebuilder.core.domain.models.Client
 import app.invoicebuilder.core.domain.models.DocumentType
@@ -144,6 +145,33 @@ class DataTests {
             store.documentService.issue("d1", device)
             fail("issued twice")
         } catch (expected: DocumentServiceError.NotADraft) {}
+    }
+
+    /** `spec/setup.md` §9: a replaced logo stays while an issued document's frozen seller snapshot still shows it. */
+    @Test
+    fun aReplacedLogoStaysWhileAnIssuedInvoiceShowsIt() = runTest {
+        val (business, device) = store.setUp(ImagePayload(ImagePayload.PNG, byteArrayOf(1, 2, 3)))
+        val first = business.logoAssetId!!
+        store.draft(business, "d1", DocumentType.invoice, store.line("l1", 1_000_000))
+        store.documentService.issue("d1", device)
+
+        val second = store.setup.setImage(ImagePayload(ImagePayload.PNG, byteArrayOf(4, 5, 6)), AssetKind.logo, business.id).logoAssetId!!
+        assertNotNull("INV/26-27/0001 still prints the first logo", store.db.assets().live(first))
+        store.setup.setImage(null, AssetKind.logo, business.id)
+        assertEquals("no document shows the second logo", null, store.db.assets().live(second))
+        assertNotNull(store.db.assets().live(first))
+    }
+
+    @Test
+    fun theAppStateCounterStartsAtOneAndCounts() = runTest {
+        assertEquals(null, store.db.appState().value("n"))
+        store.db.appState().increment("n")
+        assertEquals("1", store.db.appState().value("n"))
+        store.db.appState().increment("n")
+        store.db.appState().set("other", "x")
+        store.db.appState().set("other", "y")
+        assertEquals("2", store.db.appState().value("n"))
+        assertEquals("y", store.db.appState().value("other"))
     }
 
     @Test
