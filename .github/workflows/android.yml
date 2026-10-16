@@ -18,13 +18,16 @@ on:
         type: boolean
         default: true
 
-# A newer push to the same branch cancels the run in progress (no minutes spent on superseded commits).
+# A newer push to the same branch cancels the run in progress (no minutes spent on superseded commits). A label other
+# than `device-test` gets a group of its own: its run skips every job, and must not cancel the real one.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'device-test' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
   test:
+    # `labeled` is only here for `device-test`: any other label (bug, ios, …) would run everything again.
+    if: github.event.action != 'labeled' || github.event.label.name == 'device-test'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
