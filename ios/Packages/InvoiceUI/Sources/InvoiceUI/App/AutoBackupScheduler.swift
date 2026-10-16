@@ -28,17 +28,19 @@ enum AutoBackupScheduler {
         try? BGTaskScheduler.shared.submit(request)
     }
 
-    /// The app went to the background: a backup if one is due, inside the few seconds iOS grants.
+    /// The app went to the background: a backup if one is due, inside the time iOS grants (about 30 s). If that runs
+    /// out first, the work is cancelled (its requests stop; the next trigger tries again) and the task still ends.
     static func appDidEnterBackground(_ model: AppModel) {
         guard model.hasCloudBackup else { return }
         scheduleDaily()
-        let id = UIApplication.shared.beginBackgroundTask(withName: "drive-backup")
-        Task {
+        let assertion = BackgroundAssertion(name: "drive-backup")
+        let work = Task {
             try? await Task.sleep(for: .seconds(1)) // let the draft autosave land first
             await model.syncDrive()
             await model.backUpIfDue()
-            UIApplication.shared.endBackgroundTask(id)
+            assertion.end()
         }
+        assertion.onExpiry = { work.cancel() }
     }
 
     private static func run(_ box: TaskBox, model: AppModel) {
@@ -46,7 +48,7 @@ enum AutoBackupScheduler {
         let work = Task {
             await model.syncDrive()
             await model.backUpIfDue()
-            box.task.setTaskCompleted(success: true)
+            box.task.setTaskCompleted(success: !Task.isCancelled) // cancelled: the system expired the task
         }
         box.task.expirationHandler = { work.cancel() }
     }
@@ -55,5 +57,35 @@ enum AutoBackupScheduler {
     private final class TaskBox: @unchecked Sendable {
         let task: BGTask
         init(task: BGTask) { self.task = task }
+    }
+}
+
+/// A `beginBackgroundTask` that ends exactly once: from `end()` when the work is done, or when iOS says the time is
+/// up, after `onExpiry` (which cancels the work). iOS terminates an app whose background task outlives its time, so
+/// the expiration handler must always end it.
+@MainActor
+final class BackgroundAssertion {
+    typealias Begin = @MainActor (_ name: String, _ expiry: @escaping @MainActor @Sendable () -> Void) -> UIBackgroundTaskIdentifier
+    typealias End = @MainActor (UIBackgroundTaskIdentifier) -> Void
+
+    var onExpiry: () -> Void = {}
+    private var id = UIBackgroundTaskIdentifier.invalid
+    private let endTask: End
+
+    init(name: String,
+         begin: Begin = { name, expiry in UIApplication.shared.beginBackgroundTask(withName: name, expirationHandler: expiry) },
+         end: @escaping End = { UIApplication.shared.endBackgroundTask($0) }) {
+        endTask = end
+        id = begin(name) { [self] in
+            onExpiry()
+            self.end()
+        }
+    }
+
+    /// Safe to call more than once; only the first call ends the task.
+    func end() {
+        guard id != .invalid else { return }
+        endTask(id)
+        id = .invalid
     }
 }

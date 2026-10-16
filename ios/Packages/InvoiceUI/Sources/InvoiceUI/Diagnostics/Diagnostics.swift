@@ -36,8 +36,10 @@ public final class Diagnostics: NSObject, MXMetricManagerSubscriber, @unchecked 
 
     func save(_ data: Data, kind: String, at date: Date = Date()) {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let name = "\(kind)-\(Int64(date.timeIntervalSince1970 * 1000)).json"
-        try? data.write(to: folder.appending(path: name), options: [.atomic, .completeFileProtection])
+        // A batch arrives in one call: the next free millisecond keeps each report and the newest-first order.
+        var stamp = Int64(date.timeIntervalSince1970 * 1000)
+        while FileManager.default.fileExists(atPath: folder.appending(path: "\(kind)-\(stamp).json").path) { stamp += 1 }
+        try? data.write(to: folder.appending(path: "\(kind)-\(stamp).json"), options: [.atomic, .completeFileProtection])
         for stale in reports().dropFirst(Self.kept) { try? FileManager.default.removeItem(at: stale) }
     }
 
