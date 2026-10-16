@@ -38,6 +38,11 @@ iOS engineer, so explanations and code comments should map Android concepts to t
 - `data class` is a reference type with value equality; mutate via `copy()`. Keep domain types immutable (`val`).
 - `java.util.UUID.toString()` is lowercase (matches the spec); never uppercase it.
 - Use `java.time.LocalDate` for invoice dates (native on minSdk 26).
+- **SQL runs on the phone's own SQLite: 3.18 on Android 8.0**, 3.22 on 9–10, 3.28 on 11, and no JSON functions
+  before Android 14. iOS 18's GRDB has 3.43+, so SQL ported from Swift can break here: no upsert
+  (`ON CONFLICT … DO UPDATE`; use `INSERT OR REPLACE` on `app_state`), no `json_extract` (filter in SQL, decode in
+  Kotlin), no window functions, `RETURNING`, `TRUE`/`FALSE` or `iif`. Room and Robolectric use a new SQLite, so
+  only `SQLiteFloorTests` and `make check-android-sql` catch it (issue #28).
 
 ## Android lifecycle checklist (no iOS equivalent)
 
@@ -56,6 +61,7 @@ make test-core-android    # all spec fixtures on the JVM (same count as iOS)
 make test-unit-android    # every JVM test + Android Lint + the R8 release build
 make test-device-android  # on a running emulator/device: PDF renderer (PDFBox text checks) + Compose UI smoke tests
 make pdf-samples-android  # review PDFs from the Android renderer
+make check-android-sql    # every Room query compiled on SQLite 3.18 (Android 8.0)
 ```
 
 - JDK 21 (`JAVA_HOME=/opt/homebrew/opt/openjdk@21/...` here) and the SDK in `android/local.properties` (gitignored).

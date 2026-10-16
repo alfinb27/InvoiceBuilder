@@ -1,5 +1,6 @@
 .PHONY: check-ios setup validate-spec sync-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-drive-ios test-pdf-ios test-ui-ios \
-	test-app-ios test-ios pdf-samples build-ios test-core-android test-data-android test-unit-android test-device-android pdf-samples-android check
+	test-app-ios test-ios pdf-samples build-ios test-core-android test-data-android test-unit-android test-device-android pdf-samples-android \
+	check-android-sql check
 
 # Simulator for iOS tests; override with `make test-ios SIM="iPhone 16"`.
 SIM ?= iPhone 17 Pro
@@ -69,10 +70,13 @@ test-unit-android: ## every Android JVM test: fixtures, data, billing, plus Andr
 test-device-android: ## on a running emulator or device: the PDF renderer and the app's UI smoke tests
 	cd android && ./gradlew :core:pdf:connectedDebugAndroidTest :app:connectedDebugAndroidTest
 
+check-android-sql: ## compile every Room query on SQLite 3.18, the oldest a supported phone has (built once; Python 3 + cc)
+	python3 android/tools/check-sqlite-floor.py
+
 pdf-samples-android: ## the PDF review copies from the Android renderer, pulled into $(OUT)/android
 	cd android && ./gradlew :core:pdf:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
 		-Pandroid.testInstrumentationRunnerArguments.pdfSamples=1 \
 		-Pandroid.testInstrumentationRunnerArguments.class=app.invoicebuilder.core.pdf.RenderTests#writeSamples
 	mkdir -p $(OUT)/android && adb pull /sdcard/Android/data/app.invoicebuilder.core.pdf.test/files/pdf-samples/. $(OUT)/android
 
-check: validate-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-drive-ios test-core-android test-data-android test-unit-android
+check: validate-spec check-sync test-core-ios test-data-ios test-sync-ios test-billing-ios test-drive-ios test-core-android test-data-android test-unit-android check-android-sql

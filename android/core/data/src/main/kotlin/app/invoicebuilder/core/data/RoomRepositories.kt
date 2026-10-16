@@ -2,6 +2,7 @@ package app.invoicebuilder.core.data
 
 import androidx.room.withTransaction
 import app.invoicebuilder.core.domain.backup.BackupCodec
+import app.invoicebuilder.core.domain.documents.SellerSnapshot
 import app.invoicebuilder.core.domain.models.Asset
 import app.invoicebuilder.core.domain.models.AssetKind
 import app.invoicebuilder.core.domain.models.Business
@@ -202,6 +203,13 @@ internal object AssetStore {
 
     /** Tombstones the asset when no live business and no issued document's seller snapshot points at it any more. */
     suspend fun releaseIfUnused(db: AppDatabase, assetID: String, now: Long) {
-        if (db.businesses().countUsing(assetID) == 0 && db.documents().issuedUsingAsset(assetID) == 0) db.assets().tombstone(assetID, now)
+        if (db.businesses().countUsing(assetID) == 0 && !issuedDocumentUses(db, assetID)) db.assets().tombstone(assetID, now)
     }
+
+    /** The snapshot text is pre-filtered in SQL, then the two fields are checked exactly (iOS: `json_extract`). */
+    private suspend fun issuedDocumentUses(db: AppDatabase, assetID: String): Boolean =
+        db.documents().issuedSnapshotsMentioning(assetID).any { text ->
+            val seller = JsonColumn.decode(SellerSnapshot.serializer(), text)
+            seller?.logoAssetId == assetID || seller?.signatureAssetId == assetID
+        }
 }
