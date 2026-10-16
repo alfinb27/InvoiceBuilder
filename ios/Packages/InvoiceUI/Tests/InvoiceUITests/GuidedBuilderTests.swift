@@ -163,7 +163,7 @@ struct GuidedBuilderTests {
         let home = HomeViewModel(session: session)
         let task = Task { await home.observe() }
         defer { task.cancel() }
-        await waitUntil { home.state.documentsLoaded && home.state.clientCount > 0 }
+        await waitUntil { home.state.checklistLoaded && home.state.checklist.hasClient }
         #expect(home.state.checklist.isShown && home.state.checklist.doneCount == 3)
 
         let model = await newInvoice(session)

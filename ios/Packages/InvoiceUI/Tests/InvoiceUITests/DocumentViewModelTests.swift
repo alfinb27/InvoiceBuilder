@@ -57,6 +57,17 @@ struct DocumentViewModelTests {
         #expect(model.computed?.totals.shipping == 15_000)
     }
 
+    /// "Automatic (Maharashtra)": the buyer's state while none is chosen, and still after one is.
+    @Test func theAutomaticPlaceOfSupplyIsTheBuyersState() async throws {
+        let session = try await TestEnvironment.session()
+        let model = await newInvoice(session)
+        model.chooseClient(try await client(session, named: "Umesh Foods"))
+        model.addItem(try await item(session, named: "Website development"))
+        #expect(model.state.document.placeOfSupply == nil && model.derivedPlaceOfSupply == "27")
+        model.setPlaceOfSupply("29")
+        #expect(model.computed?.placeOfSupply == "29" && model.derivedPlaceOfSupply == "27")
+    }
+
     @Test func lineEditorValidatesThenApplies() async throws {
         let session = try await TestEnvironment.session()
         let model = await newInvoice(session)

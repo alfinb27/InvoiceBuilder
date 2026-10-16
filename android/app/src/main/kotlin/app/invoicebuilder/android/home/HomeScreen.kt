@@ -72,11 +72,9 @@ import app.invoicebuilder.core.designsystem.readableWidth
 import app.invoicebuilder.core.domain.billing.EntitlementState
 import app.invoicebuilder.core.domain.billing.FreeTier
 import app.invoicebuilder.core.domain.documents.DashboardTotals
-import app.invoicebuilder.core.domain.documents.DocumentSummary
 import app.invoicebuilder.core.domain.models.DocumentType
 import app.invoicebuilder.core.domain.numbering.DuplicateNumbers
 import app.invoicebuilder.core.domain.setup.FirstRunChecklist
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -89,10 +87,9 @@ import java.time.ZoneId
 fun HomeScreen(session: Session) {
     val container = session.container
     val businessID = session.business.id
-    val clientCount by remember(businessID) { container.clients.observeClients(businessID).map { it.size } }.collectAsStateWithLifecycle(0)
-    val itemCount by remember(businessID) { container.catalog.observeItems(businessID).map { it.size } }.collectAsStateWithLifecycle(0)
-    val documents by remember(businessID) { container.documents.observeDocuments(businessID) }
-        .collectAsStateWithLifecycle<List<DocumentSummary>?>(null)
+    // Null until the first answer: until then Home shows neither the checklist nor the dashboard.
+    val checklist by remember(businessID) { container.documents.observeFirstRunChecklist(businessID) }
+        .collectAsStateWithLifecycle<FirstRunChecklist?>(null)
     val dashboard by remember(businessID) { container.documents.observeDashboard(businessID, session.business.homeCurrency) }
         .collectAsStateWithLifecycle(DashboardTotals())
     val duplicates by remember(businessID) { container.numbering.observeDuplicateNumbers(businessID) }.collectAsStateWithLifecycle(emptyList())
@@ -106,10 +103,7 @@ fun HomeScreen(session: Session) {
             val entitlement = session.entitlement
             if (!entitlement.isUnlocked && entitlement.state != EntitlementState.unknown && entitlement.remaining <= 3) FreeTierBanner(session)
             for (group in duplicates) DuplicateNumberWarning(group, session)
-            documents?.let { list ->
-                val checklist = FirstRunChecklist.of(clientCount, itemCount, list)
-                if (checklist.isShown) FirstRun(session, checklist, dashboard) else Dashboard(session, dashboard)
-            }
+            checklist?.let { if (it.isShown) FirstRun(session, it, dashboard) else Dashboard(session, dashboard) }
             if (session.config.reviewStatus != "reviewed") {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Theme.Space.s)) {
                     Icon(Icons.Outlined.Info, null, tint = Theme.colors.textSecondary, modifier = Modifier.size(18.dp))

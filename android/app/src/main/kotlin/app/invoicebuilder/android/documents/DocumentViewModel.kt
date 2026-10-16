@@ -171,6 +171,8 @@ class DocumentViewModel(private val session: Session, val route: DocumentRoute, 
     val derivedPlaceOfSupply: String?
         get() {
             if (!showsPlaceOfSupply) return null
+            // With none chosen, the builder's own result is the automatic one: no second computation per redraw.
+            computed?.takeIf { document.placeOfSupply == null }?.let { return it.placeOfSupply }
             val automatic = document.copy(placeOfSupply = null)
             val result = rules.compute(automatic, rules.sellerSnapshot(config), rules.buyerSnapshot(automatic, client))
             return (result as? Outcome.Success)?.value?.placeOfSupply

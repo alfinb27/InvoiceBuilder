@@ -21,6 +21,7 @@ import app.invoicebuilder.core.domain.models.ImagePayload
 import app.invoicebuilder.core.domain.models.NumberingSeries
 import app.invoicebuilder.core.domain.money.CurrencyCode
 import app.invoicebuilder.core.domain.numbering.DuplicateNumbers
+import app.invoicebuilder.core.domain.setup.FirstRunChecklist
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -96,6 +97,11 @@ interface DocumentRepository {
     suspend fun markSent(documentID: String, timestamp: Long?)
     /** Home dashboard totals; home-currency invoices only. */
     fun observeDashboard(businessID: String, homeCurrency: CurrencyCode): Flow<DashboardTotals>
+    /**
+     * Home's first-run checklist (`spec/setup.md` §3.2): is there a live client, a live item, an issued invoice. One
+     * cheap query, so Home never loads every client, item and document just to tick three boxes.
+     */
+    fun observeFirstRunChecklist(businessID: String): Flow<FirstRunChecklist>
     /** Live, issued invoices as reminder candidates (`spec/reminders.md` §2), status already derived. */
     suspend fun fetchReminderCandidates(businessID: String): List<ReminderCandidate>
 }

@@ -188,7 +188,11 @@ private fun DocumentList(session: Session) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 return@Column
             }
-            val (drafts, issued) = visibleDocuments(documents, router.docType, router.searchText, router.statusFilter, router.dateFilter, session.today)
+            val today = session.today
+            // Filtered again only when the rows or a filter change, not on every recomposition (a menu opening).
+            val (drafts, issued) = remember(documents, router.docType, router.searchText, router.statusFilter, router.dateFilter, today) {
+                visibleDocuments(documents, router.docType, router.searchText, router.statusFilter, router.dateFilter, today)
+            }
             if (drafts.isEmpty() && issued.isEmpty()) {
                 when {
                     router.searchText.isNotBlank() -> EmptyState("No results for “${router.searchText}”", Icons.Filled.SearchOff)

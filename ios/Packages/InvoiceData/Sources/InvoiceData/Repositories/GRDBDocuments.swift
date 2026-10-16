@@ -76,6 +76,22 @@ public struct GRDBDocumentRepository: DocumentRepository {
         }
     }
 
+    public func observeFirstRunChecklist(businessID: String) -> AsyncThrowingStream<FirstRunChecklist, any Error> {
+        database.observe { db in try Self.firstRunChecklist(businessID: businessID, db: db) }
+    }
+
+    /// Three `EXISTS` in one row. Archived clients and items count, as they do in the lists.
+    static func firstRunChecklist(businessID: String, db: Database) throws -> FirstRunChecklist {
+        let row = try Row.fetchOne(db, sql: """
+            SELECT EXISTS (SELECT 1 FROM client WHERE business_id = :business AND deleted_at IS NULL) AS has_client,
+                   EXISTS (SELECT 1 FROM catalog_item WHERE business_id = :business AND deleted_at IS NULL) AS has_item,
+                   EXISTS (SELECT 1 FROM document WHERE business_id = :business AND deleted_at IS NULL
+                           AND doc_type = 'invoice' AND lifecycle <> 'draft') AS has_issued_invoice
+            """, arguments: ["business": businessID])
+        return FirstRunChecklist(hasClient: row?["has_client"] ?? false, hasItem: row?["has_item"] ?? false,
+                                 hasIssuedInvoice: row?["has_issued_invoice"] ?? false)
+    }
+
     public func fetchReminderCandidates(businessID: String) async throws -> [ReminderCandidate] {
         let today = time.today()
         return try await database.writer.read { db in
@@ -105,11 +121,14 @@ public struct GRDBDocumentRepository: DocumentRepository {
         }
     }
 
-    /// The list rows: newest issue date first, then the most recently edited.
+    /// The list rows: newest issue date first, then the most recently edited. Only the buyer's name is read from the
+    /// snapshot: decoding every row's whole snapshot with `JSONDecoder` was about a quarter of the query's time
+    /// (`PerformanceTests`), and the list runs it after every write.
     static func summaries(businessID: String, db: Database) throws -> [DocumentSummary] {
         let rows = try Row.fetchAll(db, sql: """
             SELECT d.id, d.doc_type, d.number, d.lifecycle, d.issue_date, d.due_date, d.valid_until, d.sent_at,
-                   d.quote_outcome, d.client_id, d.buyer_snapshot, d.currency, d.total_minor, d.updated_at,
+                   d.quote_outcome, d.client_id, json_extract(d.buyer_snapshot, '$.name') AS buyer_name, d.currency,
+                   d.total_minor, d.updated_at,
                    (SELECT COUNT(*) FROM line_item l WHERE l.document_id = d.id AND l.deleted_at IS NULL) AS line_count,
                    (SELECT COALESCE(SUM(p.amount_minor), 0) FROM payment p
                     WHERE p.document_id = d.id AND p.deleted_at IS NULL) AS paid_minor
@@ -118,7 +137,6 @@ public struct GRDBDocumentRepository: DocumentRepository {
             ORDER BY d.issue_date DESC, d.updated_at DESC, d.id
             """, arguments: [businessID])
         return try rows.map { row in
-            let buyer = try JSONColumn.decode(BuyerSnapshot.self, from: row["buyer_snapshot"])
             let quoteOutcome: String? = row["quote_outcome"]
             let dueDate: String? = row["due_date"]
             let validUntil: String? = row["valid_until"]
@@ -128,7 +146,7 @@ public struct GRDBDocumentRepository: DocumentRepository {
                 issueDate: try DocumentRecord.date(row["issue_date"]),
                 dueDate: try dueDate.map(DocumentRecord.date), validUntil: try validUntil.map(DocumentRecord.date),
                 sentAt: row["sent_at"], quoteOutcome: quoteOutcome.map(QuoteOutcome.init(rawValue:)),
-                clientId: row["client_id"], buyerName: buyer?.name, currency: CurrencyCode(rawValue: row["currency"]),
+                clientId: row["client_id"], buyerName: row["buyer_name"], currency: CurrencyCode(rawValue: row["currency"]),
                 totalMinor: row["total_minor"], paidMinor: row["paid_minor"], lineCount: row["line_count"],
                 updatedAt: row["updated_at"]
             )
