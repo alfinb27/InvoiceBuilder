@@ -70,8 +70,9 @@ the chosen brand everywhere below before submitting.
   backup files straight from the device to the user's own Google Drive; the developer receives nothing, so the label
   stays "Data Not Collected".
 - **Tracking:** none (`PrivacyInfo.xcprivacy`: `NSPrivacyTracking` false, no tracking domains).
-- **Required-reason APIs:** system boot time (35F9.1, elapsed time on device). GRDB and SQLiteData ship their own
-  manifests.
+- **Required-reason APIs:** system boot time (35F9.1, elapsed time on device) and file timestamps (C617.1, the PDF
+  cache in the app's container is pruned by date). `PrivacyManifestTests` fails if code starts using another category
+  without a reason. GRDB and SQLiteData ship their own manifests.
 
 ## Screenshots
 
