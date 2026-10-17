@@ -31,9 +31,13 @@
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="33">
 
+        <!-- singleTask: a reminder, an opened backup and the app icon all reach the one copy of the app (onNewIntent).
+             With the standard mode, each icon tap after a reminder or a file stacked another copy, each loading the
+             data again, until a low-memory phone ran out (#55). -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

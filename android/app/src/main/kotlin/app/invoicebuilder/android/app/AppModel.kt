@@ -38,6 +38,8 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
         private set
     /** A backup opened while starting (`spec/backup.md` §6): opened once onboarding or the main screen shows. */
     private var openedWhileStarting: Uri? = null
+    /** A reminder tapped while starting: its invoice opens once the main screen shows (#55). */
+    private var reminderWhileStarting: String? = null
 
     private val app get() = getApplication<InvoiceApplication>()
     private var container: AppContainer? = null
@@ -110,6 +112,10 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
                     openedWhileStarting = null
                     open(uri)
                 }
+                reminderWhileStarting?.let { id ->
+                    reminderWhileStarting = null
+                    openDocument(id)
+                }
             } catch (error: Exception) {
                 phase = Phase.Failed(error.toString())
             }
@@ -152,6 +158,7 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
 
     /** A reminder notification was tapped. */
     fun openDocument(id: String) {
+        if (phase == Phase.Loading) reminderWhileStarting = id
         (phase as? Phase.Ready)?.session?.let { session ->
             viewModelScope.launch {
                 val document = session.container.documents.fetchDocument(id) ?: return@launch
