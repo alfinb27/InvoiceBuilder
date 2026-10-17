@@ -46,6 +46,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -65,6 +68,7 @@ import app.invoicebuilder.core.designsystem.PrimaryButton
 import app.invoicebuilder.core.designsystem.ProgressBar
 import app.invoicebuilder.core.designsystem.SecondaryButton
 import app.invoicebuilder.core.designsystem.StatTile
+import app.invoicebuilder.core.designsystem.StatTilePadding
 import app.invoicebuilder.core.designsystem.SurfaceCard
 import app.invoicebuilder.core.designsystem.Theme
 import app.invoicebuilder.core.designsystem.TipCallout
@@ -184,14 +188,27 @@ private fun MoneyTiles(session: Session, dashboard: DashboardTotals, empty: Bool
         Triple("Paid this month", dashboard.paidThisMonthMinor, false),
     )
     BoxWithConstraints {
-        val stacked = maxWidth < 300.dp || isAccessibilityTextSize()
+        // One size for the three amounts, each on one line: the display size if the widest fits a third of the row,
+        // the headline size if that fits, otherwise the tiles stack, as at accessibility sizes (#49).
+        val widest = tiles.map { (_, minor, _) -> session.money(if (empty) 0 else minor) }.maxBy { it.length }
+        val measurer = rememberTextMeasurer()
+        val density = LocalDensity.current
+        val room = (maxWidth - Theme.Space.s * 2) / 3 - StatTilePadding * 2
+        fun fits(style: TextStyle) =
+            with(density) { measurer.measure(widest, style.copy(fontFeatureSettings = "tnum"), maxLines = 1).size.width.toDp() } <= room
+        val amountStyle = when {
+            isAccessibilityTextSize() -> null
+            fits(Theme.Fonts.title3) -> Theme.Fonts.title3
+            fits(Theme.Fonts.headline) -> Theme.Fonts.headline
+            else -> null
+        }
         val content: @Composable (Modifier) -> Unit = { tileModifier ->
             for ((label, minor, alert) in tiles) {
-                if (empty) EmptyStatTile(session.money(0), label, tileModifier)
-                else StatTile(session.money(minor), label, tileModifier, if (alert) Theme.colors.danger else null)
+                if (empty) EmptyStatTile(session.money(0), label, tileModifier, amountStyle)
+                else StatTile(session.money(minor), label, tileModifier, if (alert) Theme.colors.danger else null, amountStyle)
             }
         }
-        if (stacked) Column(verticalArrangement = Arrangement.spacedBy(Theme.Space.s)) { content(Modifier.fillMaxWidth()) }
+        if (amountStyle == null) Column(verticalArrangement = Arrangement.spacedBy(Theme.Space.s)) { content(Modifier.fillMaxWidth()) }
         else Row(horizontalArrangement = Arrangement.spacedBy(Theme.Space.s)) { content(Modifier.weight(1f)) }
     }
 }

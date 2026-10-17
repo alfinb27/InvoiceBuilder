@@ -231,18 +231,34 @@ struct HomeView: View {
             ("Past due date", totals.overdueMinor, totals.overdueMinor > 0),
             ("Paid this month", totals.paidThisMonthMinor, false),
         ]
-        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: Theme.Space.s))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: Theme.Space.s))
-        return layout { tileViews(tiles, empty: empty) }
+        // One size for the three amounts, each on one line: the display size if the widest fits a third of the row,
+        // the headline size if that fits, otherwise the tiles stack, as at accessibility sizes (#49).
+        let widest = tiles.map { session.money(empty ? 0 : $0.1) }.max { $0.count < $1.count }
+        return Group {
+            if typeSize.isAccessibilitySize {
+                VStack(spacing: Theme.Space.s) { tileViews(tiles, empty: empty, font: Theme.Fonts.title3, widest: nil) }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: Theme.Space.s) {
+                        tileViews(tiles, empty: empty, font: Theme.Fonts.title3, widest: widest)
+                    }
+                    HStack(alignment: .top, spacing: Theme.Space.s) {
+                        tileViews(tiles, empty: empty, font: Theme.Fonts.headline, widest: widest)
+                    }
+                    VStack(spacing: Theme.Space.s) { tileViews(tiles, empty: empty, font: Theme.Fonts.title3, widest: nil) }
+                }
+            }
+        }
     }
 
     @ViewBuilder
-    private func tileViews(_ tiles: [(String, Int64, Bool)], empty: Bool) -> some View {
+    private func tileViews(_ tiles: [(String, Int64, Bool)], empty: Bool, font: Font, widest: String?) -> some View {
         ForEach(tiles, id: \.0) { label, minor, alert in
             if empty {
-                EmptyStatTile(amount: session.money(0), label: label)
+                EmptyStatTile(amount: session.money(0), label: label, amountFont: font, widest: widest)
             } else {
-                StatTile(amount: session.money(minor), label: label, emphasis: alert ? Theme.danger : nil)
+                StatTile(amount: session.money(minor), label: label, emphasis: alert ? Theme.danger : nil,
+                         amountFont: font, widest: widest)
             }
         }
     }
