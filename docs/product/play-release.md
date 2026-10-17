@@ -63,7 +63,9 @@ Reuse the copy in `app-store-listing.md` (UK and India sections), adjusted for P
       purchase → "Payment pending", then unlocked when it completes; refund in the console → free again after the
       next resume; reinstall → unlocked on first launch (and the free counter survives through Block Store).
 - [ ] Every purchase is acknowledged (the console shows no auto-refunds after 3 days).
-- [ ] Restore a backup made on an iPhone, and restore an Android backup on an iPhone.
+- [x] Restore a backup made on an iPhone, and restore an Android backup on an iPhone. (Each app's tests restore the
+      other app's export, `CrossPlatformBackupTests`; both directions also went through the restore screens on an
+      Android 16 emulator and an iOS 26 simulator, 2026-10-17.)
 - [ ] Low-end phone: a 3-page PDF renders in ≤ 2 s; 30-minute `adb shell monkey` run with no ANR.
 - [ ] TalkBack through: onboarding → new invoice → issue → share; font size at 200%.
 - [ ] Foldable emulator (folded/unfolded mid-edit) and a freeform window resized across 600 dp and 840 dp.
