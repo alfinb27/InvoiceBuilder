@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -32,7 +33,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -497,13 +500,30 @@ fun QuantityStepper(value: String, onValueChange: (String) -> Unit, onDecrement:
     }
 }
 
+/** Drawn at 44 dp, touched in [Theme.Layout.minTouchTarget]. */
 @Composable
 private fun StepButton(icon: ImageVector, label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Theme.colors.surfaceMuted)
+        Modifier.size(Theme.Layout.minTouchTarget).clip(RoundedCornerShape(14.dp))
             .clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, null, tint = Theme.colors.textPrimary, modifier = Modifier.size(18.dp)) }
+    ) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Theme.colors.surfaceMuted), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = Theme.colors.textPrimary, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+/**
+ * A bottom sheet's drag handle in a touch target as wide as it is tall: the sheet attaches its expand / dismiss actions
+ * to this slot, and Material's handle alone is 32 dp wide.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SheetDragHandle() {
+    Box(Modifier.sizeIn(minWidth = Theme.Layout.minTouchTarget, minHeight = Theme.Layout.minTouchTarget), contentAlignment = Alignment.Center) {
+        BottomSheetDefaults.DragHandle()
+    }
 }
 
 /** A money tile before there is any money: a dashed border, the amount in the display face and a label. */

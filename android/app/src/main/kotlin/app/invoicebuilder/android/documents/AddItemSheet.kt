@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.invoicebuilder.android.app.Session
 import app.invoicebuilder.android.common.SearchField
+import app.invoicebuilder.core.designsystem.SheetDragHandle
 import app.invoicebuilder.core.designsystem.BoxedTextField
 import app.invoicebuilder.core.designsystem.isAccessibilityTextSize
 import app.invoicebuilder.core.designsystem.CheckboxRow
@@ -103,7 +104,7 @@ fun AddItemSheet(model: DocumentViewModel, session: Session) {
     }
     val current = if (editor.isNew) tab ?: AddItemTab.new else AddItemTab.new
     val noun = DocumentText.noun(model.document.docType)
-    ModalBottomSheet(model::cancelLineEditor, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ModalBottomSheet(model::cancelLineEditor, dragHandle = { SheetDragHandle() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Theme.colors.surface, shape = RoundedCornerShape(topStart = Theme.Radius.sheet, topEnd = Theme.Radius.sheet)) {
         Column(Modifier.fillMaxWidth().imePadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = Theme.Layout.screenGutter), verticalAlignment = Alignment.CenterVertically) {

@@ -36,6 +36,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
@@ -138,7 +139,7 @@ fun EditorSheet(
 fun SearchField(text: String, onChange: (String) -> Unit, prompt: String, modifier: Modifier = Modifier) {
     OutlinedTextField(
         text, onChange, modifier.fillMaxWidth().testTag("search"),
-        placeholder = { Text(prompt, maxLines = 1) }, singleLine = true,
+        placeholder = { Text(prompt, maxLines = 1, overflow = TextOverflow.Ellipsis) }, singleLine = true,
         leadingIcon = { Icon(Icons.Filled.Search, null) },
         trailingIcon = { if (text.isNotEmpty()) IconButton({ onChange("") }) { Icon(Icons.Filled.Close, "Clear") } },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
