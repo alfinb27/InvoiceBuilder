@@ -144,7 +144,8 @@ object Theme {
 
     object Layout {
         /** Material's own minimum is 48 dp; the token (44) is the floor both platforms share. */
-        val minTouchTarget = (DesignTokens.bundled.layout["minTouchTarget"] ?: 44.0).dp
+        /** Material's 48 dp (`minTouchTargetAndroid`); iOS keeps Apple's 44 pt (ADR-0020 amendment). */
+        val minTouchTarget = (DesignTokens.bundled.layout["minTouchTargetAndroid"] ?: 48.0).dp
         val maxReadableWidth = (DesignTokens.bundled.layout["maxReadableWidth"] ?: 720.0).dp
         /** Two panes (list + detail) from here up (≈ regular horizontal size class). */
         val regularWidthBreakpoint = (DesignTokens.bundled.layout["regularWidthBreakpoint"] ?: 600.0).dp

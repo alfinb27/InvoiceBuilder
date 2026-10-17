@@ -2,6 +2,7 @@ package app.invoicebuilder.android.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,10 +42,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.invoicebuilder.android.app.SampleData
@@ -90,7 +94,8 @@ fun WelcomeScreen(model: OnboardingViewModel, onRestore: () -> Unit) {
                 Text("Your data stays on your phone. No account needed.", style = Theme.Fonts.footnote, color = Theme.colors.textSecondary)
             }
             PrimaryButton("Let's get started", model::start, tag = "onboarding.start", trailingArrow = true)
-            Row(horizontalArrangement = Arrangement.spacedBy(Theme.Space.l)) {
+            // Side by side, or one under the other when the text is large.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Theme.Space.l, Alignment.CenterHorizontally)) {
                 TextLinkButton("I've used this app before", { showsRestore = true }, tag = "onboarding.usedBefore")
                 TextLinkButton("Just looking?", { showsSamples = true }, tag = "onboarding.justLooking")
             }
@@ -155,9 +160,17 @@ private fun Promise(number: Int, title: String, hint: String) {
     }
 }
 
-/** The hero: an invoice card, a "PAID" stamp and a paper plane on the brand tint. Decoration only. */
+/**
+ * The hero: an invoice card, a "PAID" stamp and a paper plane on the brand tint. Decoration only, hidden from TalkBack,
+ * and drawn at one size whatever the font size (as on iOS): scaled text would break out of the card.
+ */
 @Composable
 private fun WelcomeIllustration(modifier: Modifier = Modifier) {
+    CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale = 1f)) { WelcomeArtwork(modifier) }
+}
+
+@Composable
+private fun WelcomeArtwork(modifier: Modifier) {
     val ink = Color(0xFF2A2135)
     Box(modifier.fillMaxWidth().height(196.dp).clip(RoundedCornerShape(Theme.Radius.hero)).background(Theme.colors.brandTint)
         .clearAndSetSemantics {}) {

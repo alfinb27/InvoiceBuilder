@@ -49,6 +49,12 @@ Option 3, as written in `docs/design/design.md`:
 - The dark theme, iPad/tablet layouts of setup and home, and the UK variants were not mocked up; they follow the
   tokens and are reviewed on device before release.
 
+## Amendment (2026-10-17): touch targets per platform
+The mockups' 44 is Apple's minimum. Android's is 48 dp, and the Accessibility Test Framework (in
+`AccessibilityChecksTests`, and in Play's pre-launch report) flags anything smaller, so Android uses
+`minTouchTargetAndroid` (48). Controls drawn at 44 (stepper buttons, chips) keep their look inside a 48 dp touch
+area. iOS is unchanged (#44).
+
 ## Revisit when
 Usability sessions show that people still stall in setup or the builder, or a user's PDF accent colour should also
 theme the app (`design.md` §9).

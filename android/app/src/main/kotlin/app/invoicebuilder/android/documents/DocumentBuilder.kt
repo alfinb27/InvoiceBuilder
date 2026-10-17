@@ -72,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import app.invoicebuilder.android.app.Session
 import app.invoicebuilder.android.billing.PaywallDialog
 import app.invoicebuilder.android.common.ConfirmDialog
+import app.invoicebuilder.core.designsystem.SheetDragHandle
 import app.invoicebuilder.core.designsystem.Avatar
 import app.invoicebuilder.core.designsystem.isAccessibilityTextSize
 import app.invoicebuilder.core.designsystem.Badge
@@ -185,7 +186,7 @@ fun DocumentBuilder(model: DocumentViewModel, session: Session, showsBack: Boole
     if (choosingClient) ClientPickerSheet(session, document.clientId, model::chooseClient) { choosingClient = false }
     if (model.lineEditor != null) AddItemSheet(model, session)
     if (showsBreakdown) {
-        ModalBottomSheet({ showsBreakdown = false }, containerColor = Theme.colors.surface) {
+        ModalBottomSheet({ showsBreakdown = false }, dragHandle = { SheetDragHandle() }, containerColor = Theme.colors.surface) {
             Column(Modifier.padding(horizontal = Theme.Layout.screenGutter).padding(bottom = Theme.Space.xl)) {
                 Text("Tax breakdown", style = Theme.Fonts.title3, modifier = Modifier.padding(bottom = Theme.Space.m))
                 TotalsView(model.computed, model.engineError, document.currency, model.config, session)

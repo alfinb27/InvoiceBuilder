@@ -98,7 +98,8 @@ The mockups have a colour tweak with `#C2482A` (coral, default), `#1F5FAD` (blue
 - **Radii** (new values for `radius`): input/stepper 14, chip 22 (pill), card 20–22, primary button 16, sheet top 26,
   hero panel 24, avatar circle.
 - **Heights:** primary button 54–56, input 50, chip/stepper button 44, list row 52–60, tab bar items 48. The minimum
-  touch target stays 44.
+  touch target is 44 pt on iOS and 48 dp on Android (`minTouchTargetAndroid`), each platform's own guideline; a
+  44 dp control on Android keeps its look inside a 48 dp touch area.
 
 ## 5. Components
 
@@ -215,7 +216,7 @@ exclamation marks, no jargon without a hint.
 - Selection is shown by border weight and fill as well as colour.
 - Use real controls with accessibility traits/roles: radio group for country, toggle buttons for chips, a switch,
   a stepper with "Fewer"/"More" labels, and labelled icon-only buttons (Close, Back).
-- Touch targets are ≥ 44 pt and layouts scale with Dynamic Type.
+- Touch targets are ≥ 44 pt on iOS and ≥ 48 dp on Android, and layouts scale with Dynamic Type and font size.
 - At accessibility text sizes (iOS `isAccessibilitySize`, Android font scale ≥ 150 %) side-by-side layouts stack:
   money tiles one per row, send channels as rows (icon then label), rate chips flow onto more lines, label/value rows
   stack. The builder's pinned bar keeps only the total (the breakdown opens on tap) and the Add an item tabs read

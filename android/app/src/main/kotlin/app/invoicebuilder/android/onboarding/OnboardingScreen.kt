@@ -62,6 +62,7 @@ import app.invoicebuilder.android.common.BusinessDetailsSections
 import app.invoicebuilder.android.common.ImagesFormSections
 import app.invoicebuilder.android.common.TurnoverText
 import app.invoicebuilder.android.common.registrationHelp
+import app.invoicebuilder.core.designsystem.SheetDragHandle
 import app.invoicebuilder.core.designsystem.BoxedTextField
 import app.invoicebuilder.core.designsystem.ChipFlow
 import app.invoicebuilder.core.designsystem.ChoiceChip
@@ -298,7 +299,7 @@ private fun chipLabel(family: String, registration: TaxRegistration): String = w
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CountryPickerSheet(model: OnboardingViewModel, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismiss, containerColor = Theme.colors.surface) {
+    ModalBottomSheet(onDismiss, dragHandle = { SheetDragHandle() }, containerColor = Theme.colors.surface) {
         Column(Modifier.padding(horizontal = Theme.Layout.screenGutter)) {
             Text("Country", style = Theme.Fonts.title3, modifier = Modifier.padding(bottom = Theme.Space.m))
             FormTextField("Search countries", model.countrySearch, { model.countrySearch = it },
