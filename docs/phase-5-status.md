@@ -34,7 +34,8 @@
 - [x] The price shown is the store's localised `displayPrice`; nothing is hard-coded.
 - [x] It says what you get, that it is a one-time purchase, and that nothing already made is ever locked.
 - [x] The app is fully usable below the limit and for everything except issuing invoices above it.
-- [ ] The IAP's review screenshot (the paywall) and description in App Store Connect.
+- [ ] The IAP's review screenshot (the paywall) and description in App Store Connect. Ready to upload with the
+      product (#16): `docs/product/iap-review-paywall.png` and the fields and notes in `docs/product/app-store-listing.md`.
 
 ## Your next actions
 

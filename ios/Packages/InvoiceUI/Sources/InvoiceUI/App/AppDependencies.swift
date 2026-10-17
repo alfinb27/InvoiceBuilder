@@ -175,19 +175,22 @@ public struct AppDependencies: Sendable {
 
     /// An empty in-memory database (previews, tests, UI tests).
     public static func inMemory(time: TimeSource = .system, ids: IDGenerator = .random,
-                                cloudBackup: (any DriveSyncDestination)? = nil) throws -> AppDependencies {
-        try make(database: AppDatabase.inMemory(), time: time, ids: ids, cloudBackup: cloudBackup)
+                                cloudBackup: (any DriveSyncDestination)? = nil,
+                                store: any StoreClient = UnavailableStoreClient()) throws -> AppDependencies {
+        try make(database: AppDatabase.inMemory(), time: time, ids: ids, store: store, cloudBackup: cloudBackup)
     }
 
     /// Launch arguments for UI tests and screenshots: `-inMemory` starts with an empty database;
-    /// `-seed IN|GB` also adds a sample business, clients and items; `-fakeDrive` adds an in-memory Google Drive.
+    /// `-seed IN|GB` also adds a sample business, clients and items; `-fakeDrive` adds an in-memory Google Drive;
+    /// `-fakeStore` adds a pretend store that shows the product's price (App Review's paywall screenshot).
     public static func forLaunch(arguments: [String]) throws -> (AppDependencies, seed: SampleData.Country?) {
         let seed = arguments.firstIndex(of: "-seed").flatMap { index in
             arguments.indices.contains(index + 1) ? SampleData.Country(rawValue: arguments[index + 1]) : nil
         }
         if seed != nil || arguments.contains("-inMemory") {
             let drive: (any DriveSyncDestination)? = arguments.contains("-fakeDrive") ? DemoCloudBackup.shared : nil
-            return (try inMemory(cloudBackup: drive), seed)
+            let store: any StoreClient = arguments.contains("-fakeStore") ? DemoStoreClient() : UnavailableStoreClient()
+            return (try inMemory(cloudBackup: drive, store: store), seed)
         }
         return (try live(), nil)
     }

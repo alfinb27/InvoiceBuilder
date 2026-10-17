@@ -184,6 +184,25 @@ final class ScreenshotTour: XCTestCase {
         if tab.exists { tab.tap() } else { app.buttons[name].firstMatch.tap() }
     }
 
+    /// The paywall with a price (`-fakeStore`: in-memory launches have no store): the screenshot App Review needs for
+    /// the in-app purchase (`docs/product/app-store-listing.md`).
+    @MainActor
+    func testPaywallForAppReview() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seed", "IN", "-fakeStore"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Bharat Web Studio"].waitForExistence(timeout: 10))
+        openTab("Settings", app)
+        app.staticTexts["Unlimited invoices"].firstMatch.tap()
+        app.buttons["Unlock unlimited invoices"].firstMatch.tap()
+        let buy = app.buttons["paywall.buy"]
+        XCTAssertTrue(buy.waitForExistence(timeout: 10))
+        // "Unlock" until the store answers with the product's price.
+        expectation(for: NSPredicate(format: "label BEGINSWITH 'Unlock for '"), evaluatedWith: buy)
+        waitForExpectations(timeout: 20)
+        snapshot("40-paywall", app)
+    }
+
     /// The whole screen, not `app.screenshot()`: in landscape the app's own screenshot comes back in the
     /// portrait frame and the right of the window is cropped off.
     @MainActor

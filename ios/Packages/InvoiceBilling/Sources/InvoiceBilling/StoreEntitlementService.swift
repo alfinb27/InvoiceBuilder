@@ -164,6 +164,18 @@ public struct UnavailableStoreClient: StoreClient {
     public func sync() async throws {}
 }
 
+/// A pretend store for UI tests and screenshots (`-fakeStore`): the product at `InvoiceBuilder.storekit`'s price, never
+/// owned, and buying it is cancelled, so nothing unlocks by accident.
+public struct DemoStoreClient: StoreClient {
+    public static let price = "£4.99"
+    public init() {}
+    public func displayPrice(productID: String) async -> String? { Self.price }
+    public func owns(productID: String) async -> Bool { false }
+    public func purchase(productID: String) async -> PurchaseOutcome { .cancelled }
+    public func updates(productID: String) -> AsyncStream<OwnershipChange> { AsyncStream { _ in } }
+    public func sync() async throws {}
+}
+
 /// A mirror that lives as long as the process (tests, in-memory launches).
 public final class MemoryCounterMirror: CounterMirror {
     private let value = Mutex(0)
