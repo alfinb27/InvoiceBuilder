@@ -5,7 +5,10 @@ Normative for both apps' portable backup: exporting a `.invoicebackup` file, val
 `schema/domain.schema.json`. iOS implements validation in `InvoiceCore` (`BackupCodec`), export and restore in
 `InvoiceData` (`GRDBBackupService`) and the screens in `InvoiceUI`; Android in `:core:domain`, `:core:data` and
 `:app`. Validation is proven by `fixtures/backup/*.json` (kind `backup`); automatic backup to Google Drive (§7) by
-`fixtures/autobackup/*.json` (kind `autobackup`).
+`fixtures/autobackup/*.json` (kind `autobackup`). Each app's tests restore a file the other app exported:
+`samples/backup-v1-from-ios.invoicebackup.json` and `samples/backup-v1-from-android.invoicebackup.json` are the same
+business as each app writes it (exports, not answer keys); `make backup-samples` writes them again when an export
+changes.
 
 ## 1. What a backup holds
 

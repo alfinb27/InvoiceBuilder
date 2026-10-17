@@ -19,7 +19,13 @@ android {
     testOptions {
         // Robolectric runs the Android SQLite on the JVM (no emulator), like `swift test` for InvoiceData.
         unitTests.isIncludeAndroidResources = true
-        unitTests.all { it.systemProperty("spec.root", rootProject.projectDir.resolve("../spec").absolutePath) }
+        unitTests.all {
+            it.systemProperty("spec.root", rootProject.projectDir.resolve("../spec").absolutePath)
+            // Read at run time (the backups each app exported): a new file runs the tests again.
+            it.inputs.dir(rootProject.projectDir.resolve("../spec/samples"))
+            // `make backup-samples` (-PbackupSamples=write): CrossPlatformBackupTests writes this app's export into spec/samples.
+            providers.gradleProperty("backupSamples").orNull?.let { value -> it.systemProperty("backup.samples", value) }
+        }
     }
 }
 

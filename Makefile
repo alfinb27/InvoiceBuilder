@@ -54,6 +54,13 @@ pdf-samples:      ## render one PDF per `pdf` fixture into OUT (for the CA / acc
 		-destination '$(IOS_DESTINATION)' test -only-testing:InvoicePDFTests/SampleDocumentsTests
 	@echo "samples in $(OUT)"
 
+.PHONY: backup-samples
+backup-samples:   ## each app's export of the same business into spec/samples, where the other app's tests restore it
+	BACKUP_SAMPLES=write swift test --package-path ios/Packages/InvoiceData --filter theIOSSampleIsWhatThisAppExports
+	cd android && ./gradlew :core:data:testDebugUnitTest --rerun --tests '*CrossPlatformBackupTests.theAndroidSampleIsWhatThisAppExports' \
+		-PbackupSamples=write
+	$(MAKE) validate-spec
+
 build-ios:        ## build the app for the simulator
 	xcodebuild $(XCODEBUILD_FLAGS) -project ios/InvoiceApp.xcodeproj -scheme InvoiceApp -destination 'generic/platform=iOS Simulator' build
 
