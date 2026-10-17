@@ -90,6 +90,16 @@ struct StoreEntitlementServiceTests {
         #expect(owned.status.state == .unlocked && owned.status.canIssueInvoice)
     }
 
+    @Test func theDemoStoreShowsAPriceButNeverUnlocks() async {
+        // `-fakeStore` (UI tests, App Review's screenshot): a price to show, and buying is cancelled.
+        let service = StoreEntitlementService(productID: "p", store: DemoStoreClient(), counts: Self.counts(15),
+                                              mirror: MemoryMirror())
+        await service.start()
+        #expect(service.status.displayPrice == DemoStoreClient.price && service.status.state == .limitReached)
+        await service.purchase()
+        #expect(service.status.state == .limitReached)
+    }
+
     @Test func theHighestCountWins() async {
         // A reinstall emptied the database counter, but the Keychain remembers 15.
         let service = StoreEntitlementService(productID: "p", store: FakeStore(), counts: Self.counts(0, database: 2),
