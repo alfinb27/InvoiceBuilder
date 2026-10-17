@@ -596,13 +596,15 @@ struct FieldLabel: View {
 struct EmptyStatTile: View {
     let amount: String
     let label: String
+    /// The size the row picked for all three amounts.
+    var amountFont: Font = Theme.Fonts.title3
+    /// In a row: the widest of the three amounts (see `StatAmount`); nil when the tiles are stacked.
+    var widest: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xs) {
-            Text(amount).font(Theme.Fonts.title3).foregroundStyle(Theme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(label).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            StatAmount(amount: amount, font: amountFont, color: Theme.textPrimary, widest: widest)
+            StatLabel(label: label)
         }
         .padding(.horizontal, Theme.Space.s + 2)
         .padding(.vertical, Theme.Space.m)
@@ -618,13 +620,16 @@ struct StatTile: View {
     let amount: String
     let label: String
     var emphasis: Color?
+    /// The size the row picked for all three amounts.
+    var amountFont: Font = Theme.Fonts.title3
+    /// In a row: the widest of the three amounts (see `StatAmount`); nil when the tiles are stacked.
+    var widest: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xs) {
-            Text(amount).font(Theme.Fonts.title3.monospacedDigit()).foregroundStyle(emphasis ?? Theme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(label).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            StatAmount(amount: amount, font: amountFont.monospacedDigit(), color: emphasis ?? Theme.textPrimary,
+                       widest: widest)
+            StatLabel(label: label)
         }
         .padding(.horizontal, Theme.Space.s + 2)
         .padding(.vertical, Theme.Space.m)
@@ -632,5 +637,36 @@ struct StatTile: View {
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.l))
         .overlay(RoundedRectangle(cornerRadius: Theme.Radius.l).strokeBorder(Theme.border))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A tile's amount. In a row it stays on one line and takes the width of the row's widest amount, so three equal
+/// tiles hold any of them without breaking a number (#49); stacked, it may wrap.
+private struct StatAmount: View {
+    let amount: String
+    let font: Font
+    let color: Color
+    let widest: String?
+
+    var body: some View {
+        if let widest {
+            ZStack(alignment: .leading) {
+                Text(widest).font(font).lineLimit(1).hidden().accessibilityHidden(true)
+                Text(amount).font(font).foregroundStyle(color).lineLimit(1)
+            }
+        } else {
+            Text(amount).font(font).foregroundStyle(color).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// A tile's label: wraps to the tile and never decides how wide the row wants to be.
+private struct StatLabel: View {
+    let label: String
+
+    var body: some View {
+        Text(label).font(Theme.Fonts.caption.weight(.regular)).foregroundStyle(Theme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(idealWidth: 0, maxWidth: .infinity, alignment: .leading)
     }
 }

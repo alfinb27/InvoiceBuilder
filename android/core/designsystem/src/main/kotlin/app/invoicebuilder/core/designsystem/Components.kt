@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -508,29 +509,45 @@ private fun StepButton(icon: ImageVector, label: String, onClick: () -> Unit) {
 
 /** A money tile before there is any money: a dashed border, the amount in the display face and a label. */
 @Composable
-fun EmptyStatTile(amount: String, label: String, modifier: Modifier = Modifier) {
+fun EmptyStatTile(amount: String, label: String, modifier: Modifier = Modifier, amountStyle: TextStyle? = null) {
     val dashColor = Theme.colors.borderStrong
     Column(
         modifier.semantics(mergeDescendants = true) {}.drawDashedBorder(dashColor, Theme.Radius.l)
-            .padding(horizontal = 10.dp, vertical = Theme.Space.m),
+            .padding(horizontal = StatTilePadding, vertical = Theme.Space.m),
         verticalArrangement = Arrangement.spacedBy(Theme.Space.xs),
     ) {
-        Text(amount, style = Theme.Fonts.title3, color = Theme.colors.textPrimary)
+        StatAmount(amount, amountStyle, Theme.Fonts.title3, Theme.colors.textPrimary)
         Text(label, style = Theme.Fonts.caption.copy(fontWeight = FontWeight.Normal), color = Theme.colors.textSecondary)
     }
 }
 
-/** A money tile with a value: the amount in the display face and a label. */
+/**
+ * A money tile with a value: the amount in the display face and a label. [amountStyle] is the size a row picked for
+ * all three amounts, each then kept on one line (#49); null when the tiles are stacked and an amount may wrap.
+ */
 @Composable
-fun StatTile(amount: String, label: String, modifier: Modifier = Modifier, emphasis: Color? = null) {
+fun StatTile(amount: String, label: String, modifier: Modifier = Modifier, emphasis: Color? = null, amountStyle: TextStyle? = null) {
     val shape = RoundedCornerShape(Theme.Radius.l)
     Column(
         modifier.clip(shape).background(Theme.colors.surface).border(1.dp, Theme.colors.border, shape)
-            .semantics(mergeDescendants = true) {}.padding(horizontal = 10.dp, vertical = Theme.Space.m),
+            .semantics(mergeDescendants = true) {}.padding(horizontal = StatTilePadding, vertical = Theme.Space.m),
         verticalArrangement = Arrangement.spacedBy(Theme.Space.xs),
     ) {
-        Text(amount, style = Theme.Fonts.title3.copy(fontFeatureSettings = "tnum"), color = emphasis ?: Theme.colors.textPrimary)
+        StatAmount(amount, amountStyle, Theme.Fonts.title3.copy(fontFeatureSettings = "tnum"), emphasis ?: Theme.colors.textPrimary)
         Text(label, style = Theme.Fonts.caption.copy(fontWeight = FontWeight.Normal), color = Theme.colors.textSecondary)
+    }
+}
+
+/** A stat tile's padding on each side: what a row of tiles takes from each tile's width before the amount. */
+val StatTilePadding = 10.dp
+
+@Composable
+private fun StatAmount(amount: String, rowStyle: TextStyle?, stackedStyle: TextStyle, color: Color) {
+    if (rowStyle != null) {
+        Text(amount, style = rowStyle.merge(TextStyle(fontFeatureSettings = stackedStyle.fontFeatureSettings)), color = color,
+            maxLines = 1, softWrap = false)
+    } else {
+        Text(amount, style = stackedStyle, color = color)
     }
 }
 
