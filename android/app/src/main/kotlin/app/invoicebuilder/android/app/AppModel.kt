@@ -36,6 +36,10 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
 
     var phase by mutableStateOf<Phase>(Phase.Loading)
         private set
+    /** A backup opened while starting (`spec/backup.md` §6): opened once onboarding or the main screen shows. */
+    private var openedWhileStarting: Uri? = null
+    /** A reminder tapped while starting: its invoice opens once the main screen shows (#55). */
+    private var reminderWhileStarting: String? = null
 
     private val app get() = getApplication<InvoiceApplication>()
     private var container: AppContainer? = null
@@ -104,6 +108,14 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
                         onFinished = { finishOnboarding(container, it, deviceID) },
                     ))
                 }
+                openedWhileStarting?.let { uri ->
+                    openedWhileStarting = null
+                    open(uri)
+                }
+                reminderWhileStarting?.let { id ->
+                    reminderWhileStarting = null
+                    openDocument(id)
+                }
             } catch (error: Exception) {
                 phase = Phase.Failed(error.toString())
             }
@@ -128,7 +140,10 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
         }
     }
 
-    /** A `.invoicebackup` opened from another app (`spec/backup.md` §6). */
+    /**
+     * A `.invoicebackup` opened from another app (`spec/backup.md` §6). Every one arrives in a new activity, so usually
+     * while this model is still loading.
+     */
     fun open(uri: Uri) {
         when (val phase = phase) {
             is Phase.Onboarding -> phase.model.backup.open(uri, app.contentResolver)
@@ -136,12 +151,14 @@ class AppModel(application: Application, private val savedState: SavedStateHandl
                 phase.session.router.selectedTab = AppTab.settings
                 phase.session.router.settings.restore(uri)
             }
-            else -> {}
+            Phase.Loading -> openedWhileStarting = uri
+            is Phase.Failed -> {}
         }
     }
 
     /** A reminder notification was tapped. */
     fun openDocument(id: String) {
+        if (phase == Phase.Loading) reminderWhileStarting = id
         (phase as? Phase.Ready)?.session?.let { session ->
             viewModelScope.launch {
                 val document = session.container.documents.fetchDocument(id) ?: return@launch

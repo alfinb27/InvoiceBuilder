@@ -97,6 +97,9 @@ are identical (only `createdAt` differs).
 
 - The app declares the `.invoicebackup` type (`com.invoicebuilder.backup`, conforming to JSON). Opening such a file
   in the app (Files, Mail, AirDrop), or dropping one onto Settings on iPad, starts §4 at step 1.
+- A file opened while the app is still starting (loading the database, or the first-launch wait for iCloud,
+  `sync.md` §2) is kept, and §4 starts as soon as onboarding or the main screen shows. If several arrive, the last
+  one wins. Opening a file is how a new phone usually starts, often before the app has ever finished launching.
 
 ## 7. Automatic backup to Google Drive (ADR-0021)
 

@@ -25,6 +25,8 @@ public final class AppModel {
     private let dependencies: AppDependencies?
     private let seed: SampleData.Country?
     private var skipICloudCheck = false
+    /// A backup opened while starting (`spec/backup.md` §6): opened once onboarding or the main shell shows.
+    private var openedWhileStarting: URL?
     /// How long the first launch waits for iCloud.
     var iCloudWait: Duration = .seconds(10)
 
@@ -87,6 +89,10 @@ public final class AppModel {
                     autoBackup: autoBackup, driveSync: driveSync,
                     onFinished: { [weak self] in self?.finishOnboarding(with: $0, deviceID: deviceID) }))
             }
+            if let url = openedWhileStarting {
+                openedWhileStarting = nil
+                await open(url)
+            }
         } catch {
             phase = .failed(String(describing: error))
         }
@@ -145,7 +151,9 @@ public final class AppModel {
         case .ready(let session):
             session.router.selectedTab = .settings
             session.router.settings.restore(from: url)
-        case .loading, .checkingICloud, .failed:
+        case .loading, .checkingICloud:
+            openedWhileStarting = url
+        case .failed:
             break
         }
     }
