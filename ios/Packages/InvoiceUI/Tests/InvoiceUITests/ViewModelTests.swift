@@ -214,6 +214,21 @@ struct AppModelTests {
         #expect(session.business.name == "Thames Design Ltd")
         #expect(session.config.family == "GB")
     }
+
+    @Test func aBackupOpenedWhileStartingOpensWithOnboarding() async throws {
+        // Files, Mail or AirDrop can hand over a backup before the app has finished starting (`spec/backup.md` §6).
+        var sample = URL(fileURLWithPath: #filePath)
+        for _ in 0..<6 { sample.deleteLastPathComponent() }
+        sample.append(path: "spec/samples/backup-v1-sample.invoicebackup.json")
+        let model = AppModel(dependencies: try TestEnvironment.dependencies())
+        await model.open(sample)
+        await model.start()
+        guard case .onboarding(let onboarding) = model.phase else {
+            Issue.record("expected onboarding, got \(model.phase)")
+            return
+        }
+        #expect(onboarding.backup.state.pendingRestore?.preview.file.app.platform == "ios")
+    }
 }
 
 @MainActor
