@@ -22,15 +22,15 @@ enum TestEnvironment {
     }
 
     /// A seeded, onboarded business and its session. `notifications` defaults to a no-op; pass a fake to test
-    /// reminder reconciliation.
+    /// reminder reconciliation. `pdfDirectory` defaults to a fresh cache of its own.
     static func session(_ country: SampleData.Country = .india,
-                        notifications: any NotificationScheduling = NoOpNotificationScheduler()) async throws
-        -> Session {
+                        notifications: any NotificationScheduling = NoOpNotificationScheduler(),
+                        pdfDirectory directory: URL? = nil) async throws -> Session {
         let dependencies = try dependencies(notifications: notifications)
         let device = try await dependencies.deviceState.loadOrCreate(deviceName: "Test")
         let business = try await SampleData.seed(country, dependencies: dependencies, deviceID: device.id)
         return try Session(dependencies: dependencies, business: business, deviceID: device.id,
-                           pdfDirectory: pdfDirectory())
+                           pdfDirectory: directory ?? pdfDirectory())
     }
 
     /// A GENERIC (United States) business that charges an 8.875% sales tax.

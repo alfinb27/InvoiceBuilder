@@ -103,11 +103,15 @@ actor PDFLibrary {
 
     /// Drops the files this one replaces (an older revision, or a draft edited since) but keeps the other
     /// templates, so switching back and forth in the preview does not re-render.
+    ///
+    /// Files are matched by name, never by URL: on a device the container is reached through the `/var` →
+    /// `/private/var` symlink, so a listing spells the file just written differently and `==` is false (#60).
     private func prune(keeping url: URL, documentID: String, template: TemplateID) {
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil))
             ?? []
         let prefix = prefix(documentID, template)
-        for file in files where file.lastPathComponent.hasPrefix(prefix) && file != url {
+        for file in files where file.lastPathComponent.hasPrefix(prefix)
+            && file.lastPathComponent != url.lastPathComponent {
             try? FileManager.default.removeItem(at: file)
         }
     }
@@ -119,7 +123,7 @@ actor PDFLibrary {
         let files = (try? FileManager.default.contentsOfDirectory(at: directory,
                                                                   includingPropertiesForKeys: Array(keys))) ?? []
         guard files.count > limit else { return }
-        let oldestFirst = files.filter { $0 != url }.sorted {
+        let oldestFirst = files.filter { $0.lastPathComponent != url.lastPathComponent }.sorted {
             let left = (try? $0.resourceValues(forKeys: keys).contentModificationDate) ?? .distantPast
             let right = (try? $1.resourceValues(forKeys: keys).contentModificationDate) ?? .distantPast
             return left < right
