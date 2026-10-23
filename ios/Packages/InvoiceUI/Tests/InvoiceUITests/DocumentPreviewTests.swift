@@ -137,6 +137,26 @@ struct DocumentPreviewTests {
         #expect(!FileManager.default.fileExists(atPath: file.path))
     }
 
+    /// On an iPhone the app's container is reached through the `/var` → `/private/var` symlink, so listing the
+    /// cache spells each file differently from the URL it was written to. Pruning must still keep that file (#60).
+    @Test func aCacheReachedThroughASymlinkKeepsTheFileJustRendered() async throws {
+        let target = TestEnvironment.pdfDirectory()
+        try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+        let link = target.deletingLastPathComponent().appending(path: target.lastPathComponent + "-link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
+        let session = try await TestEnvironment.session(pdfDirectory: link.appending(path: "InvoicePDFs"))
+        let model = try await draft(session)
+        await model.openPreview()
+        let preview = try #require(model.preview)
+        await preview.render()
+
+        #expect(preview.state.errorMessage == nil)
+        let file = try #require(preview.state.file)
+        #expect(try text(of: file).contains("Rao Traders"))
+        let cached = try FileManager.default.contentsOfDirectory(atPath: session.pdfLibrary.directory.path)
+        #expect(cached.count == 1, "the render cache kept \(cached)")
+    }
+
     /// The cache holds a file per document and template; it must not grow for ever.
     @Test func theCacheStaysBounded() async throws {
         let session = try await TestEnvironment.session()
