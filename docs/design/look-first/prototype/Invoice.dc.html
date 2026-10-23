@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invoice page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="{{ rootCss }}">
+
+  <div style="{{ hdrCss }}">
+    <div style="{{ titleCss }}">{{ inv.title }}</div>
+    <div style="{{ metaCss }}">
+      <sc-for list="{{ inv.meta }}" as="m" hint-placeholder-count="3">
+        <div><span style="{{ metaKCss }}">{{ m.k }}</span>&nbsp; <span style="font-weight: 600">{{ m.v }}</span></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{ hasNote }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ noteCss }}">{{ inv.note }}</div>
+  </sc-if>
+
+  <div style="{{ partiesCss }}">
+    <div style="{{ fromCss }}">
+      <div style="{{ labelCss }}">From</div>
+      <sc-for list="{{ inv.from }}" as="l" hint-placeholder-count="4">
+        <div style="font-size: {{ fs }}px; line-height: 20px; {{ l.css }}">{{ l.t }}</div>
+      </sc-for>
+    </div>
+    <div style="{{ toCss }}">
+      <div style="{{ labelCss }}">Bill to</div>
+      <sc-for list="{{ inv.to }}" as="l" hint-placeholder-count="2">
+        <div style="font-size: {{ fs }}px; line-height: 20px; {{ l.css }}">{{ l.t }}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="{{ itemsCss }}">
+    <div style="{{ headCss }}">
+      <div style="width: 18px">#</div>
+      <div style="flex: 1; min-width: 0">Description</div>
+      <div style="width: 34px; text-align: right">Qty</div>
+      <div style="width: 104px; text-align: right">{{ inv.cols.rate }}</div>
+      <sc-if value="{{ inv.cols.showTax }}" hint-placeholder-val="{{ true }}">
+        <div style="width: 40px; text-align: right">{{ inv.cols.tax }}</div>
+      </sc-if>
+      <div style="width: 92px; text-align: right">Amount</div>
+    </div>
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="2">
+      <div style="{{ r.css }}">
+        <div style="width: 18px; color: #6B7280">{{ r.n }}</div>
+        <div style="flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; {{ r.descCss }}">{{ r.desc }}</div>
+        <div style="width: 34px; text-align: right">{{ r.qty }}</div>
+        <div style="width: 104px; text-align: right">{{ r.rate }}</div>
+        <sc-if value="{{ inv.cols.showTax }}" hint-placeholder-val="{{ true }}">
+          <div style="width: 40px; text-align: right; color: #4B5563">{{ r.tax }}</div>
+        </sc-if>
+        <div style="width: 92px; text-align: right; font-weight: 600">{{ r.amount }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="{{ totalsCss }}">
+    <div style="width: 260px">
+      <sc-for list="{{ inv.totals }}" as="x" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; justify-content: space-between; height: 24px; color: #4B5563"><span>{{ x.k }}</span><span style="color: #111827">{{ x.v }}</span></div>
+      </sc-for>
+      <div style="{{ totalCss }}"><span>{{ inv.total.k }}</span><span>{{ inv.total.v }}</span></div>
+    </div>
+  </div>
+
+  <sc-if value="{{ inv.pay.show }}" hint-placeholder-val="{{ true }}">
+    <div style="{{ payCss }}">
+      <sc-if value="{{ inv.pay.ph }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 18px 0; color: #A79BA2; font-style: italic">How they can pay you goes here</div>
+      </sc-if>
+      <sc-if value="{{ inv.pay.upi }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; gap: 14px; align-items: center">
+          <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(21, 4px); flex: none; padding: 4px; border: 1px solid #E5E7EB">
+            <sc-for list="{{ qr }}" as="q" hint-placeholder-count="21"><span style="{{ q }}"></span></sc-for>
+          </div>
+          <div>
+            <div style="{{ labelCss }}">Pay by UPI</div>
+            <div style="font-weight: 600">{{ inv.pay.upiId }}</div>
+            <div style="font-size: 11px; color: #6B7280">Scan with any UPI app</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ inv.pay.hasBank }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="{{ labelCss }}">Bank details</div>
+          <sc-for list="{{ inv.pay.bank }}" as="b" hint-placeholder-count="3">
+            <div style="line-height: 20px"><span style="color: #6B7280">{{ b.k }}</span>&nbsp; <span style="font-weight: 600">{{ b.v }}</span></div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"template":{"editor":"enum","options":["modern","classic","minimal","compact"],"default":"modern"},"accent":{"editor":"color","options":["#1F6FEB","#0F766E","#7C3AED","#B91C1C"],"default":"#1F6FEB"},"inv":{"editor":null},"focus":{"editor":null},"$preview":{"width":595,"height":842}}'>
+class Component extends DCLogic {
+  sample() {
+    const ink = 'color: #111827'; const muted = 'color: #4B5563'; const bold = 'font-weight: 700; font-size: 14px; ';
+    return {
+      title: 'Tax Invoice', note: '',
+      meta: [{ k: 'Invoice no.', v: 'INV/26-27/0001' }, { k: 'Date', v: '23 Oct 2026' }, { k: 'Due date', v: '30 Oct 2026' }],
+      from: [{ t: 'Asha Designs', css: bold + ink }, { t: '14, 2nd Cross, Indiranagar', css: muted }, { t: 'Bengaluru 560038', css: muted }, { t: 'Karnataka', css: muted }, { t: 'GSTIN 29ABCDE1234F1Z5', css: ink }],
+      to: [{ t: 'Ravi Kumar', css: bold + ink }],
+      cols: { rate: 'Rate', tax: 'GST', showTax: true },
+      rows: [{ n: '1', desc: 'Logo design', descCss: '', qty: '2', rate: '₹2,500.00', tax: '18%', amount: '₹5,000.00' }],
+      totals: [{ k: 'Subtotal', v: '₹5,000.00' }, { k: 'CGST 9%', v: '₹450.00' }, { k: 'SGST 9%', v: '₹450.00' }],
+      total: { k: 'Total', v: '₹5,900.00' },
+      pay: { show: true, ph: false, upi: true, upiId: 'asha@okaxis', hasBank: false, bank: [], seed: 'asha@okaxis' }
+    };
+  }
+
+  qr(seed) {
+    let h = 2166136261;
+    const str = String(seed || 'upi');
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    if (!h) h = 1;
+    const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h; };
+    const cells = [];
+    const finders = [[0, 0], [14, 0], [0, 14]];
+    for (let y = 0; y < 21; y++) {
+      for (let x = 0; x < 21; x++) {
+        let on = null;
+        finders.forEach((f) => {
+          const lx = x - f[0]; const ly = y - f[1];
+          if (lx >= -1 && lx <= 7 && ly >= -1 && ly <= 7) {
+            if (lx < 0 || lx > 6 || ly < 0 || ly > 6) on = false;
+            else on = lx === 0 || lx === 6 || ly === 0 || ly === 6 || (lx >= 2 && lx <= 4 && ly >= 2 && ly <= 4);
+          }
+        });
+        if (on === null) on = rnd() % 2 === 0;
+        cells.push('display: block; width: 4px; height: 4px; background: ' + (on ? '#111827' : '#FFFFFF'));
+      }
+    }
+    return cells;
+  }
+
+  renderVals() {
+    const t = ['modern', 'classic', 'minimal', 'compact'].indexOf(this.props.template) >= 0 ? this.props.template : 'modern';
+    const accent = this.props.accent || '#1F6FEB';
+    const inv = this.props.inv || this.sample();
+    const focus = this.props.focus || '';
+    const band = t === 'modern';
+    const padX = { modern: 44, classic: 44, minimal: 46, compact: 34 }[t];
+    const padTop = { modern: 0, classic: 44, minimal: 46, compact: 34 }[t];
+    const fs = t === 'compact' ? 12 : 13;
+    const lit = { from: ['from'], to: ['to'], meta: ['meta'], items: ['items', 'totals'], tax: ['title', 'from', 'totals', 'note'], pay: ['pay'] }[focus] || [];
+    const fx = (id) => {
+      if (!focus) return '';
+      if (lit.indexOf(id) >= 0) return band && (id === 'title' || id === 'meta') ? ' box-shadow: 0 0 0 3px #FFFFFF; background: rgba(255, 255, 255, 0.16);' : ' box-shadow: 0 0 0 3px #C2482A; background-color: #FFF6F1;';
+      return ' opacity: 0.3;';
+    };
+    const anim = ' transition: opacity 220ms ease, box-shadow 220ms ease;';
+    const m6 = padX - 6;
+
+    const hdrCss = {
+      modern: 'display: flex; align-items: center; justify-content: space-between; height: 118px; padding: 0 44px; margin-bottom: 20px; box-sizing: border-box; background: ' + accent + '; color: #FFFFFF',
+      classic: 'display: flex; align-items: flex-start; justify-content: space-between; height: 74px; margin: 0 44px 20px; box-sizing: border-box; border-bottom: 1.5px solid #111827',
+      minimal: 'display: flex; align-items: flex-start; justify-content: space-between; height: 58px; margin: 0 46px 20px; box-sizing: border-box; border-bottom: 0.5px solid #E5E7EB',
+      compact: 'display: flex; align-items: center; justify-content: space-between; height: 50px; margin: 0 34px 16px; box-sizing: border-box; border-bottom: 1px solid #E5E7EB'
+    }[t];
+    const titleBase = 'padding: 2px 6px; margin-left: -6px; border-radius: 4px;' + anim + ' ';
+    const titleCss = titleBase + {
+      modern: 'font-size: 26px; font-weight: 700; letter-spacing: -0.3px; color: #FFFFFF;',
+      classic: 'font-size: 26px; font-weight: 700; letter-spacing: -0.3px; color: ' + accent + ';',
+      minimal: 'margin-top: 4px; font-size: 15px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: #111827;',
+      compact: 'font-size: 18px; font-weight: 700; color: ' + accent + ';'
+    }[t] + fx('title');
+    const metaCss = 'padding: 2px 6px; margin-right: -6px; border-radius: 4px; text-align: right; line-height: 1.55; font-size: ' + (t === 'compact' ? 10.5 : 11.5) + 'px; color: ' + (band ? '#FFFFFF' : '#374151') + ';' + anim + fx('meta');
+    const metaKCss = band ? 'opacity: 0.85' : 'color: #6B7280';
+    const noteCss = 'margin: 0 ' + m6 + 'px 10px; padding: 4px 6px; border-radius: 4px; font-size: 11px; font-style: italic; color: #4B5563;' + anim + fx('note');
+    const partiesCss = 'display: flex; align-items: flex-start; gap: 20px; min-height: 136px; margin: 0 ' + m6 + 'px 22px';
+    const side = 'flex: 1; min-width: 0; padding: 6px; border-radius: 6px;' + anim;
+    const labelCss = 'margin-bottom: 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #6B7280';
+    const itemsCss = 'margin: 0 ' + m6 + 'px; padding: 6px; border-radius: 6px;' + anim + fx('items');
+    const headCss = 'display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; box-sizing: border-box; font-size: 11px; font-weight: 600; ' + {
+      modern: 'color: #111827; border-bottom: 1px solid #E2E7EE',
+      classic: 'color: ' + accent + '; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1.5px solid ' + accent,
+      minimal: 'color: #6B7280; text-transform: uppercase; letter-spacing: 0.8px; font-size: 10px; border-bottom: 0.5px solid #E5E7EB',
+      compact: 'height: 28px; color: #FFFFFF; background: ' + accent + '; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px'
+    }[t];
+    const rowH = t === 'compact' ? 30 : 38;
+    const rows = (inv.rows || []).map((r, i) => Object.assign({}, r, {
+      css: 'display: flex; align-items: center; gap: 8px; height: ' + rowH + 'px; padding: 0 8px; box-sizing: border-box; ' + {
+        modern: i % 2 === 1 ? 'background: #F5F7FA' : '',
+        classic: 'border-bottom: 0.5px solid #D1D5DB',
+        minimal: '',
+        compact: 'border-bottom: 0.5px solid #E5E7EB'
+      }[t]
+    }));
+    const totalsCss = 'display: flex; justify-content: flex-end; margin: 12px ' + m6 + 'px 0; padding: 6px; border-radius: 6px;' + anim + fx('totals');
+    const totalCss = 'display: flex; align-items: center; justify-content: space-between; height: 36px; margin-top: 6px; font-weight: 700; font-size: 15px; ' + {
+      modern: 'padding: 0 10px; background: ' + accent + '; color: #FFFFFF; border-radius: 2px',
+      classic: 'border-top: 1.5px solid #111827',
+      minimal: 'border-top: 0.5px solid #E5E7EB',
+      compact: 'border-top: 1px solid #111827; font-size: 14px'
+    }[t];
+    const payCss = 'display: flex; align-items: flex-start; gap: 24px; margin: 26px ' + m6 + 'px 0; padding: 6px; border-radius: 6px;' + anim + fx('pay');
+    const pay = inv.pay || {};
+
+    return {
+      inv: inv, rows: rows, fs: fs, hasNote: !!inv.note,
+      rootCss: 'position: relative; width: 595px; min-height: 842px; box-sizing: border-box; padding: ' + padTop + 'px 0 40px; background: #FFFFFF; color: #111827; font-family: \'Noto Sans\', system-ui, sans-serif; font-size: ' + fs + 'px; line-height: 1.5',
+      hdrCss: hdrCss, titleCss: titleCss, metaCss: metaCss, metaKCss: metaKCss, noteCss: noteCss,
+      partiesCss: partiesCss, fromCss: side + fx('from'), toCss: side + fx('to'), labelCss: labelCss,
+      itemsCss: itemsCss, headCss: headCss, totalsCss: totalsCss, totalCss: totalCss, payCss: payCss,
+      qr: pay.upi ? this.qr(pay.seed) : []
+    };
+  }
+}
+</script>
+</body>
+</html>

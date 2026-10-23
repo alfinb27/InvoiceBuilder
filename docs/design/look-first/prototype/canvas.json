@@ -1,0 +1,22 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-23T10:24:00Z" },
+  "title": "InvoiceBuilder — Pick a look first",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Prototype: press Play and tap through", "is_interactive": true, "radius": 36 },
+    "Invoice.dc.html": { "x": 470, "y": 0, "w": 595, "h": 842, "title": "The invoice every screen draws (4 looks)" },
+    "Screens-India.dc.html": { "x": 0, "y": 1264, "w": 4850, "h": 964, "title": "India, screen by screen", "is_interactive": true },
+    "Screens-UK.dc.html": { "x": 0, "y": 2648, "w": 1346, "h": 964, "title": "United Kingdom differences", "is_interactive": true }
+  },
+  "order": ["Main.dc.html", "Invoice.dc.html", "Screens-India.dc.html", "Screens-UK.dc.html"],
+  "notes": {
+    "t1": { "x": 0, "y": -300, "text": "Pick a look first, then one question at a time", "kind": "title1", "maxW": 1525 },
+    "howto": { "x": 1145, "y": 0, "w": 380, "fill": "orange", "text": "How to try it\n\n1. Select the phone on the left and press Play.\n2. Hand it to someone who doesn't know GST or VAT and ask: \"Send Ravi an invoice for 2 logo designs at ₹2,500, due in a week.\"\n3. Don't help. Note where they stop, what they ask, and how long it takes.\n4. Run it twice: once as someone with a GSTIN, once without.\n\nUK: tap Change next to \"Invoices in ₹\" on the Pick a look screen." },
+    "stubs": { "x": 1145, "y": 560, "w": 380, "fill": "gray", "text": "Prototype only: sending, restore, More options and \"Somewhere else\" are stand-ins. The tax maths is simplified; the apps use the real engine." },
+    "t2": { "x": 0, "y": 964, "text": "Every screen at a glance — India", "kind": "title1", "maxW": 4850 },
+    "t3": { "x": 0, "y": 2348, "text": "What changes in the UK", "kind": "title1", "maxW": 1346 }
+  },
+  "designSystems": []
+}

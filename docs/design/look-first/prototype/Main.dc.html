@@ -1,0 +1,1384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>InvoiceBuilder prototype</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;family=Noto+Sans:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #FFF5EF; color: #2A2135; font-family: Figtree, system-ui, sans-serif">
+
+<!-- ============ WELCOME ============ -->
+<sc-if value="{{ at.welcome }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFF5EF">
+  <div style="flex: 1; overflow-y: auto; padding: 44px 24px 12px">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: #C2482A; color: #FFFFFF">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg>
+      </span>
+      <span style="font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 18px; font-weight: 700">InvoiceBuilder</span>
+    </div>
+    <div aria-hidden="true" style="position: relative; height: 214px; margin-top: 20px; overflow: hidden; border-radius: 24px; background: #FDE3D8">
+      <div style="position: absolute; left: 78px; top: 26px; width: 595px; transform-origin: 0 0; transform: rotate(-4deg) scale(0.34); box-shadow: 0 18px 40px rgba(42, 33, 53, 0.18)">
+        <dc-import name="Invoice" inv="{{ heroInv }}" template="modern" accent="#1F6FEB" hint-size="595px,842px"></dc-import>
+      </div>
+      <span style="position: absolute; right: 34px; top: 120px; padding: 4px 12px; border: 3px solid #2C5C94; border-radius: 10px; color: #2C5C94; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 2px; transform: rotate(-12deg); background: rgba(255, 255, 255, 0.7)">PAID</span>
+    </div>
+    <h1 style="margin: 22px 0 8px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 30px; line-height: 1.12; letter-spacing: -0.6px; font-weight: 700">Make your first invoice in about a minute.</h1>
+    <p style="margin: 0 0 18px; font-size: 15px; line-height: 1.45; color: #6B5F72">Pick a look, answer a few simple questions, and send it. You don't need to know anything about tax.</p>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 12px"><span style="display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #FDE3D8; color: #9E3820; font-size: 13px; font-weight: 700">1</span><span style="font-size: 15px; font-weight: 600">Pick a look you like</span></div>
+      <div style="display: flex; align-items: center; gap: 12px"><span style="display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #FDE3D8; color: #9E3820; font-size: 13px; font-weight: 700">2</span><span style="font-size: 15px; font-weight: 600">Fill it in, one question at a time</span></div>
+      <div style="display: flex; align-items: center; gap: 12px"><span style="display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #FDE3D8; color: #9E3820; font-size: 13px; font-weight: 700">3</span><span style="font-size: 15px; font-weight: 600">Send it on WhatsApp or email</span></div>
+    </div>
+    <p style="display: flex; align-items: center; gap: 8px; margin: 18px 0 0; font-size: 13px; color: #6B5F72">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      Your data stays on your phone. No account needed.
+    </p>
+  </div>
+  <div style="flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 20px 22px">
+    <button type="button" onClick="{{ on.start }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px; border: 0; border-radius: 16px; background: #C2482A; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">
+      Let's start
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+    </button>
+    <button type="button" onClick="{{ on.restore }}" style="min-height: 44px; padding: 0 8px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">I've used this app before</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ PICK A LOOK ============ -->
+<sc-if value="{{ at.look }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFF5EF">
+  <div style="flex: none; display: flex; align-items: center; height: 56px; padding: 0 4px">
+    <button type="button" aria-label="Back" onClick="{{ on.back }}" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: #2A2135; cursor: pointer">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </button>
+  </div>
+  <div style="flex: 1; overflow-y: auto; padding: 0 20px 16px">
+    <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">Pick a look for your invoices</h1>
+    <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">{{ lk.sub }}</p>
+    <div role="radiogroup" aria-label="Invoice look" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      <sc-for list="{{ lk.looks }}" as="l" hint-placeholder-count="4">
+        <button type="button" role="radio" aria-checked="{{ l.on }}" aria-label="{{ l.aria }}" onClick="{{ l.pick }}" style="{{ l.css }}">
+          <span aria-hidden="true" style="position: relative; display: block; height: 176px; overflow: hidden; border-radius: 10px; border: 1px solid #EEDFD6; background: #FFFFFF">
+            <span style="position: absolute; left: 0; top: 0; display: block; width: 595px; transform-origin: 0 0; transform: scale(0.2538)">
+              <dc-import name="Invoice" inv="{{ l.inv }}" template="{{ l.id }}" accent="{{ l.accent }}" hint-size="595px,842px"></dc-import>
+            </span>
+          </span>
+          <span style="display: flex; align-items: center; gap: 8px; margin-top: 8px">
+            <span style="{{ l.dot }}"></span>
+            <span style="display: flex; flex-direction: column; text-align: left">
+              <span style="font-size: 15px; font-weight: 700; color: #2A2135">{{ l.label }}</span>
+              <span style="font-size: 12px; color: #6B5F72">{{ l.desc }}</span>
+            </span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+    <sc-if value="{{ lk.showColours }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top: 18px">
+        <span style="display: block; margin: 0 0 4px; font-size: 14px; font-weight: 600">Colour</span>
+        <div role="radiogroup" aria-label="Colour" style="display: flex; flex-wrap: wrap; gap: 4px">
+          <sc-for list="{{ lk.colours }}" as="c" hint-placeholder-count="6">
+            <button type="button" role="radio" aria-checked="{{ c.on }}" aria-label="{{ c.name }}" onClick="{{ c.pick }}" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer">
+              <span style="{{ c.css }}"></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ lk.noColours }}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 18px 0 0; font-size: 13px; line-height: 1.4; color: #6B5F72">Minimal has no colour: black text and thin lines only.</p>
+    </sc-if>
+    <sc-if value="{{ lk.canCountry }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; padding: 2px 6px 2px 14px; border-radius: 14px; background: #FBE9E0">
+        <span style="font-size: 14px">{{ lk.countryText }}</span>
+        <button type="button" onClick="{{ on.openCountry }}" style="min-height: 44px; padding: 0 8px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Change</button>
+      </div>
+    </sc-if>
+  </div>
+  <div style="flex: none; padding: 12px 20px 22px; border-top: 1px solid #EEDFD6; background: #FFFFFF">
+    <button type="button" onClick="{{ on.next }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px; border: 0; border-radius: 16px; background: #C2482A; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">{{ lk.btn }}</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ ONE QUESTION PER SCREEN ============ -->
+<sc-if value="{{ isStep }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFF5EF">
+  <div style="flex: none; display: flex; align-items: center; gap: 6px; height: 56px; padding: 0 20px 0 4px">
+    <button type="button" aria-label="Back" onClick="{{ on.back }}" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: #2A2135; cursor: pointer">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </button>
+    <div style="flex: 1; min-width: 0">
+      <div style="margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #6B5F72">{{ hd.label }}</div>
+      <div aria-hidden="true" style="display: flex; gap: 5px">
+        <sc-for list="{{ hd.segs }}" as="g" hint-placeholder-count="7"><span style="{{ g.css }}"></span></sc-for>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" aria-label="See the whole invoice" onClick="{{ on.openWhole }}" style="position: relative; flex: none; display: block; height: 236px; margin: 4px 16px 0; padding: 0; overflow: hidden; border: 1px solid #EEDFD6; border-radius: 16px; background: #FFFFFF; box-shadow: 0 2px 12px rgba(42, 33, 53, 0.08); cursor: zoom-in; text-align: left">
+    <span aria-hidden="true" style="position: absolute; left: 0; top: 0; display: block; width: 595px; transform-origin: 0 0; transform: {{ pv.transform }}; transition: transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1)">
+      <dc-import name="Invoice" inv="{{ inv }}" template="{{ s.template }}" accent="{{ s.accent }}" focus="{{ pv.focus }}" hint-size="595px,842px"></dc-import>
+    </span>
+    <span style="position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(42, 33, 53, 0.82); color: #FFFFFF; font-size: 12px; font-weight: 600">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+      See it all
+    </span>
+  </button>
+
+  <div style="flex: 1; overflow-y: auto; padding: 18px 20px 16px">
+
+    <!-- Step: business name -->
+    <sc-if value="{{ at.name }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">What's your business called?</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">The name your clients see at the top of every invoice.</p>
+      <label style="display: block">
+        <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Business name</span>
+        <input type="text" autocomplete="organization" placeholder="e.g. Asha Designs" value="{{ s.biz.name }}" onChange="{{ on.bizName }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+      </label>
+      <div style="display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px 14px; border-radius: 14px; background: #E3F0FF; color: #1D3A5F; font-size: 13px; line-height: 1.45">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C5C94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>
+        <span>Working for yourself? Your own name is fine.</span>
+      </div>
+    </sc-if>
+
+    <!-- Step: address -->
+    <sc-if value="{{ at.address }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">Where are you based?</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">It goes under your name on the invoice.</p>
+      <label style="display: block; margin-bottom: 14px">
+        <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Street address</span>
+        <input type="text" autocomplete="address-line1" placeholder="{{ L.line1Ph }}" value="{{ s.biz.line1 }}" onChange="{{ on.bizLine1 }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+      </label>
+      <div style="display: flex; gap: 12px">
+        <label style="display: block; flex: 1.3; min-width: 0; margin-bottom: 14px">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">{{ L.city }}</span>
+          <input type="text" autocomplete="address-level2" placeholder="{{ L.cityPh }}" value="{{ s.biz.city }}" onChange="{{ on.bizCity }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+        </label>
+        <label style="display: block; flex: 1; min-width: 0; margin-bottom: 14px">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">{{ L.pin }}</span>
+          <input type="text" autocomplete="postal-code" placeholder="{{ L.pinPh }}" value="{{ s.biz.pin }}" onChange="{{ on.bizPin }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+        </label>
+      </div>
+      <sc-if value="{{ isIN }}" hint-placeholder-val="{{ true }}">
+        <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">State</span>
+        <button type="button" aria-label="{{ ad.stateAria }}" onClick="{{ on.openBizState }}" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; text-align: left; cursor: pointer">
+          <span style="{{ ad.stateCss }}">{{ ad.stateText }}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5F72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{ ad.fromGstin }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 6px 0 0; font-size: 13px; color: #6B5F72">Filled in from your GSTIN.</p>
+        </sc-if>
+      </sc-if>
+    </sc-if>
+
+    <!-- Step: tax, as one yes/no question -->
+    <sc-if value="{{ at.tax }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">{{ L.taxQ }}</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">{{ L.taxSub }}</p>
+      <div role="radiogroup" aria-label="{{ L.taxQ }}" style="display: flex; flex-direction: column; gap: 10px">
+        <button type="button" role="radio" aria-checked="{{ tx.no }}" onClick="{{ on.taxNo }}" style="{{ tx.noCss }}">
+          <span style="{{ tx.noDot }}"></span>
+          <span style="display: flex; flex-direction: column; gap: 3px">
+            <span style="font-size: 16px; font-weight: 700; color: #2A2135">No, I don't</span>
+            <span style="font-size: 13px; line-height: 1.4; color: #6B5F72">{{ L.taxNoHint }}</span>
+          </span>
+        </button>
+        <button type="button" role="radio" aria-checked="{{ tx.yes }}" onClick="{{ on.taxYes }}" style="{{ tx.yesCss }}">
+          <span style="{{ tx.yesDot }}"></span>
+          <span style="display: flex; flex-direction: column; gap: 3px">
+            <span style="font-size: 16px; font-weight: 700; color: #2A2135">Yes, I have one</span>
+            <span style="font-size: 13px; line-height: 1.4; color: #6B5F72">{{ L.taxYesHint }}</span>
+          </span>
+        </button>
+      </div>
+      <sc-if value="{{ tx.yes }}" hint-placeholder-val="{{ false }}">
+        <label style="display: block; margin-top: 16px">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">{{ L.taxIdLabel }}</span>
+          <input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="{{ L.taxIdPh }}" value="{{ s.taxId }}" onChange="{{ on.taxId }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 600; letter-spacing: 1px; color: #2A2135">
+        </label>
+        <sc-if value="{{ tx.ok }}" hint-placeholder-val="{{ false }}">
+          <p style="display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 13px; font-weight: 600; color: #1F6B3A">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+            {{ tx.okText }}
+          </p>
+        </sc-if>
+        <sc-if value="{{ tx.bad }}" hint-placeholder-val="{{ false }}">
+          <p role="alert" style="margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: #A3341C">{{ L.taxBad }}</p>
+        </sc-if>
+        <button type="button" onClick="{{ on.sampleTaxId }}" style="min-height: 44px; padding: 0 4px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Use a sample number (prototype)</button>
+        <sc-if value="{{ isIN }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top: 6px; padding: 6px 8px 10px 14px; border-radius: 14px; border: 1px solid #EEDFD6; background: #FFFFFF">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+              <span style="font-size: 14px">GST scheme: <strong>{{ tx.schemeName }}</strong></span>
+              <button type="button" aria-expanded="{{ s.showScheme }}" onClick="{{ on.toggleScheme }}" style="min-height: 44px; padding: 0 8px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">{{ tx.schemeBtn }}</button>
+            </div>
+            <sc-if value="{{ s.showScheme }}" hint-placeholder-val="{{ false }}">
+              <div role="radiogroup" aria-label="GST scheme" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px">
+                <button type="button" role="radio" aria-checked="{{ tx.regular }}" onClick="{{ on.schemeRegular }}" style="{{ tx.regularCss }}">Regular</button>
+                <button type="button" role="radio" aria-checked="{{ tx.composition }}" onClick="{{ on.schemeComposition }}" style="{{ tx.compositionCss }}">Composition</button>
+              </div>
+              <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: #6B5F72">Composition means you pay GST at a fixed low rate and can't charge it to clients, so your invoices become a "Bill of Supply". Most businesses are Regular.</p>
+            </sc-if>
+          </div>
+        </sc-if>
+      </sc-if>
+      <button type="button" onClick="{{ on.notSure }}" style="display: flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 8px; padding: 0 4px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"></path><path d="M12 17h.01"></path></svg>
+        Not sure?
+      </button>
+    </sc-if>
+
+    <!-- Step: client -->
+    <sc-if value="{{ at.client }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">Who is this invoice for?</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">A person or a company. Just their name is fine.</p>
+      <sc-if value="{{ cl.hasRecent }}" hint-placeholder-val="{{ false }}">
+        <span style="display: block; margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #6B5F72">Recent</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px">
+          <sc-for list="{{ cl.recent }}" as="r" hint-placeholder-count="2">
+            <button type="button" aria-pressed="{{ r.on }}" onClick="{{ r.pick }}" style="{{ r.css }}">{{ r.name }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <label style="display: block">
+        <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Their name</span>
+        <input type="text" autocomplete="off" placeholder="e.g. Ravi Kumar" value="{{ s.client.name }}" onChange="{{ on.clientName }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+      </label>
+      <sc-if value="{{ cl.addrClosed }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ on.showClientAddr }}" style="display: flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 8px; padding: 0 4px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          Add their address (optional)
+        </button>
+      </sc-if>
+      <sc-if value="{{ s.showClientAddress }}" hint-placeholder-val="{{ false }}">
+        <label style="display: block; margin-top: 14px">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Street address</span>
+          <input type="text" autocomplete="off" value="{{ s.client.line1 }}" onChange="{{ on.clientLine1 }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+        </label>
+        <div style="display: flex; gap: 12px; margin-top: 14px">
+          <label style="display: block; flex: 1.3; min-width: 0">
+            <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">{{ L.city }}</span>
+            <input type="text" autocomplete="off" value="{{ s.client.city }}" onChange="{{ on.clientCity }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+          </label>
+          <label style="display: block; flex: 1; min-width: 0">
+            <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">{{ L.pin }}</span>
+            <input type="text" autocomplete="off" value="{{ s.client.pin }}" onChange="{{ on.clientPin }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+          </label>
+        </div>
+        <sc-if value="{{ isIN }}" hint-placeholder-val="{{ true }}">
+          <span style="display: block; margin: 14px 0 6px; font-size: 14px; font-weight: 600">State</span>
+          <button type="button" aria-label="{{ cl.stateAria }}" onClick="{{ on.openClientState }}" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; text-align: left; cursor: pointer">
+            <span style="{{ cl.stateCss }}">{{ cl.stateText }}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5F72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+        </sc-if>
+      </sc-if>
+      <sc-if value="{{ cl.askGstin }}" hint-placeholder-val="{{ false }}">
+        <label style="display: block; margin-top: 16px">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Their GSTIN (optional)</span>
+          <input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Only if they gave you one" value="{{ s.client.taxId }}" onChange="{{ on.clientTaxId }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 600; letter-spacing: 1px; color: #2A2135">
+        </label>
+        <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6B5F72">{{ cl.gstHint }}</p>
+      </sc-if>
+    </sc-if>
+
+    <!-- Step: items -->
+    <sc-if value="{{ at.items }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">What are you charging for?</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">{{ it.sub }}</p>
+      <sc-if value="{{ it.hasItems }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px">
+          <sc-for list="{{ it.list }}" as="li" hint-placeholder-count="1">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 4px 8px 14px; border: 1px solid #EEDFD6; border-radius: 14px; background: #FFFFFF">
+              <div style="flex: 1; min-width: 0">
+                <div style="font-size: 15px; font-weight: 600">{{ li.name }}</div>
+                <div style="font-size: 13px; color: #6B5F72">{{ li.sub }}</div>
+              </div>
+              <div style="font-size: 15px; font-weight: 700">{{ li.amount }}</div>
+              <button type="button" aria-label="{{ li.removeLabel }}" onClick="{{ li.remove }}" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: #6B5F72; cursor: pointer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ it.hasSaved }}" hint-placeholder-val="{{ false }}">
+        <span style="display: block; margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #6B5F72">Your saved items</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px">
+          <sc-for list="{{ it.saved }}" as="sv" hint-placeholder-count="2">
+            <button type="button" onClick="{{ sv.pick }}" style="min-height: 44px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 22px; background: #FFFFFF; color: #2A2135; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">{{ sv.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <label style="display: block">
+        <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">What did you sell?</span>
+        <input type="text" autocomplete="off" placeholder="e.g. Logo design" value="{{ s.draft.name }}" onChange="{{ on.dName }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+      </label>
+      <p style="margin: 6px 0 14px; font-size: 13px; color: #6B5F72">This is what your client sees.</p>
+      <div style="display: flex; gap: 12px">
+        <div style="flex: 1; min-width: 0">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">How many?</span>
+          <div style="display: flex; align-items: center; height: 50px; overflow: hidden; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF">
+            <button type="button" aria-label="Fewer" onClick="{{ on.qtyMinus }}" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 48px; border: 0; background: #F8ECE5; color: #2A2135; cursor: pointer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+            </button>
+            <span aria-live="polite" style="flex: 1; text-align: center; font-size: 17px; font-weight: 700">{{ s.draft.qty }}</span>
+            <button type="button" aria-label="More" onClick="{{ on.qtyPlus }}" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 48px; border: 0; background: #F8ECE5; color: #2A2135; cursor: pointer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            </button>
+          </div>
+        </div>
+        <label style="display: block; flex: 1.15; min-width: 0">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Price for one</span>
+          <span style="position: relative; display: block">
+            <span aria-hidden="true" style="position: absolute; left: 14px; top: 14px; font-size: 16px; font-weight: 600; color: #6B5F72">{{ L.sym }}</span>
+            <input type="text" inputmode="decimal" autocomplete="off" placeholder="0" value="{{ s.draft.price }}" onChange="{{ on.dPrice }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px 0 32px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 600; color: #2A2135">
+          </span>
+        </label>
+      </div>
+      <sc-if value="{{ it.charges }}" hint-placeholder-val="{{ false }}">
+        <span style="display: block; margin: 18px 0 8px; font-size: 14px; font-weight: 600">{{ L.rateQ }}</span>
+        <div role="radiogroup" aria-label="{{ L.rateQ }}" style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{ it.rates }}" as="rt" hint-placeholder-count="4">
+            <button type="button" role="radio" aria-checked="{{ rt.on }}" onClick="{{ rt.pick }}" style="{{ rt.css }}">{{ rt.label }}</button>
+          </sc-for>
+          <sc-if value="{{ it.moreClosed }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ on.moreRates }}" style="min-height: 44px; padding: 0 10px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Other rates</button>
+          </sc-if>
+        </div>
+        <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: #6B5F72">{{ L.rateHint }}</p>
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border: 1px solid #EEDFD6; border-radius: 14px; background: #FFFFFF">
+          <div style="flex: 1; min-width: 0">
+            <div style="font-size: 15px; font-weight: 600">{{ L.inclQ }}</div>
+            <div style="margin-top: 2px; font-size: 13px; line-height: 1.4; color: #6B5F72">{{ it.inclHint }}</div>
+          </div>
+          <button type="button" role="switch" aria-checked="{{ s.includesTax }}" aria-label="{{ L.inclQ }}" onClick="{{ on.toggleIncl }}" style="{{ it.switchCss }}">
+            <span style="{{ it.knobCss }}"></span>
+          </button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ it.hasLine }}" hint-placeholder-val="{{ false }}">
+        <div aria-live="polite" style="margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: #E3F0FF; color: #1D3A5F; font-size: 14px; font-weight: 600; line-height: 1.4">{{ it.lineText }}</div>
+      </sc-if>
+      <sc-if value="{{ it.canAddAnother }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ on.addAnother }}" style="display: flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 8px; padding: 0 4px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          Add another item
+        </button>
+      </sc-if>
+    </sc-if>
+
+    <!-- Step: when -->
+    <sc-if value="{{ at.when }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">When should they pay?</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">It's printed on the invoice as the due date.</p>
+      <div role="radiogroup" aria-label="When should they pay?" style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{ wn.opts }}" as="o" hint-placeholder-count="4">
+          <button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.css }}">{{ o.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 14px 16px; border: 1px solid #EEDFD6; border-radius: 16px; background: #FFFFFF">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C2482A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 10h18"></path></svg>
+        <div>
+          <div style="font-size: 13px; color: #6B5F72">Due date</div>
+          <div style="font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 20px; font-weight: 700">{{ wn.due }}</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px 14px; border-radius: 14px; background: #E3F0FF; color: #1D3A5F; font-size: 13px; line-height: 1.45">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C5C94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10 21h4"></path></svg>
+        <span>If it isn't paid by then, your phone reminds you. Nothing is sent to your client.</span>
+      </div>
+    </sc-if>
+
+    <!-- Step: how they pay you -->
+    <sc-if value="{{ at.pay }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">How should they pay you?</h1>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: #6B5F72">Optional. It's printed at the bottom so they know where to send the money.</p>
+      <sc-if value="{{ isIN }}" hint-placeholder-val="{{ true }}">
+        <div role="radiogroup" aria-label="How they pay you" style="display: flex; padding: 4px; margin-bottom: 16px; border-radius: 14px; background: #F8ECE5">
+          <button type="button" role="radio" aria-checked="{{ py.isUpi }}" onClick="{{ on.payUpi }}" style="{{ py.upiCss }}">UPI</button>
+          <button type="button" role="radio" aria-checked="{{ py.isBank }}" onClick="{{ on.payBank }}" style="{{ py.bankCss }}">Bank account</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ py.isUpi }}" hint-placeholder-val="{{ true }}">
+        <label style="display: block">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Your UPI ID</span>
+          <input type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. asha@okaxis" value="{{ s.pay.upi }}" onChange="{{ on.upi }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+        </label>
+        <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6B5F72">A QR code appears on the invoice. They scan it with any UPI app to pay you.</p>
+      </sc-if>
+      <sc-if value="{{ py.isBank }}" hint-placeholder-val="{{ false }}">
+        <label style="display: block; margin-bottom: 14px">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Account name</span>
+          <input type="text" autocomplete="off" value="{{ s.pay.accName }}" onChange="{{ on.accName }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+        </label>
+        <label style="display: block; margin-bottom: 14px">
+          <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Account number</span>
+          <input type="text" inputmode="numeric" autocomplete="off" value="{{ s.pay.accNo }}" onChange="{{ on.accNo }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+        </label>
+        <sc-if value="{{ isIN }}" hint-placeholder-val="{{ true }}">
+          <label style="display: block">
+            <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">IFSC</span>
+            <input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. HDFC0001234" value="{{ s.pay.ifsc }}" onChange="{{ on.ifsc }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+          </label>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #6B5F72">11 characters, printed on your cheque book.</p>
+        </sc-if>
+        <sc-if value="{{ isGB }}" hint-placeholder-val="{{ false }}">
+          <label style="display: block">
+            <span style="display: block; margin: 0 0 6px; font-size: 14px; font-weight: 600">Sort code</span>
+            <input type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 12-34-56" value="{{ s.pay.sortCode }}" onChange="{{ on.sortCode }}" style="width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; font-family: inherit; font-size: 16px; font-weight: 500; color: #2A2135">
+          </label>
+        </sc-if>
+      </sc-if>
+    </sc-if>
+  </div>
+
+  <div style="flex: none; padding: 12px 20px 22px; border-top: 1px solid #EEDFD6; background: #FFFFFF">
+    <button type="button" onClick="{{ on.next }}" disabled="{{ nx.disabled }}" style="{{ nx.css }}">{{ nx.label }}</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ REVIEW & SEND ============ -->
+<sc-if value="{{ at.review }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFF5EF">
+  <div style="flex: none; display: flex; align-items: center; gap: 4px; height: 56px; padding: 0 4px">
+    <button type="button" aria-label="Back" onClick="{{ on.back }}" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: #2A2135; cursor: pointer">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </button>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700">Looks good?</h1>
+  </div>
+  <div style="flex: 1; overflow-y: auto; padding: 4px 16px 16px">
+    <div aria-hidden="true" style="position: relative; height: {{ rv.h }}px; overflow: hidden; border: 1px solid #EEDFD6; border-radius: 16px; background: #FFFFFF; box-shadow: 0 2px 12px rgba(42, 33, 53, 0.08)">
+      <div style="position: absolute; left: 0; top: 0; width: 595px; transform-origin: 0 0; transform: scale(0.598)">
+        <dc-import name="Invoice" inv="{{ inv }}" template="{{ s.template }}" accent="{{ s.accent }}" hint-size="595px,842px"></dc-import>
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 10px">
+      <button type="button" onClick="{{ on.changeLook }}" style="display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; height: 44px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; color: #2A2135; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+        Change look
+      </button>
+      <button type="button" onClick="{{ on.openWhole }}" style="display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; height: 44px; border: 1px solid #E2CFC4; border-radius: 14px; background: #FFFFFF; color: #2A2135; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+        Full size
+      </button>
+    </div>
+
+    <h2 style="margin: 22px 0 8px; font-size: 16px; font-weight: 700">Change anything</h2>
+    <div style="overflow: hidden; border: 1px solid #EEDFD6; border-radius: 16px; background: #FFFFFF">
+      <sc-for list="{{ rv.edits }}" as="e" hint-placeholder-count="5">
+        <button type="button" onClick="{{ e.go }}" style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 10px 8px 14px; border: 0; border-bottom: 1px solid #F8ECE5; background: #FFFFFF; font-family: inherit; text-align: left; cursor: pointer">
+          <span style="display: flex; flex: 1; min-width: 0; flex-direction: column">
+            <span style="font-size: 12px; font-weight: 600; color: #6B5F72">{{ e.k }}</span>
+            <span style="font-size: 15px; font-weight: 600; color: #2A2135">{{ e.v }}</span>
+          </span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9A8C92" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+        </button>
+      </sc-for>
+    </div>
+
+    <button type="button" onClick="{{ on.openMore }}" style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; margin-top: 12px; padding: 10px 10px 10px 14px; border: 0; border-radius: 16px; background: #FBE9E0; font-family: inherit; text-align: left; cursor: pointer">
+      <span style="display: flex; flex: 1; flex-direction: column">
+        <span style="font-size: 15px; font-weight: 700; color: #2A2135">More options</span>
+        <span style="font-size: 13px; color: #6B5F72">Discount, notes, a different date. Most invoices don't need these.</span>
+      </span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9A8C92" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+    </button>
+
+    <div style="display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: #E3F0FF; color: #1D3A5F; font-size: 13px; line-height: 1.45">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C5C94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      <span>{{ rv.lock }}</span>
+    </div>
+
+    <h2 style="margin: 22px 0 8px; font-size: 16px; font-weight: 700">Send it by</h2>
+    <div role="radiogroup" aria-label="Send it by" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{ rv.channels }}" as="ch" hint-placeholder-count="4">
+        <button type="button" role="radio" aria-checked="{{ ch.on }}" onClick="{{ ch.pick }}" style="{{ ch.css }}">
+          <sc-if value="{{ ch.isWa }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.7-5.2A8.5 8.5 0 1 1 21 12z"></path></svg></sc-if>
+          <sc-if value="{{ ch.isMail }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></sc-if>
+          <sc-if value="{{ ch.isPrint }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"></path><rect x="3" y="9" width="18" height="8" rx="2"></rect><path d="M6 14h12v7H6z"></path></svg></sc-if>
+          <sc-if value="{{ ch.isPdf }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 21h16"></path></svg></sc-if>
+          <span>{{ ch.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="flex: none; padding: 12px 20px 18px; border-top: 1px solid #EEDFD6; background: #FFFFFF; box-shadow: 0 -4px 16px rgba(42, 33, 53, 0.06)">
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <span style="font-size: 16px; font-weight: 700">Total</span>
+      <span style="font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 26px; font-weight: 700">{{ rv.total }}</span>
+    </div>
+    <sc-if value="{{ rv.hasTax }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 2px; font-size: 13px; color: #6B5F72">
+        <span>{{ rv.taxLine }}</span>
+        <span style="padding: 2px 8px; border-radius: 999px; background: #FDE3D8; color: #9E3820; font-size: 12px; font-weight: 600">{{ rv.badge }}</span>
+      </div>
+    </sc-if>
+    <button type="button" onClick="{{ on.send }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px; margin-top: 10px; border: 0; border-radius: 16px; background: #C2482A; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">{{ rv.sendLabel }}</button>
+    <button type="button" onClick="{{ on.keepDraft }}" style="display: block; width: 100%; min-height: 44px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Keep as draft</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ SENT ============ -->
+<sc-if value="{{ at.sent }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFF5EF">
+  <div style="flex: 1; overflow-y: auto; padding: 64px 24px 16px">
+    <div style="display: flex; flex-direction: column; align-items: center; text-align: center">
+      <span style="display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 50%; background: #FDE3D8; color: #C2482A">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+      </span>
+      <h1 style="margin: 18px 0 6px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 28px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">{{ sn.title }}</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 1.45; color: #6B5F72">{{ sn.sub }}</p>
+    </div>
+    <div style="margin-top: 28px; padding: 18px; border: 1px solid #EEDFD6; border-radius: 20px; background: #FFFFFF">
+      <h2 style="margin: 0 0 14px; font-size: 16px; font-weight: 700">What happens next</h2>
+      <div style="display: flex; gap: 12px">
+        <span style="display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: #C2482A; color: #FFFFFF">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+        </span>
+        <div style="padding-bottom: 16px">
+          <div style="font-size: 15px; font-weight: 700">{{ sn.step1 }}</div>
+          <div style="font-size: 13px; line-height: 1.4; color: #6B5F72">{{ sn.step1Text }}</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px">
+        <span style="display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #CDB3A6; box-sizing: border-box; color: #6B5F72; font-size: 12px; font-weight: 700">2</span>
+        <div style="padding-bottom: 16px">
+          <div style="font-size: 15px; font-weight: 700">{{ sn.step2 }}</div>
+          <div style="font-size: 13px; line-height: 1.4; color: #6B5F72">{{ sn.step2Text }}</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px">
+        <span style="display: flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #CDB3A6; box-sizing: border-box; color: #6B5F72; font-size: 12px; font-weight: 700">3</span>
+        <div>
+          <div style="font-size: 15px; font-weight: 700">When they pay</div>
+          <div style="font-size: 13px; line-height: 1.4; color: #6B5F72">Tap "Mark as paid". That's it.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="flex: none; display: flex; flex-direction: column; gap: 4px; padding: 12px 20px 22px">
+    <button type="button" onClick="{{ on.another }}" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: 0; border-radius: 16px; background: #C2482A; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">Make another invoice</button>
+    <button type="button" onClick="{{ on.home }}" style="min-height: 44px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Go to Home</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ HOME ============ -->
+<sc-if value="{{ at.home }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFF5EF">
+  <div style="flex: 1; overflow-y: auto; padding: 44px 20px 16px">
+    <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #6B5F72">Hello</div>
+    <h1 style="margin: 2px 0 18px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 28px; line-height: 1.15; letter-spacing: -0.4px; font-weight: 700">{{ hm.name }}</h1>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{ hm.tiles }}" as="tl" hint-placeholder-count="3">
+        <div style="padding: 12px 10px; border: 1px solid #EEDFD6; border-radius: 16px; background: #FFFFFF">
+          <div style="font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 18px; font-weight: 700; white-space: nowrap">{{ tl.value }}</div>
+          <div style="margin-top: 2px; font-size: 12px; line-height: 1.3; color: #6B5F72">{{ tl.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <button type="button" onClick="{{ on.another }}" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px; margin-top: 18px; border: 0; border-radius: 16px; background: #C2482A; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+      New invoice
+    </button>
+    <h2 style="margin: 24px 0 8px; font-size: 16px; font-weight: 700">Your invoices</h2>
+    <div style="overflow: hidden; border: 1px solid #EEDFD6; border-radius: 16px; background: #FFFFFF">
+      <sc-for list="{{ hm.list }}" as="h" hint-placeholder-count="1">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 14px; border-bottom: 1px solid #F8ECE5">
+          <div style="flex: 1; min-width: 0">
+            <div style="font-size: 15px; font-weight: 600">{{ h.who }}</div>
+            <div style="font-size: 13px; color: #6B5F72">{{ h.num }}</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px">
+            <span style="font-size: 15px; font-weight: 700">{{ h.amt }}</span>
+            <span style="{{ h.chip }}">{{ h.status }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <button type="button" onClick="{{ on.startOver }}" style="display: block; min-height: 44px; margin: 18px auto 0; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Start over (prototype)</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ SHEETS ============ -->
+<sc-if value="{{ sh.notSure }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(90, 74, 85, 0.7)">
+  <div role="dialog" aria-modal="true" aria-label="{{ L.notSureTitle }}" style="padding: 10px 20px 24px; border-radius: 26px 26px 0 0; background: #FFFFFF">
+    <div aria-hidden="true" style="width: 40px; height: 5px; margin: 0 auto 10px; border-radius: 3px; background: #E2CFC4"></div>
+    <h2 style="margin: 0 0 10px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700">{{ L.notSureTitle }}</h2>
+    <p style="margin: 0 0 10px; font-size: 15px; line-height: 1.5">{{ L.notSure1 }}</p>
+    <p style="margin: 0 0 10px; font-size: 15px; line-height: 1.5">{{ L.notSure2 }}</p>
+    <p style="margin: 0 0 18px; font-size: 15px; line-height: 1.5; color: #6B5F72">You can add it later in Settings. Invoices you've already sent stay as they are.</p>
+    <button type="button" onClick="{{ on.chooseNo }}" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: 0; border-radius: 16px; background: #C2482A; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">Choose No for now</button>
+    <button type="button" onClick="{{ on.closeSheet }}" style="display: block; width: 100%; min-height: 44px; margin-top: 4px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Close</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sh.country }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(90, 74, 85, 0.7)">
+  <div role="dialog" aria-modal="true" aria-label="Where do you work?" style="padding: 10px 20px 24px; border-radius: 26px 26px 0 0; background: #FFFFFF">
+    <div aria-hidden="true" style="width: 40px; height: 5px; margin: 0 auto 10px; border-radius: 3px; background: #E2CFC4"></div>
+    <h2 style="margin: 0 0 4px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700">Where do you work?</h2>
+    <p style="margin: 0 0 14px; font-size: 14px; color: #6B5F72">This sets the money and the tax words on your invoices.</p>
+    <div role="radiogroup" aria-label="Country" style="display: flex; flex-direction: column; gap: 10px">
+      <button type="button" role="radio" aria-checked="{{ isIN }}" onClick="{{ on.pickIN }}" style="{{ ct.inCss }}">
+        <span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 700; color: #2A2135">India</span><span style="font-size: 13px; color: #6B5F72">Rupees (₹) · GST</span></span>
+      </button>
+      <button type="button" role="radio" aria-checked="{{ isGB }}" onClick="{{ on.pickGB }}" style="{{ ct.gbCss }}">
+        <span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 700; color: #2A2135">United Kingdom</span><span style="font-size: 13px; color: #6B5F72">Pounds (£) · VAT</span></span>
+      </button>
+      <div style="padding: 14px 16px; border: 1px dashed #E2CFC4; border-radius: 20px">
+        <div style="font-size: 16px; font-weight: 700; color: #6B5F72">Somewhere else</div>
+        <div style="font-size: 13px; color: #6B5F72">In the app, not in this prototype</div>
+      </div>
+    </div>
+    <button type="button" onClick="{{ on.closeSheet }}" style="display: block; width: 100%; min-height: 44px; margin-top: 10px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Close</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sh.state }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(90, 74, 85, 0.7)">
+  <div role="dialog" aria-modal="true" aria-label="Choose the state" style="display: flex; flex-direction: column; height: 620px; padding: 10px 0 0; border-radius: 26px 26px 0 0; background: #FFFFFF">
+    <div aria-hidden="true" style="flex: none; width: 40px; height: 5px; margin: 0 auto 6px; border-radius: 3px; background: #E2CFC4"></div>
+    <div style="flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 6px 20px">
+      <h2 style="margin: 0; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700">Choose the state</h2>
+      <button type="button" onClick="{{ on.closeSheet }}" style="min-height: 44px; padding: 0 8px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Cancel</button>
+    </div>
+    <div role="radiogroup" aria-label="State" style="flex: 1; overflow-y: auto; padding: 0 12px 20px">
+      <sc-for list="{{ stateList }}" as="st" hint-placeholder-count="8">
+        <button type="button" role="radio" aria-checked="{{ st.on }}" onClick="{{ st.pick }}" style="{{ st.css }}">{{ st.name }}</button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sh.more }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(90, 74, 85, 0.7)">
+  <div role="dialog" aria-modal="true" aria-label="More options" style="padding: 10px 20px 24px; border-radius: 26px 26px 0 0; background: #FFFFFF">
+    <div aria-hidden="true" style="width: 40px; height: 5px; margin: 0 auto 10px; border-radius: 3px; background: #E2CFC4"></div>
+    <h2 style="margin: 0 0 4px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700">More options</h2>
+    <p style="margin: 0 0 12px; font-size: 14px; color: #6B5F72">Each opens as one simple question in the app. Not part of this prototype.</p>
+    <div style="overflow: hidden; border: 1px solid #EEDFD6; border-radius: 16px">
+      <sc-for list="{{ moreList }}" as="m" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; padding: 12px 14px; border-bottom: 1px solid #F8ECE5">
+          <span style="font-size: 15px; font-weight: 600">{{ m.k }}</span>
+          <span style="font-size: 13px; color: #6B5F72">{{ m.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <button type="button" onClick="{{ on.closeSheet }}" style="display: block; width: 100%; min-height: 44px; margin-top: 10px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Close</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sh.restore }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(90, 74, 85, 0.7)">
+  <div role="dialog" aria-modal="true" aria-label="Welcome back" style="padding: 10px 20px 24px; border-radius: 26px 26px 0 0; background: #FFFFFF">
+    <div aria-hidden="true" style="width: 40px; height: 5px; margin: 0 auto 10px; border-radius: 3px; background: #E2CFC4"></div>
+    <h2 style="margin: 0 0 8px; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700">Welcome back</h2>
+    <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5; color: #6B5F72">In the app this brings back your invoices from Google Drive, iCloud or a backup file. It isn't part of this prototype.</p>
+    <button type="button" onClick="{{ on.closeSheet }}" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: 0; border-radius: 16px; background: #C2482A; color: #FFFFFF; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">OK</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sh.whole }}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(90, 74, 85, 0.7)">
+  <div role="dialog" aria-modal="true" aria-label="Your invoice" style="display: flex; flex-direction: column; height: 800px; padding: 10px 0 0; border-radius: 26px 26px 0 0; background: #F8ECE5">
+    <div aria-hidden="true" style="flex: none; width: 40px; height: 5px; margin: 0 auto 6px; border-radius: 3px; background: #E2CFC4"></div>
+    <div style="flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 8px 20px">
+      <h2 style="margin: 0; font-family: 'Bricolage Grotesque', Figtree, sans-serif; font-size: 22px; font-weight: 700">Your invoice</h2>
+      <button type="button" onClick="{{ on.closeSheet }}" style="min-height: 44px; padding: 0 8px; border: 0; background: none; color: #C2482A; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Done</button>
+    </div>
+    <div style="flex: 1; overflow-y: auto; padding: 0 16px 24px">
+      <div style="position: relative; height: {{ rv.h }}px; overflow: hidden; border-radius: 6px; background: #FFFFFF; box-shadow: 0 4px 18px rgba(42, 33, 53, 0.12)">
+        <div style="position: absolute; left: 0; top: 0; width: 595px; transform-origin: 0 0; transform: scale(0.6017)">
+          <dc-import name="Invoice" inv="{{ wholeInv }}" template="{{ s.template }}" accent="{{ s.accent }}" hint-size="595px,842px"></dc-import>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"start":{"editor":"enum","options":["welcome","look","name","address","tax","client","items","when","pay","review","sent","home","repeat"],"default":"welcome","section":"Prototype"},"country":{"editor":"enum","options":["India","UK"],"default":"India","section":"Prototype"},"registered":{"editor":"boolean","default":true,"section":"Prototype"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  K() {
+    if (this._k) return this._k;
+    const states = [['01', 'Jammu and Kashmir'], ['02', 'Himachal Pradesh'], ['03', 'Punjab'], ['04', 'Chandigarh'], ['05', 'Uttarakhand'], ['06', 'Haryana'], ['07', 'Delhi'], ['08', 'Rajasthan'], ['09', 'Uttar Pradesh'], ['10', 'Bihar'], ['11', 'Sikkim'], ['12', 'Arunachal Pradesh'], ['13', 'Nagaland'], ['14', 'Manipur'], ['15', 'Mizoram'], ['16', 'Tripura'], ['17', 'Meghalaya'], ['18', 'Assam'], ['19', 'West Bengal'], ['20', 'Jharkhand'], ['21', 'Odisha'], ['22', 'Chhattisgarh'], ['23', 'Madhya Pradesh'], ['24', 'Gujarat'], ['26', 'Dadra and Nagar Haveli and Daman and Diu'], ['27', 'Maharashtra'], ['29', 'Karnataka'], ['30', 'Goa'], ['31', 'Lakshadweep'], ['32', 'Kerala'], ['33', 'Tamil Nadu'], ['34', 'Puducherry'], ['35', 'Andaman and Nicobar Islands'], ['36', 'Telangana'], ['37', 'Andhra Pradesh'], ['38', 'Ladakh']];
+    states.sort((a, b) => a[1].localeCompare(b[1]));
+    const names = {};
+    states.forEach((x) => { names[x[0]] = x[1]; });
+    this._k = {
+      states: states,
+      names: names,
+      presets: ['#1F6FEB', '#0F766E', '#7C3AED', '#B91C1C', '#C2410C', '#111827'],
+      presetNames: ['Blue', 'Teal', 'Purple', 'Red', 'Orange', 'Black'],
+      looks: [
+        { id: 'modern', label: 'Modern', desc: 'Colour band on top' },
+        { id: 'classic', label: 'Classic', desc: 'Formal, with lines' },
+        { id: 'minimal', label: 'Minimal', desc: 'Plain, no colour' },
+        { id: 'compact', label: 'Compact', desc: 'Fits long bills' }
+      ],
+      first: ['name', 'address', 'tax', 'client', 'items', 'when', 'pay'],
+      repeat: ['client', 'items', 'when'],
+      order: ['welcome', 'look', 'name', 'address', 'tax', 'client', 'items', 'when', 'pay', 'review', 'sent', 'home', 'repeat'],
+      months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      sample: {
+        IN: {
+          biz: { name: 'Asha Designs', line1: '14, 2nd Cross, Indiranagar', city: 'Bengaluru', pin: '560038', region: '29' },
+          taxId: '29ABCDE1234F1Z5',
+          client: { name: 'Ravi Kumar', line1: '', city: '', pin: '', region: '', taxId: '' },
+          client2: { name: 'Meera Textiles', line1: '8 Anna Salai', city: 'Chennai', pin: '600002', region: '33', taxId: '' },
+          item: { name: 'Logo design', qty: 2, price: '2500', rate: 18 },
+          item2: { name: 'Business cards (box of 100)', qty: 1, price: '900', rate: 18 },
+          pay: { kind: 'upi', upi: 'asha@okaxis', accName: '', accNo: '', ifsc: '', sortCode: '' }
+        },
+        GB: {
+          biz: { name: 'Asha Designs', line1: '12 Market Street', city: 'Leeds', pin: 'LS1 6DT', region: '' },
+          taxId: 'GB123456789',
+          client: { name: 'Ravi Kumar', line1: '', city: '', pin: '', region: '', taxId: '' },
+          client2: { name: 'Meera Studio', line1: '5 Dean Street', city: 'London', pin: 'W1D 3RQ', region: '', taxId: '' },
+          item: { name: 'Logo design', qty: 2, price: '250', rate: 20 },
+          item2: { name: 'Business cards (box of 100)', qty: 1, price: '45', rate: 20 },
+          pay: { kind: 'bank', upi: '', accName: 'Asha Designs', accNo: '12345678', ifsc: '', sortCode: '12-34-56' }
+        }
+      }
+    };
+    return this._k;
+  }
+
+  blank(c) {
+    return {
+      screen: 'welcome', mode: 'first', returnTo: '', country: c, template: 'modern', accent: '#1F6FEB', sheet: '', stateFor: '',
+      biz: { name: '', line1: '', city: '', pin: '', region: '' },
+      taxAnswer: '', taxId: '', scheme: 'regular', showScheme: false,
+      client: { name: '', line1: '', city: '', pin: '', region: '', taxId: '' }, showClientAddress: false,
+      items: [], draft: { name: '', qty: 1, price: '', rate: c === 'GB' ? 20 : 18 }, includesTax: false, moreRates: false,
+      terms: 7, pay: { kind: c === 'GB' ? 'bank' : 'upi', upi: '', accName: '', accNo: '', ifsc: '', sortCode: '' },
+      channel: 'whatsapp', sentCount: 0, history: [], savedClients: [], savedItems: []
+    };
+  }
+
+  base(p) {
+    const K = this.K();
+    const c = p.country === 'UK' || p.country === 'GB' ? 'GB' : 'IN';
+    const reg = !(p.registered === false || p.registered === 'false');
+    const start = K.order.indexOf(p.start) >= 0 ? p.start : 'welcome';
+    const k = K.order.indexOf(start);
+    const S = K.sample[c];
+    const s = this.blank(c);
+    if (k > 2) s.biz.name = S.biz.name;
+    if (k > 3) s.biz = Object.assign({}, S.biz);
+    if (k >= 4) { s.taxAnswer = reg ? 'yes' : 'no'; s.taxId = reg ? S.taxId : ''; }
+    if (k > 5) s.client = Object.assign({}, S.client);
+    if (k === 6) s.draft = Object.assign({}, S.item);
+    if (k > 6) s.items = [Object.assign({}, S.item)];
+    if (k >= 8) s.pay = Object.assign({}, S.pay);
+    if (k >= 10) {
+      s.sentCount = 1;
+      s.savedClients = [Object.assign({}, S.client)];
+      s.savedItems = [Object.assign({}, S.item)];
+      s.history = [{ num: this.number(c, 1), who: S.client.name, amt: this.calc(s, s.items).total, status: 'Sent' }];
+    }
+    s.screen = start;
+    if (start === 'repeat') {
+      s.mode = 'repeat';
+      s.screen = 'client';
+      s.client = { name: '', line1: '', city: '', pin: '', region: '', taxId: '' };
+      s.items = [];
+      s.savedClients = [Object.assign({}, S.client), Object.assign({}, S.client2)];
+      s.savedItems = [Object.assign({}, S.item), Object.assign({}, S.item2)];
+    }
+    return s;
+  }
+
+  key() { return [this.props.start || 'welcome', this.props.country || 'India', String(this.props.registered)].join('|'); }
+
+  st() {
+    const b = this.base(this.props);
+    const S = this.state || {};
+    return S.gen === this.key() ? Object.assign(b, S.ov) : b;
+  }
+
+  up(patch) {
+    const S = this.state || {};
+    const ov = S.gen === this.key() ? S.ov : {};
+    this.setState({ gen: this.key(), ov: Object.assign({}, ov, patch) });
+  }
+
+  // ---------- formatting ----------
+  today() { const n = new Date(); return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); }
+  addDays(d, n) { return new Date(d.getTime() + n * 86400000); }
+  fmtDate(d) { const K = this.K(); return d.getUTCDate() + ' ' + K.months[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
+  fmtDay(d) { const K = this.K(); return K.days[d.getUTCDay()] + ', ' + d.getUTCDate() + ' ' + K.months[d.getUTCMonth()]; }
+  number(c, seq) {
+    const n = String(seq).padStart(4, '0');
+    if (c === 'GB') return 'INV-' + n;
+    const t = this.today(); const y = t.getUTCFullYear(); const start = t.getUTCMonth() >= 3 ? y : y - 1;
+    return 'INV/' + String(start % 100).padStart(2, '0') + '-' + String((start + 1) % 100).padStart(2, '0') + '/' + n;
+  }
+  money(minor, c, dec) {
+    const m = Math.abs(Math.round(minor)); const w = Math.floor(m / 100); const f = m % 100; const s = String(w);
+    let ws;
+    if (c === 'IN') {
+      if (s.length <= 3) ws = s;
+      else ws = s.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + s.slice(-3);
+    } else ws = s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const tail = dec || f ? '.' + String(f).padStart(2, '0') : '';
+    return (minor < 0 ? '−' : '') + (c === 'IN' ? '₹' : '£') + ws + tail;
+  }
+  pct(r) { return String(Math.round(r * 1000) / 1000); }
+  parseMoney(text) {
+    const t = String(text || '').replace(/[,\s]/g, '');
+    if (!/^(\d+(\.\d{0,2})?|\.\d{1,2})$/.test(t)) return null;
+    const parts = t.split('.');
+    return parseInt(parts[0] || '0', 10) * 100 + parseInt(((parts[1] || '') + '00').slice(0, 2), 10);
+  }
+  fmtVat(v) { return v.length >= 11 ? v.slice(0, 2) + ' ' + v.slice(2, 5) + ' ' + v.slice(5, 9) + ' ' + v.slice(9) : v; }
+
+  // ---------- tax answers ----------
+  gstinOk(v) { return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(v || ''); }
+  taxIdValid(s) { return s.country === 'IN' ? this.gstinOk(s.taxId) && !!this.K().names[s.taxId.slice(0, 2)] : /^GB([0-9]{9}|[0-9]{12})$/.test(s.taxId || ''); }
+  reg(s) {
+    if (s.country === 'IN') return s.taxAnswer === 'yes' ? (s.scheme === 'composition' ? 'composition' : 'regular') : 'unregistered';
+    return s.taxAnswer === 'yes' ? 'vat' : 'none';
+  }
+  charges(s) { const r = this.reg(s); return r === 'regular' || r === 'vat'; }
+  sellerRegion(s) { return s.country === 'IN' && this.taxIdValid(s) ? s.taxId.slice(0, 2) : s.biz.region; }
+  clientRegion(s) { return this.gstinOk(s.client.taxId) ? s.client.taxId.slice(0, 2) : s.client.region; }
+  hasPay(s) {
+    const p = s.pay;
+    if (s.country === 'IN' && p.kind === 'upi') return !!p.upi.trim();
+    return !!(p.accName.trim() || p.accNo.trim() || p.ifsc.trim() || p.sortCode.trim());
+  }
+
+  // ---------- lines and totals ----------
+  draftLine(s) {
+    const d = s.draft;
+    if (!d.name.trim() || this.parseMoney(d.price) === null) return null;
+    return { name: d.name.trim(), qty: d.qty, price: d.price, rate: d.rate };
+  }
+  blankDraft(s) { return { name: '', qty: 1, price: '', rate: s.draft.rate }; }
+  previewLines(s) {
+    const d = s.draft;
+    if (s.screen === 'items' && (d.name.trim() || d.price.trim())) return s.items.concat([{ name: d.name.trim(), qty: d.qty, price: d.price, rate: d.rate }]);
+    return s.items;
+  }
+  calc(s, lines) {
+    const c = s.country; const charges = this.charges(s); const incl = charges && s.includesTax;
+    const a = this.sellerRegion(s); const b = this.clientRegion(s);
+    const inter = c === 'IN' && charges && !!(a && b && a !== b);
+    const out = []; const groups = {};
+    let grossSum = 0; let taxableSum = 0;
+    lines.forEach((l) => {
+      const pm = this.parseMoney(l.price); const price = pm || 0; const gross = price * l.qty;
+      const r = charges ? l.rate : 0; const bp = Math.round(r * 100);
+      let taxable = gross; let tax = 0; let cg = 0;
+      if (bp > 0) {
+        if (incl) taxable = Math.round(gross * 10000 / (10000 + bp));
+        if (c === 'IN') {
+          if (inter) tax = Math.round(taxable * bp / 10000);
+          else { cg = Math.round(taxable * bp / 20000); tax = cg * 2; }
+          if (incl) taxable = gross - tax;
+        }
+      }
+      const key = String(r);
+      const g = groups[key] || (groups[key] = { rate: r, taxable: 0, tax: 0, cg: 0 });
+      g.taxable += taxable; g.tax += tax; g.cg += cg;
+      grossSum += gross; taxableSum += taxable;
+      out.push({ name: l.name, qty: l.qty, price: price, priceOk: pm !== null, rate: l.rate, gross: gross, taxable: taxable });
+    });
+    const gl = Object.keys(groups).map((k) => groups[k]).sort((x, y) => y.rate - x.rate);
+    if (c === 'GB' && charges) gl.forEach((g) => { g.tax = Math.floor(g.taxable * Math.round(g.rate * 100) / 10000); });
+    const taxSum = gl.reduce((acc, g) => acc + g.tax, 0);
+    let total = taxableSum + taxSum; let roundOff = 0;
+    if (c === 'IN') { const r = Math.round(total / 100) * 100; roundOff = r - total; total = r; }
+    return { lines: out, groups: gl, grossSum: grossSum, taxableSum: taxableSum, taxSum: taxSum, roundOff: roundOff, total: total, charges: charges, incl: incl, inter: inter };
+  }
+
+  // ---------- the invoice every screen draws ----------
+  buildInv(s, seq, live) {
+    const K = this.K(); const c = s.country; const reg = this.reg(s); const charges = this.charges(s);
+    const ink = 'color: #111827'; const muted = 'color: #4B5563'; const ph = 'color: #A79BA2; font-style: italic'; const bold = 'font-weight: 700; font-size: 14px; ';
+    const title = c === 'IN' ? (reg === 'regular' ? 'Tax Invoice' : reg === 'composition' ? 'Bill of Supply' : 'Invoice') : (reg === 'vat' ? 'VAT Invoice' : 'Invoice');
+    const b = s.biz; const from = [];
+    from.push(b.name.trim() ? { t: b.name.trim(), css: bold + ink } : { t: 'Your business name', css: bold + ph });
+    from.push(b.line1.trim() ? { t: b.line1.trim(), css: muted } : { t: 'Your address', css: ph });
+    const cityLine = [b.city.trim(), b.pin.trim()].filter(Boolean).join(' ');
+    if (cityLine) from.push({ t: cityLine, css: muted });
+    const sr = this.sellerRegion(s);
+    if (c === 'IN' && sr && K.names[sr]) from.push({ t: K.names[sr], css: muted });
+    if (s.taxAnswer === 'yes') {
+      const ok = this.taxIdValid(s);
+      if (c === 'IN') from.push({ t: 'GSTIN ' + (ok ? s.taxId : '_______________'), css: ok ? ink : ph });
+      else from.push({ t: 'VAT reg. no. ' + (ok ? this.fmtVat(s.taxId) : '_____________'), css: ok ? ink : ph });
+    }
+    const cl = s.client; const to = [];
+    to.push(cl.name.trim() ? { t: cl.name.trim(), css: bold + ink } : { t: "Who it's for", css: bold + ph });
+    if (cl.line1.trim()) to.push({ t: cl.line1.trim(), css: muted });
+    const cc = [cl.city.trim(), cl.pin.trim()].filter(Boolean).join(' ');
+    if (cc) to.push({ t: cc, css: muted });
+    const cr = this.clientRegion(s);
+    if (c === 'IN' && cr && K.names[cr]) to.push({ t: K.names[cr], css: muted });
+    if (c === 'IN' && reg === 'regular' && this.gstinOk(cl.taxId)) to.push({ t: 'GSTIN ' + cl.taxId, css: ink });
+    const lines = live ? this.previewLines(s) : s.items;
+    const k = this.calc(s, lines);
+    const taxName = c === 'IN' ? 'GST' : 'VAT';
+    const rows = k.lines.map((l, i) => ({
+      n: String(i + 1), desc: l.name || 'Item', descCss: l.name ? '' : ph, qty: String(l.qty),
+      rate: l.priceOk ? this.money(l.price, c, true) : '—', tax: charges ? this.pct(l.rate) + '%' : '',
+      amount: l.priceOk ? this.money(l.gross, c, true) : '—'
+    }));
+    if (!rows.length) rows.push({ n: '1', desc: "What you're charging for", descCss: ph, qty: '', rate: '', tax: '', amount: '' });
+    const totals = [];
+    if (charges && k.lines.length) {
+      totals.push({ k: k.incl ? 'Subtotal (incl. ' + taxName + ')' : 'Subtotal', v: this.money(k.incl ? k.grossSum : k.taxableSum, c, true) });
+      k.groups.forEach((g) => {
+        if (!g.tax) return;
+        const pre = k.incl ? 'Includes ' : '';
+        if (c === 'IN' && !k.inter) {
+          totals.push({ k: pre + 'CGST ' + this.pct(g.rate / 2) + '%', v: this.money(g.cg, c, true) });
+          totals.push({ k: pre + 'SGST ' + this.pct(g.rate / 2) + '%', v: this.money(g.tax - g.cg, c, true) });
+        } else totals.push({ k: pre + (c === 'IN' ? 'IGST ' : 'VAT ') + this.pct(g.rate) + '%', v: this.money(g.tax, c, true) });
+      });
+    }
+    if (k.roundOff && k.lines.length) totals.push({ k: 'Round off', v: (k.roundOff > 0 ? '+' : '−') + this.money(Math.abs(k.roundOff), c, true) });
+    const p = s.pay; const upi = c === 'IN' && p.kind === 'upi' ? p.upi.trim() : '';
+    const bank = [];
+    if (c === 'GB' || p.kind === 'bank') {
+      if (p.accName.trim()) bank.push({ k: 'Account name', v: p.accName.trim() });
+      if (p.accNo.trim()) bank.push({ k: 'Account no.', v: p.accNo.trim() });
+      if (c === 'IN' && p.ifsc.trim()) bank.push({ k: 'IFSC', v: p.ifsc.trim().toUpperCase() });
+      if (c === 'GB' && p.sortCode.trim()) bank.push({ k: 'Sort code', v: p.sortCode.trim() });
+    }
+    const hasPay = !!upi || bank.length > 0; const atPay = s.screen === 'pay';
+    const t = this.today();
+    return {
+      title: title,
+      note: reg === 'composition' ? 'Composition taxable person, not eligible to collect tax on supplies' : '',
+      meta: [{ k: 'Invoice no.', v: this.number(c, seq) }, { k: 'Date', v: this.fmtDate(t) }, { k: 'Due date', v: this.fmtDate(this.addDays(t, s.terms)) }],
+      from: from, to: to,
+      cols: { rate: k.incl ? 'Rate (incl. ' + taxName + ')' : 'Rate', tax: taxName, showTax: charges },
+      rows: rows, totals: totals,
+      total: { k: 'Total', v: this.money(k.lines.length ? k.total : 0, c, true) },
+      pay: { show: hasPay || atPay, ph: !hasPay && atPay, upi: !!upi, upiId: upi, hasBank: bank.length > 0, bank: bank, seed: upi }
+    };
+  }
+
+  // where each part sits on the page, so the preview can zoom to it
+  pv(s, inv) {
+    const t = s.template;
+    const focus = { name: 'from', address: 'from', tax: 'tax', client: 'to', items: 'items', when: 'meta', pay: 'pay' }[s.screen] || '';
+    const partiesTop = ({ modern: 138, classic: 138, minimal: 124, compact: 100 }[t] || 138) + (inv.note ? 30 : 0);
+    const itemsTop = partiesTop + 160;
+    const rowH = t === 'compact' ? 30 : 38;
+    const totalsTop = itemsTop + 12 + 32 + inv.rows.length * rowH + 12;
+    const payTop = totalsTop + 12 + inv.totals.length * 24 + 42 + 20;
+    const pageH = Math.max(842, payTop + 150);
+    const W = 358; const H = 236; const fit = W / 595; const zoom = 0.85;
+    let sc = fit; let x = 0; let y = 0;
+    if (focus === 'from') { sc = zoom; y = partiesTop - 12; }
+    else if (focus === 'to') { sc = zoom; x = 595 - W / zoom; y = partiesTop - 12; }
+    else if (focus === 'meta') { sc = zoom; x = 595 - W / zoom; y = { modern: 0, classic: 30, minimal: 34, compact: 20 }[t] || 0; }
+    else if (focus === 'items') { y = itemsTop - 14; }
+    else if (focus === 'pay') { y = payTop - 14; }
+    y = Math.max(0, Math.min(y, pageH - H / sc));
+    return { focus: focus, pageH: pageH, transform: 'translate(' + (-x * sc).toFixed(1) + 'px, ' + (-y * sc).toFixed(1) + 'px) scale(' + sc.toFixed(4) + ')' };
+  }
+
+  labels(c) {
+    const IN = c === 'IN';
+    return {
+      sym: IN ? '₹' : '£',
+      city: IN ? 'City' : 'Town or city', pin: IN ? 'PIN code' : 'Postcode',
+      line1Ph: IN ? 'e.g. 14, 2nd Cross, Indiranagar' : 'e.g. 12 Market Street', cityPh: IN ? 'e.g. Bengaluru' : 'e.g. Leeds', pinPh: IN ? 'e.g. 560038' : 'e.g. LS1 6DT',
+      taxQ: IN ? 'Do you have a GSTIN?' : 'Do you have a VAT number?',
+      taxSub: IN ? "It's the 15-character number on your GST registration certificate." : "It's on the VAT certificate HMRC sent you, and starts with GB.",
+      taxNoHint: IN ? "Most small businesses don't. We won't add GST to your invoices." : "Most small businesses don't. We won't add VAT to your invoices.",
+      taxYesHint: IN ? "We'll add GST for you and print your GSTIN, as the law asks." : "We'll add VAT for you and print your VAT number, as the law asks.",
+      taxIdLabel: IN ? 'Your GSTIN' : 'Your VAT number', taxIdPh: IN ? 'e.g. 29ABCDE1234F1Z5' : 'e.g. GB 123 4567 89',
+      taxBad: IN ? "That doesn't look like a GSTIN yet. It has 15 letters and numbers, like 29ABCDE1234F1Z5." : "That doesn't look like a UK VAT number yet. It's GB and 9 digits, like GB 123 4567 89.",
+      rateQ: IN ? 'How much GST?' : 'How much VAT?',
+      rateHint: IN ? 'Not sure? Most services are 18%.' : 'Not sure? Most things are 20%. 5% and 0% are for a few things, like children’s clothes.',
+      inclQ: IN ? 'My price already includes GST' : 'My price already includes VAT',
+      notSureTitle: IN ? 'Not sure if you have a GSTIN?' : 'Not sure if you have a VAT number?',
+      notSure1: IN ? "If you had registered for GST, you'd have a registration certificate with a 15-character GSTIN on it, like 29ABCDE1234F1Z5." : 'If you had registered for VAT, HMRC would have sent you a certificate with your VAT number on it.',
+      notSure2: IN ? "No certificate? Choose No. Many small businesses don't need to register." : 'No certificate? Choose No. You only have to register once your sales pass the VAT threshold.'
+    };
+  }
+
+  chip(on) {
+    return 'min-height: 44px; padding: 0 16px; border-radius: 22px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; ' +
+      (on ? 'border: 2px solid #C2482A; background: #FDE3D8; color: #9E3820' : 'border: 1px solid #E2CFC4; background: #FFFFFF; color: #2A2135');
+  }
+  card(on) {
+    return 'display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 14px 16px; border-radius: 20px; background: #FFFFFF; font-family: inherit; text-align: left; cursor: pointer; ' +
+      (on ? 'border: 2px solid #C2482A' : 'border: 2px solid #EEDFD6');
+  }
+  dot(on) {
+    return 'flex: none; display: block; box-sizing: border-box; width: 22px; height: 22px; margin-top: 1px; border-radius: 50%; ' + (on ? 'border: 7px solid #C2482A' : 'border: 2px solid #CDB3A6');
+  }
+
+  // ---------- navigation ----------
+  next() {
+    const s = this.st(); const K = this.K();
+    if (s.screen === 'welcome') return this.up({ screen: 'look' });
+    if (s.screen === 'look') return this.up({ screen: s.returnTo === 'review' ? 'review' : 'name', returnTo: '', sheet: '' });
+    const steps = s.mode === 'repeat' ? K.repeat : K.first;
+    const i = steps.indexOf(s.screen);
+    if (i < 0) return;
+    const patch = { sheet: '' };
+    if (s.screen === 'items') {
+      const d = this.draftLine(s);
+      if (d) { patch.items = s.items.concat([d]); patch.draft = this.blankDraft(s); }
+    }
+    if (s.returnTo === 'review' || i === steps.length - 1) { patch.screen = 'review'; patch.returnTo = ''; }
+    else patch.screen = steps[i + 1];
+    this.up(patch);
+  }
+  back() {
+    const s = this.st(); const K = this.K();
+    if (s.screen === 'look') return this.up({ screen: s.returnTo === 'review' ? 'review' : 'welcome', returnTo: '' });
+    if (s.returnTo === 'review') return this.up({ screen: 'review', returnTo: '' });
+    const steps = s.mode === 'repeat' ? K.repeat : K.first;
+    const i = steps.indexOf(s.screen);
+    if (i === 0) return this.up({ screen: s.mode === 'repeat' ? 'home' : 'look' });
+    if (i > 0) return this.up({ screen: steps[i - 1] });
+    if (s.screen === 'review') return this.up({ screen: steps[steps.length - 1] });
+  }
+  canNext(s) {
+    switch (s.screen) {
+      case 'name': return !!s.biz.name.trim();
+      case 'address': return !!s.biz.line1.trim() && (s.country !== 'IN' || !!s.biz.region);
+      case 'tax': return s.taxAnswer === 'no' || (s.taxAnswer === 'yes' && this.taxIdValid(s));
+      case 'client': return !!s.client.name.trim();
+      case 'items': return s.items.length > 0 || !!this.draftLine(s);
+      default: return true;
+    }
+  }
+  setTaxId(raw) {
+    const s = this.st(); const K = this.K();
+    let v = String(raw).toUpperCase().replace(/[\s-]+/g, '');
+    if (s.country === 'GB') { if (/^[0-9]/.test(v)) v = 'GB' + v; v = v.slice(0, 14); } else v = v.slice(0, 15);
+    const patch = { taxId: v };
+    if (s.country === 'IN' && this.gstinOk(v) && K.names[v.slice(0, 2)]) patch.biz = Object.assign({}, s.biz, { region: v.slice(0, 2) });
+    this.up(patch);
+  }
+  setCountry(c) {
+    const s = this.st(); const b = this.blank(c);
+    b.screen = s.screen; b.template = s.template; b.accent = s.accent; b.sheet = '';
+    this.up(b);
+  }
+  send() {
+    const s = this.st(); const seq = s.sentCount + 1; const k = this.calc(s, s.items);
+    const name = s.client.name.trim();
+    const sc = s.savedClients.filter((x) => x.name !== name);
+    sc.unshift(Object.assign({}, s.client, { name: name }));
+    const si = s.savedItems.slice();
+    s.items.forEach((it) => { if (!si.some((x) => x.name === it.name)) si.push(Object.assign({}, it)); });
+    this.up({ screen: 'sent', sheet: '', sentCount: seq, history: [{ num: this.number(s.country, seq), who: name, amt: k.total, status: 'Sent' }].concat(s.history), savedClients: sc.slice(0, 4), savedItems: si.slice(0, 6) });
+  }
+  keepDraft() {
+    const s = this.st(); const k = this.calc(s, s.items);
+    this.up({ screen: 'home', sheet: '', history: [{ num: 'Draft', who: s.client.name.trim() || 'No client yet', amt: k.total, status: 'Draft' }].concat(s.history) });
+  }
+  another() {
+    const s = this.st();
+    this.up({ mode: 'repeat', screen: 'client', returnTo: '', sheet: '', client: { name: '', line1: '', city: '', pin: '', region: '', taxId: '' }, showClientAddress: false, items: [], draft: this.blankDraft(s), includesTax: false });
+  }
+
+  handlers() {
+    const K = this.K();
+    const g = () => this.st();
+    const field = (key, name) => (e) => { const s = g(); const o = Object.assign({}, s[key]); o[name] = e.target.value; const p = {}; p[key] = o; this.up(p); };
+    return {
+      next: () => this.next(), back: () => this.back(),
+      start: () => this.up({ screen: 'look' }),
+      restore: () => this.up({ sheet: 'restore' }),
+      closeSheet: () => this.up({ sheet: '' }),
+      openWhole: () => this.up({ sheet: 'whole' }),
+      openCountry: () => this.up({ sheet: 'country' }),
+      openMore: () => this.up({ sheet: 'more' }),
+      notSure: () => this.up({ sheet: 'notSure' }),
+      chooseNo: () => this.up({ sheet: '', taxAnswer: 'no' }),
+      pickIN: () => this.setCountry('IN'), pickGB: () => this.setCountry('GB'),
+      openBizState: () => this.up({ sheet: 'state', stateFor: 'biz' }),
+      openClientState: () => this.up({ sheet: 'state', stateFor: 'client' }),
+      bizName: field('biz', 'name'), bizLine1: field('biz', 'line1'), bizCity: field('biz', 'city'), bizPin: field('biz', 'pin'),
+      clientName: field('client', 'name'), clientLine1: field('client', 'line1'), clientCity: field('client', 'city'), clientPin: field('client', 'pin'),
+      clientTaxId: (e) => {
+        const s = g(); const v = e.target.value.toUpperCase().replace(/\s+/g, '').slice(0, 15);
+        const o = Object.assign({}, s.client, { taxId: v });
+        if (this.gstinOk(v) && K.names[v.slice(0, 2)]) o.region = v.slice(0, 2);
+        this.up({ client: o });
+      },
+      showClientAddr: () => this.up({ showClientAddress: true }),
+      taxNo: () => this.up({ taxAnswer: 'no' }), taxYes: () => this.up({ taxAnswer: 'yes' }),
+      taxId: (e) => this.setTaxId(e.target.value),
+      sampleTaxId: () => this.setTaxId(g().country === 'IN' ? '29ABCDE1234F1Z5' : 'GB123456789'),
+      toggleScheme: () => this.up({ showScheme: !g().showScheme }),
+      schemeRegular: () => this.up({ scheme: 'regular' }), schemeComposition: () => this.up({ scheme: 'composition' }),
+      dName: field('draft', 'name'),
+      dPrice: (e) => { const s = g(); this.up({ draft: Object.assign({}, s.draft, { price: e.target.value.replace(/[^0-9.,]/g, '') }) }); },
+      qtyMinus: () => { const s = g(); this.up({ draft: Object.assign({}, s.draft, { qty: Math.max(1, s.draft.qty - 1) }) }); },
+      qtyPlus: () => { const s = g(); this.up({ draft: Object.assign({}, s.draft, { qty: Math.min(999, s.draft.qty + 1) }) }); },
+      toggleIncl: () => this.up({ includesTax: !g().includesTax }),
+      moreRates: () => this.up({ moreRates: true }),
+      addAnother: () => { const s = g(); const d = this.draftLine(s); if (d) this.up({ items: s.items.concat([d]), draft: this.blankDraft(s) }); },
+      payUpi: () => this.up({ pay: Object.assign({}, g().pay, { kind: 'upi' }) }),
+      payBank: () => this.up({ pay: Object.assign({}, g().pay, { kind: 'bank' }) }),
+      upi: field('pay', 'upi'), accName: field('pay', 'accName'), accNo: field('pay', 'accNo'), ifsc: field('pay', 'ifsc'), sortCode: field('pay', 'sortCode'),
+      changeLook: () => this.up({ screen: 'look', returnTo: 'review', sheet: '' }),
+      send: () => this.send(), keepDraft: () => this.keepDraft(),
+      another: () => this.another(), home: () => this.up({ screen: 'home', sheet: '' }),
+      startOver: () => this.up(this.blank(g().country))
+    };
+  }
+
+  renderVals() {
+    const K = this.K();
+    const s = this.st();
+    const c = s.country; const isIN = c === 'IN';
+    const L = this.labels(c);
+    const on = this.handlers();
+    const reg = this.reg(s); const charges = this.charges(s);
+    const steps = s.mode === 'repeat' ? K.repeat : K.first;
+    const stepIdx = steps.indexOf(s.screen);
+    const at = {};
+    ['welcome', 'look', 'review', 'sent', 'home', 'name', 'address', 'tax', 'client', 'items', 'when', 'pay'].forEach((k) => { at[k] = s.screen === k; });
+    const sh = {};
+    ['notSure', 'country', 'state', 'more', 'whole', 'restore'].forEach((k) => { sh[k] = s.sheet === k; });
+    const seq = s.screen === 'sent' ? s.sentCount : s.sentCount + 1;
+    const inv = this.buildInv(s, seq, true);
+    const pv = this.pv(s, inv);
+    const sampleS = this.base({ start: 'review', country: isIN ? 'India' : 'UK', registered: true });
+    const sampleInv = this.buildInv(sampleS, 1, false);
+    const t = this.today();
+    const k = this.calc(s, s.items);
+    const taxName = isIN ? 'GST' : 'VAT';
+
+    // header and Continue
+    const hd = {
+      label: (s.mode === 'repeat' ? 'New invoice · step ' : 'Step ') + (stepIdx + 1) + ' of ' + steps.length,
+      segs: steps.map((x, i) => ({ css: 'flex: 1; height: 5px; border-radius: 3px; background: ' + (i <= stepIdx ? '#C2482A' : '#F1E2D9') }))
+    };
+    const ok = this.canNext(s);
+    const nx = {
+      disabled: !ok,
+      label: s.returnTo === 'review' ? 'Done' : s.screen === 'pay' && !this.hasPay(s) ? 'Skip for now' : 'Continue',
+      css: 'display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: 0; border-radius: 16px; font-family: inherit; font-size: 17px; font-weight: 700; ' +
+        (ok ? 'background: #C2482A; color: #FFFFFF; cursor: pointer' : 'background: #EBDDD5; color: #6B5F72; cursor: not-allowed')
+    };
+
+    // pick a look
+    const thumbInv = s.biz.name.trim() ? this.buildInv(Object.assign({}, s, { screen: 'look' }), seq, false) : sampleInv;
+    const lk = {
+      sub: s.returnTo === 'review' ? 'Your invoice, in each look. Pick the one you like.' : 'This is what your clients will get. You can change it any time.',
+      looks: K.looks.map((l) => {
+        const sel = s.template === l.id;
+        return {
+          id: l.id, label: l.label, desc: l.desc, inv: thumbInv, accent: s.accent, on: sel, aria: l.label + ': ' + l.desc,
+          pick: () => this.up({ template: l.id }),
+          css: 'display: block; width: 100%; padding: 6px 6px 10px; border-radius: 16px; background: #FFFFFF; font-family: inherit; text-align: left; cursor: pointer; ' + (sel ? 'border: 2px solid #C2482A' : 'border: 2px solid #EEDFD6'),
+          dot: 'flex: none; display: block; box-sizing: border-box; width: 20px; height: 20px; margin-left: 4px; border-radius: 50%; ' + (sel ? 'border: 6px solid #C2482A' : 'border: 2px solid #CDB3A6')
+        };
+      }),
+      colours: K.presets.map((h, i) => ({
+        name: K.presetNames[i], on: s.accent === h, pick: () => this.up({ accent: h }),
+        css: 'display: block; width: 32px; height: 32px; border-radius: 50%; background: ' + h + '; box-shadow: ' + (s.accent === h ? '0 0 0 3px #FFF5EF, 0 0 0 5px #2A2135' : 'inset 0 0 0 1px rgba(0, 0, 0, 0.1)')
+      })),
+      showColours: s.template !== 'minimal', noColours: s.template === 'minimal',
+      canCountry: s.returnTo !== 'review',
+      countryText: isIN ? 'Invoices in ₹, for India' : 'Invoices in £, for the UK',
+      btn: s.returnTo === 'review' ? 'Use this look' : 'Use this look'
+    };
+
+    // address
+    const ad = {
+      stateText: K.names[s.biz.region] || 'Choose your state',
+      stateCss: s.biz.region ? 'color: #2A2135' : 'color: #6B5F72',
+      stateAria: 'State: ' + (K.names[s.biz.region] || 'not chosen'),
+      fromGstin: isIN && s.taxAnswer === 'yes' && this.taxIdValid(s)
+    };
+
+    // tax
+    const yes = s.taxAnswer === 'yes'; const no = s.taxAnswer === 'no'; const valid = this.taxIdValid(s);
+    const tx = {
+      yes: yes, no: no, noCss: this.card(no), yesCss: this.card(yes), noDot: this.dot(no), yesDot: this.dot(yes),
+      ok: yes && valid,
+      bad: yes && !valid && s.taxId.length >= (isIN ? 15 : 11),
+      okText: isIN ? (K.names[s.taxId.slice(0, 2)] || '') + ' · PAN ' + s.taxId.slice(2, 12) + ' filled in' : this.fmtVat(s.taxId) + ' · looks right',
+      schemeName: s.scheme === 'composition' ? 'Composition' : 'Regular (most businesses)',
+      schemeBtn: s.showScheme ? 'Done' : 'Change',
+      regular: s.scheme !== 'composition', composition: s.scheme === 'composition',
+      regularCss: this.chip(s.scheme !== 'composition'), compositionCss: this.chip(s.scheme === 'composition')
+    };
+
+    // client
+    const cr = this.clientRegion(s);
+    const cl = {
+      hasRecent: s.mode === 'repeat' && s.savedClients.length > 0,
+      recent: s.savedClients.map((x) => ({ name: x.name, on: s.client.name === x.name, css: this.chip(s.client.name === x.name), pick: () => this.up({ client: Object.assign({}, x), showClientAddress: !!x.line1 }) })),
+      addrClosed: !s.showClientAddress,
+      askGstin: isIN && reg === 'regular',
+      gstHint: this.gstinOk(s.client.taxId) ? (K.names[s.client.taxId.slice(0, 2)] || '') + ' · printed on the invoice so they can claim the GST back.' : "Add it if they're a business that claims GST back.",
+      stateText: K.names[cr] || 'Choose their state',
+      stateCss: cr ? 'color: #2A2135' : 'color: #6B5F72',
+      stateAria: 'Their state: ' + (K.names[cr] || 'not chosen')
+    };
+
+    // items
+    const d = s.draft; const dl = this.draftLine(s);
+    const rateList = isIN ? [0, 5, 18, 40].concat(s.moreRates ? [0.1, 0.25, 1.5, 3, 28] : []) : [20, 5, 0];
+    let lineText = '';
+    if (dl) {
+      const lk1 = this.calc(Object.assign({}, s, { client: Object.assign({}, s.client, { region: '', taxId: '' }) }), [dl]);
+      const unit = this.money(this.parseMoney(dl.price), c, false);
+      const sub = this.money(lk1.grossSum, c, false);
+      if (!charges || !lk1.taxSum) lineText = dl.qty + ' × ' + unit + ' = ' + sub;
+      else if (s.includesTax) lineText = dl.qty + ' × ' + unit + ' = ' + sub + ', including ' + this.money(lk1.taxSum, c, false) + ' ' + taxName;
+      else lineText = dl.qty + ' × ' + unit + ' + ' + this.money(lk1.taxSum, c, false) + ' ' + taxName + ' = ' + this.money(lk1.taxableSum + lk1.taxSum, c, false);
+    }
+    const priceNow = this.parseMoney(d.price);
+    const it = {
+      charges: charges,
+      sub: s.items.length ? 'Add another, or tap Continue.' : 'One thing at a time. You can add more.',
+      hasItems: s.items.length > 0,
+      list: s.items.map((l, i) => {
+        const pm = this.parseMoney(l.price) || 0;
+        return {
+          name: l.name, amount: this.money(pm * l.qty, c, false), removeLabel: 'Remove ' + l.name,
+          sub: l.qty + ' × ' + this.money(pm, c, false) + (charges ? ' · ' + taxName + ' ' + this.pct(l.rate) + '%' : ''),
+          remove: () => { const cur = this.st(); const items = cur.items.slice(); items.splice(i, 1); this.up({ items: items }); }
+        };
+      }),
+      hasSaved: s.mode === 'repeat' && s.savedItems.length > 0,
+      saved: s.savedItems.map((x) => ({ label: x.name + ' · ' + this.money(this.parseMoney(x.price) || 0, c, false), pick: () => this.up({ draft: { name: x.name, qty: x.qty, price: x.price, rate: x.rate } }) })),
+      rates: rateList.map((r) => ({ label: this.pct(r) + '%', on: d.rate === r, css: this.chip(d.rate === r), pick: () => { const cur = this.st(); this.up({ draft: Object.assign({}, cur.draft, { rate: r }) }); } })),
+      moreClosed: isIN && !s.moreRates,
+      inclHint: s.includesTax ? (priceNow ? this.money(priceNow, c, false) + ' is the final price. We work out the ' + taxName + ' inside it.' : 'Your price is the final price. We work out the ' + taxName + ' inside it.') : 'We add ' + this.pct(d.rate) + '% ' + taxName + ' on top of your price.',
+      switchCss: 'position: relative; flex: none; width: 52px; height: 32px; padding: 0; border: 0; border-radius: 16px; cursor: pointer; background: ' + (s.includesTax ? '#C2482A' : '#CDB3A6'),
+      knobCss: 'position: absolute; top: 3px; left: ' + (s.includesTax ? 23 : 3) + 'px; width: 26px; height: 26px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: left 160ms ease',
+      hasLine: !!dl, lineText: lineText, canAddAnother: !!dl
+    };
+
+    // when
+    const wn = {
+      opts: [[0, 'Right away'], [7, 'In 7 days'], [15, 'In 15 days'], [30, 'In 30 days']].map((o) => ({ label: o[1], on: s.terms === o[0], css: this.chip(s.terms === o[0]), pick: () => this.up({ terms: o[0] }) })),
+      due: this.fmtDay(this.addDays(t, s.terms)) + ' ' + this.addDays(t, s.terms).getUTCFullYear()
+    };
+
+    // pay
+    const seg = (sel) => 'flex: 1; height: 40px; border: 0; border-radius: 11px; font-family: inherit; font-size: 15px; cursor: pointer; ' + (sel ? 'background: #FFFFFF; box-shadow: 0 1px 3px rgba(42, 33, 53, 0.14); font-weight: 700; color: #2A2135' : 'background: transparent; font-weight: 600; color: #6B5F72');
+    const py = { isUpi: isIN && s.pay.kind === 'upi', isBank: !isIN || s.pay.kind === 'bank' };
+    py.upiCss = seg(py.isUpi); py.bankCss = seg(py.isBank);
+
+    // review
+    const due = this.addDays(t, s.terms);
+    const itemsText = s.items.length === 1 ? s.items[0].qty + ' × ' + s.items[0].name : s.items.length + ' items';
+    const payText = !this.hasPay(s) ? 'Not added' : py.isUpi ? 'UPI · ' + s.pay.upi.trim() : 'Bank account';
+    const taxText = isIN ? (reg === 'regular' ? 'GSTIN ' + s.taxId : reg === 'composition' ? 'Composition · GSTIN ' + s.taxId : 'No GSTIN, so no GST') : (reg === 'vat' ? 'VAT ' + this.fmtVat(s.taxId) : 'No VAT number, so no VAT');
+    const edit = (step) => () => this.up({ screen: step, returnTo: 'review', sheet: '' });
+    const edits = [];
+    if (s.mode === 'first') {
+      edits.push({ k: 'Your business', v: s.biz.name || '—', go: edit('name') });
+      edits.push({ k: taxName, v: taxText, go: edit('tax') });
+    }
+    edits.push({ k: "Who it's for", v: s.client.name || '—', go: edit('client') });
+    edits.push({ k: "What you're charging for", v: itemsText, go: edit('items') });
+    edits.push({ k: 'When they pay', v: (s.terms ? 'In ' + s.terms + ' days' : 'Right away') + ' · due ' + this.fmtDay(due), go: edit('when') });
+    if (s.mode === 'first') edits.push({ k: 'How they pay you', v: payText, go: edit('pay') });
+    const chans = [['whatsapp', 'WhatsApp', 'Send on WhatsApp'], ['email', 'Email', 'Send by email'], ['print', 'Print', 'Print invoice'], ['pdf', 'Save PDF', 'Save as PDF']];
+    const curChan = chans.filter((x) => x[0] === s.channel)[0] || chans[0];
+    const rv = {
+      h: Math.ceil(pv.pageH * 0.598) + 2,
+      edits: edits,
+      lock: 'Sending gives it the number ' + this.number(c, s.sentCount + 1) + ' and locks it, so your ' + (charges ? taxName + ' ' : '') + "records stay right. Not ready? Keep it as a draft.",
+      total: this.money(k.total, c, false),
+      hasTax: charges && k.taxSum > 0,
+      taxLine: (k.incl ? 'Includes ' : '') + this.money(k.taxSum, c, false) + ' ' + taxName,
+      badge: k.incl ? 'worked out for you' : 'added for you',
+      sendLabel: curChan[2],
+      channels: chans.map((x) => ({
+        label: x[1], on: s.channel === x[0], isWa: x[0] === 'whatsapp', isMail: x[0] === 'email', isPrint: x[0] === 'print', isPdf: x[0] === 'pdf',
+        pick: () => this.up({ channel: x[0] }),
+        css: 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 76px; padding: 0 2px; border-radius: 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; ' +
+          (s.channel === x[0] ? 'border: 2px solid #C2482A; background: #FDE3D8; color: #9E3820' : 'border: 1px solid #EEDFD6; background: #FFFFFF; color: #2A2135')
+      }))
+    };
+
+    // sent
+    const who = s.client.name.trim() || 'your client';
+    const sn = {
+      title: s.channel === 'print' ? 'Ready to print' : s.channel === 'pdf' ? 'Saved as a PDF' : 'Sent to ' + who,
+      sub: this.number(c, s.sentCount) + ' · ' + this.money(k.total, c, false) + ' · due ' + this.fmtDay(due),
+      step1: s.channel === 'print' || s.channel === 'pdf' ? 'Ready' : 'Sent',
+      step1Text: s.channel === 'whatsapp' ? 'WhatsApp opened with the invoice attached.' : s.channel === 'email' ? 'Your email app opened with the invoice attached.' : s.channel === 'print' ? 'Your printer options opened.' : 'The PDF is in your Files.',
+      step2: this.fmtDay(due) + ', if unpaid',
+      step2Text: 'Your phone reminds you. Nothing is sent to ' + who + '.'
+    };
+
+    // home
+    const waiting = s.history.filter((h) => h.status === 'Sent').reduce((acc, h) => acc + h.amt, 0);
+    const hm = {
+      name: s.biz.name || 'Your business',
+      tiles: [{ label: 'Waiting to be paid', value: this.money(waiting, c, false) }, { label: 'Past due date', value: this.money(0, c, false) }, { label: 'Paid this month', value: this.money(0, c, false) }],
+      list: s.history.map((h) => ({
+        num: h.num, who: h.who, amt: this.money(h.amt, c, false), status: h.status,
+        chip: 'padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; ' + (h.status === 'Sent' ? 'background: #E3F0FF; color: #1D3A5F' : 'background: #F8ECE5; color: #6B5F72')
+      }))
+    };
+
+    // sheets
+    const curRegion = s.stateFor === 'client' ? s.client.region : s.biz.region;
+    const stateList = K.states.map((x) => ({
+      name: x[1], on: curRegion === x[0],
+      css: 'display: block; width: 100%; min-height: 48px; padding: 0 12px; border: 0; border-radius: 12px; font-family: inherit; font-size: 16px; text-align: left; cursor: pointer; ' + (curRegion === x[0] ? 'background: #FDE3D8; color: #9E3820; font-weight: 700' : 'background: #FFFFFF; color: #2A2135; font-weight: 500'),
+      pick: () => {
+        const cur = this.st();
+        if (cur.stateFor === 'client') this.up({ sheet: '', client: Object.assign({}, cur.client, { region: x[0] }) });
+        else this.up({ sheet: '', biz: Object.assign({}, cur.biz, { region: x[0] }) });
+      }
+    }));
+    const moreList = [
+      { k: 'Discount', v: 'Take a % or an amount off the whole invoice' },
+      { k: 'Notes for your client', v: 'A thank-you, or how you like to be paid' },
+      { k: 'A different invoice date', v: 'If the work was done earlier' },
+      { k: 'Another currency', v: 'For clients abroad' },
+      { k: isIN ? 'Exports and reverse charge' : 'Overseas and reverse charge', v: isIN ? 'Rare. Ask your CA if you need these.' : 'Rare. Ask your accountant if you need these.' }
+    ];
+    const ct = { inCss: this.card(isIN), gbCss: this.card(!isIN) };
+
+    return {
+      s: s, at: at, sh: sh, isIN: isIN, isGB: !isIN, isStep: stepIdx >= 0, L: L, on: on,
+      inv: inv, wholeInv: this.buildInv(Object.assign({}, s, { screen: s.screen === 'pay' ? 'pay' : 'review' }), seq, true), heroInv: sampleInv, pv: pv,
+      hd: hd, nx: nx, lk: lk, ad: ad, tx: tx, cl: cl, it: it, wn: wn, py: py, rv: rv, sn: sn, hm: hm,
+      stateList: stateList, moreList: moreList, ct: ct
+    };
+  }
+}
+</script>
+</body>
+</html>
