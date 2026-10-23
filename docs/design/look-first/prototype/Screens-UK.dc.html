@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>United Kingdom differences</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&amp;family=Figtree:wght@400;500;600;700&amp;family=Noto+Sans:wght@400;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="display: flex; gap: 48px; width: 1346px; height: 964px; box-sizing: border-box; padding: 40px; background: #F1E6DF; font-family: Figtree, system-ui, sans-serif; color: #2A2135">
+  <sc-for list="{{ screens }}" as="x" hint-placeholder-count="3">
+    <div style="display: flex; flex-direction: column; gap: 12px; width: 390px; flex: none">
+      <div style="height: 28px; font-size: 18px; font-weight: 700; white-space: nowrap">{{ x.caption }}</div>
+      <div style="width: 390px; height: 844px; overflow: hidden; border-radius: 36px; box-shadow: 0 10px 30px rgba(42, 33, 53, 0.16)">
+        <dc-import name="Main" start="{{ x.start }}" country="UK" registered="{{ x.reg }}" hint-size="390px,844px"></dc-import>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1346,"height":964}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      screens: [
+        { caption: 'One tax question (has a VAT number)', start: 'tax', reg: true },
+        { caption: 'Items, with VAT', start: 'items', reg: true },
+        { caption: 'Looks good? (bank details)', start: 'review', reg: true }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
